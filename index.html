@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>The Eras Escape</title>
+  <link rel="stylesheet" href="style.css">
+  <!-- Import map: permite escribir "import ... from 'three'" en los módulos -->
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+      "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+    }
+  }
+  </script>
+</head>
+<body>
+  <canvas id="game"></canvas>
+
+  <!-- HUD: interfaz sobre el canvas -->
+  <div id="hud" class="hidden">
+    <div id="room-name"></div>
+    <div id="crosshair"></div>
+    <div id="prompt"></div>
+    <div id="toast"></div>
+    <div id="inventory">
+      <h3>Objetos encontrados: <span id="count">0</span> / 6</h3>
+      <ul id="inv-list"></ul>
+    </div>
+  </div>
+
+  <!-- Pantalla inicial / pausa -->
+  <div id="overlay">
+    <h1>THE ERAS ESCAPE</h1>
+    <p>Has entrado a un museo donde cada habitación conserva los recuerdos de una era diferente. Las puertas se han cerrado y solo existe una forma de salir: recuperar los objetos ocultos de cada era y completar todos los desafíos.</p>
+    <button id="start-btn">COMENZAR JUEGO</button>
+    <small>W A S D para moverte · Mouse para mirar · E para interactuar · Esc para pausar</small>
+  </div>
+
+  <script type="module" src="js/main.js"></script>
+</body>
+</html>

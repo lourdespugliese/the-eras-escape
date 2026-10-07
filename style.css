@@ -1,0 +1,38 @@
+* { box-sizing: border-box; margin: 0; }
+html, body { height: 100%; overflow: hidden; background: #000; color: #fff;
+  font-family: Georgia, "Times New Roman", serif; }
+#game { position: fixed; inset: 0; width: 100%; height: 100%; display: block; }
+.hidden { display: none !important; }
+
+/* Pantalla inicial */
+#overlay { position: fixed; inset: 0; z-index: 10; display: flex; flex-direction: column;
+  align-items: center; justify-content: center; gap: 1.6rem; padding: 2rem; text-align: center;
+  background: radial-gradient(circle at 50% 40%, #3b2a10, #0b0805 70%); }
+#overlay h1 { font-size: clamp(2rem, 6vw, 4.5rem); letter-spacing: .25em; font-weight: 400;
+  color: #f3d38a; text-shadow: 0 0 28px #c8923a; }
+#overlay p { max-width: 38rem; line-height: 1.7; font-size: 1.1rem; color: #eadfc8; }
+#overlay button { padding: .9rem 2.4rem; font: inherit; font-size: 1.1rem; letter-spacing: .15em;
+  color: #2a1a05; background: #f3d38a; border: 0; border-radius: 2px; cursor: pointer;
+  box-shadow: 0 0 22px rgba(243, 211, 138, .5); }
+#overlay button:hover, #overlay button:focus-visible { background: #fff0c4; outline: 2px solid #fff; }
+#overlay small { color: #a8987a; }
+
+/* HUD */
+#hud { position: fixed; inset: 0; z-index: 5; pointer-events: none; }
+#crosshair { position: absolute; top: 50%; left: 50%; width: 6px; height: 6px; margin: -3px;
+  border-radius: 50%; background: #fff; box-shadow: 0 0 4px #000; }
+#room-name { position: absolute; top: 16px; left: 50%; transform: translateX(-50%);
+  padding: .4rem 1.2rem; background: rgba(0, 0, 0, .45); border-radius: 2px; color: #f3d38a; }
+#prompt { position: absolute; top: 56%; left: 50%; transform: translateX(-50%);
+  padding: .4rem 1rem; background: rgba(0, 0, 0, .6); border-radius: 2px; }
+#prompt:empty { display: none; }
+#toast { position: absolute; bottom: 12%; left: 50%; transform: translateX(-50%);
+  max-width: 80vw; padding: .7rem 1.4rem; text-align: center; background: rgba(0, 0, 0, .7);
+  border: 1px solid #f3d38a; opacity: 0; transition: opacity .3s; }
+#toast.show { opacity: 1; }
+#inventory { position: absolute; top: 16px; right: 16px; padding: .8rem 1rem;
+  background: rgba(0, 0, 0, .55); border-radius: 2px; font-size: .95rem; }
+#inventory h3 { font-size: 1rem; font-weight: 400; margin-bottom: .5rem; color: #f3d38a; }
+#inventory ul { list-style: none; padding: 0; }
+#inventory li { opacity: .5; }
+#inventory li.got { opacity: 1; color: #fff0c4; }
