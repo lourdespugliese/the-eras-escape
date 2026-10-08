@@ -103,8 +103,9 @@ export function addWall(ctx, group, x, z, w, d, material) {
   ctx.colliders.push({ minX: x - w / 2, maxX: x + w / 2, minZ: z - d / 2, maxZ: z + d / 2 });
 }
 
-// Habitación rectangular con hueco de puerta en la pared norte (-Z).
-export function createRoom(ctx, { name, x = 0, z = 0, w = 10, d = 10, wallMat, floorMat, ceilColor = 0x3a2a14, doorWidth = 3, southOpening = 0 }) {
+// Habitación rectangular. La pared norte (-Z) tiene el hueco de la puerta (en x = doorX, por defecto
+// el centro) y, opcionalmente, huecos extra (extraGaps), por si se quieren añadir más aberturas.
+export function createRoom(ctx, { name, x = 0, z = 0, w = 10, d = 10, wallMat, floorMat, ceilColor = 0x3a2a14, doorWidth = 3, doorX = x, southOpening = 0, extraGaps = [] }) {
   const group = new THREE.Group(); ctx.scene.add(group);
   const floor = new THREE.Mesh(new THREE.PlaneGeometry(w, d), floorMat);
   floor.rotation.x = -Math.PI / 2; floor.position.set(x, 0, z);
@@ -112,7 +113,7 @@ export function createRoom(ctx, { name, x = 0, z = 0, w = 10, d = 10, wallMat, f
   ceil.rotation.x = Math.PI / 2; ceil.position.set(x, WALL_H, z);
   group.add(floor, ceil);
 
-  const t = WALL_T, side = (w - doorWidth) / 2;
+  const t = WALL_T;
   if (southOpening) {   // entrada abierta en la pared sur (conecta con el pasillo de la sala anterior)
     const s = (w - southOpening) / 2;
     addWall(ctx, group, x - southOpening / 2 - s / 2, z + d / 2, s, t, wallMat);
@@ -123,15 +124,30 @@ export function createRoom(ctx, { name, x = 0, z = 0, w = 10, d = 10, wallMat, f
   } else addWall(ctx, group, x, z + d / 2, w, t, wallMat);
   addWall(ctx, group, x - w / 2, z, t, d, wallMat);
   addWall(ctx, group, x + w / 2, z, t, d, wallMat);
-  addWall(ctx, group, x - doorWidth / 2 - side / 2, z - d / 2, side, t, wallMat);
-  addWall(ctx, group, x + doorWidth / 2 + side / 2, z - d / 2, side, t, wallMat);
-  const lintel = new THREE.Mesh(new THREE.BoxGeometry(doorWidth, WALL_H - DOOR_H, t), wallMat);
-  lintel.position.set(x, DOOR_H + (WALL_H - DOOR_H) / 2, z - d / 2);
-  group.add(lintel);
+
+  // Pared norte: se construye por tramos entre los huecos.
+  const gaps = [{ x: doorX, w: doorWidth, lintel: true }, ...extraGaps].sort((a, b) => a.x - b.x);
+  const northSegments = [];
+  const segment = (a, b) => {
+    if (b - a < 0.01) return;
+    addWall(ctx, group, (a + b) / 2, z - d / 2, b - a, t, wallMat);
+    northSegments.push([a, b]);
+  };
+  let cursor = x - w / 2;
+  gaps.forEach((gp) => {
+    segment(cursor, gp.x - gp.w / 2);
+    cursor = gp.x + gp.w / 2;
+    if (gp.lintel) {                                   // dintel sobre la puerta (sin colisión)
+      const lintel = new THREE.Mesh(new THREE.BoxGeometry(gp.w, WALL_H - DOOR_H, t), wallMat);
+      lintel.position.set(gp.x, DOOR_H + (WALL_H - DOOR_H) / 2, z - d / 2);
+      group.add(lintel);
+    }
+  });
+  segment(cursor, x + w / 2);
 
   const bounds = { minX: x - w / 2, maxX: x + w / 2, minZ: z - d / 2, maxZ: z + d / 2 };
   ctx.rooms.push({ name, bounds });
-  return { group, bounds, x, z, w, d, doorWidth };
+  return { group, bounds, x, z, w, d, doorWidth, doorX, northSegments };
 }
 
 // Puerta bloqueada. door.unlock() la abre lentamente (con sonido) y llama a onOpen().
@@ -224,7 +240,7 @@ export function buildFearlessRoom(ctx) {
   const floorTex = makeWoodTexture({ base: '#80603a', dark: '#5e4325', vertical: false });
   floorTex.repeat.set(4, 4);
   const floorMat = new THREE.MeshStandardMaterial({ map: floorTex, roughness: 0.8 });
-  const room = createRoom(ctx, { name: 'Habitación 1 — Fearless', wallMat, floorMat, ceilColor: 0x6b4a2a });
+  const room = createRoom(ctx, { name: 'Habitación 1 — Fearless', x: 2, w: 14, d: 10, doorX: 0, wallMat, floorMat, ceilColor: 0x6b4a2a });
   const g = room.group;
 
   const gold = new THREE.MeshStandardMaterial({ color: 0xd4a017, metalness: 0.8, roughness: 0.3, emissive: 0x442e00 });
@@ -234,17 +250,16 @@ export function buildFearlessRoom(ctx) {
   };
 
   // --- Detalles dorados (moldura a lo largo de las paredes) ---
-  box(9.6, 0.08, 0.04, gold, 0, 1.0, 4.77);
+  box(13.6, 0.08, 0.04, gold, 2, 1.0, 4.77);
   box(0.04, 0.08, 9.6, gold, -4.77, 1.0, 0);
-  box(0.04, 0.08, 9.6, gold, 4.77, 1.0, 0);
-  box(3.3, 0.08, 0.04, gold, -3.15, 1.0, -4.77);
-  box(3.3, 0.08, 0.04, gold, 3.15, 1.0, -4.77);
+  box(0.04, 0.08, 9.6, gold, 8.77, 1.0, 0);
+  room.northSegments.forEach(([a, b]) => box(b - a, 0.08, 0.04, gold, (a + b) / 2, 1.0, -4.77));
 
   // --- Iluminación: ambiental cálida + sol del atardecer + 2 lámparas ---
   const ambient = new THREE.AmbientLight(0xffe0b0, 0.8);
   const sun = new THREE.DirectionalLight(0xffa850, 1.6); sun.position.set(-10, 3.5, -1);
-  const lamp1 = new THREE.PointLight(0xffd070, 18, 14); lamp1.position.set(-2.5, 3.4, 2.5);
-  const lamp2 = new THREE.PointLight(0xffd070, 18, 14); lamp2.position.set(2.5, 3.4, -2.5);
+  const lamp1 = new THREE.PointLight(0xffd070, 18, 14); lamp1.position.set(-0.5, 3.4, 2.5);
+  const lamp2 = new THREE.PointLight(0xffd070, 18, 14); lamp2.position.set(5.5, 3.4, -1.5);
   g.add(ambient, sun, lamp1, lamp2);
   const lights = {   // el acertijo los usa para "iluminar la habitación" al resolverse
     k: 1, mute: 1,   // mute (0..1): lo usa la sala 2 para apagar estas luces cuando el jugador ya no está aquí
@@ -253,12 +268,13 @@ export function buildFearlessRoom(ctx) {
   };
 
   // --- Guirnaldas de luces en el techo (InstancedMesh = 1 sola draw call) ---
-  const bulbs = new THREE.InstancedMesh(new THREE.SphereGeometry(0.06, 8, 6), new THREE.MeshBasicMaterial({ color: 0xffe08a }), 39);
+  const STRANDS = [-3, 0, 3], PER = 17;
+  const bulbs = new THREE.InstancedMesh(new THREE.SphereGeometry(0.06, 8, 6), new THREE.MeshBasicMaterial({ color: 0xffe08a }), STRANDS.length * PER);
   const m4 = new THREE.Matrix4(); let n = 0;
-  [-3, 0, 3].forEach((z) => {
+  STRANDS.forEach((z) => {
     const pts = [];
-    for (let i = 0; i < 13; i++) {
-      const u = i / 12, x = -4.7 + 9.4 * u, y = 3.95 - 2 * u * (1 - u) * 1.0;
+    for (let i = 0; i < PER; i++) {
+      const u = i / (PER - 1), x = -4.7 + 13.4 * u, y = 3.95 - 2 * u * (1 - u);
       m4.setPosition(x, y, z); bulbs.setMatrixAt(n++, m4); pts.push(new THREE.Vector3(x, y, z));
     }
     g.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), new THREE.LineBasicMaterial({ color: 0x3a2a14 })));
@@ -285,17 +301,17 @@ export function buildFearlessRoom(ctx) {
   // --- Pasillo hacia la siguiente habitación (con cartel iluminado y luz blanca) ---
   const doorZ = room.z - room.d / 2, len = 4;
   const hallMat = new THREE.MeshStandardMaterial({ color: 0x5a4028, roughness: 1 });
-  addWall(ctx, g, room.x - 1.6, doorZ - len / 2, 0.2, len, hallMat);
-  addWall(ctx, g, room.x + 1.6, doorZ - len / 2, 0.2, len, hallMat);
+  addWall(ctx, g, room.doorX - 1.6, doorZ - len / 2, 0.2, len, hallMat);
+  addWall(ctx, g, room.doorX + 1.6, doorZ - len / 2, 0.2, len, hallMat);
   // (sin pared al fondo: el pasillo desemboca en la Habitación 2)
   const hallFloor = new THREE.Mesh(new THREE.PlaneGeometry(3, len), new THREE.MeshStandardMaterial({ color: 0x3a2a18 }));
-  hallFloor.rotation.x = -Math.PI / 2; hallFloor.position.set(room.x, 0.005, doorZ - len / 2);
+  hallFloor.rotation.x = -Math.PI / 2; hallFloor.position.set(room.doorX, 0.005, doorZ - len / 2);
   const hallCeil = hallFloor.clone(); hallCeil.rotation.x = Math.PI / 2; hallCeil.position.y = WALL_H;
   const sign = new THREE.Mesh(new THREE.PlaneGeometry(2.8, 0.9), new THREE.MeshBasicMaterial({
     map: makeTextTexture('Cada recuerdo abre una nueva era...', { w: 640, h: 200, color: '#fff0c4', font: '38px Georgia' }), transparent: true,
   }));
-  sign.position.set(room.x - 1.49, 2, doorZ - len / 2); sign.rotation.y = Math.PI / 2;   // sobre la pared izquierda del pasillo
-  const hallLight = new THREE.PointLight(0xffffff, 0, 9); hallLight.position.set(room.x, 3, doorZ - 2);
+  sign.position.set(room.doorX - 1.49, 2, doorZ - len / 2); sign.rotation.y = Math.PI / 2;   // sobre la pared izquierda del pasillo
+  const hallLight = new THREE.PointLight(0xffffff, 0, 9); hallLight.position.set(room.doorX, 3, doorZ - 2);
   g.add(hallFloor, hallCeil, sign, hallLight);
 
   // --- Engranajes sobre la puerta (giran mientras se abre) ---
@@ -304,7 +320,7 @@ export function buildFearlessRoom(ctx) {
   g.add(gearL, gearR);
 
   let hallBase = 0;
-  const door = createDoor(ctx, { x: room.x, z: doorZ, width: room.doorWidth });
+  const door = createDoor(ctx, { x: room.doorX, z: doorZ, width: room.doorWidth });
   ctx.updaters.push((dt) => {
     if (!door.opening) return;
     if (door.mesh.visible) { gearL.rotation.z += dt * 1.2; gearR.rotation.z -= dt * 1.2; }
@@ -319,7 +335,7 @@ export function buildFearlessRoom(ctx) {
     const c = new THREE.Mesh(candleGeo, candleMat); c.position.set(x, y + 0.07, z);
     const f = new THREE.Mesh(flameGeo, flameMat); f.position.set(x, y + 0.17, z); g.add(c, f);
   };
-  for (let i = 0; i < 4; i++) candle(Math.cos(i * Math.PI / 2 + 0.78) * 1.0, 0, Math.sin(i * Math.PI / 2 + 0.78) * 1.0); // ronda del pedestal central
+  for (let i = 0; i < 4; i++) candle(room.x + Math.cos(i * Math.PI / 2 + 0.78) * 1.0, 0, Math.sin(i * Math.PI / 2 + 0.78) * 1.0); // ronda del pedestal central
 
   // Baúl cerrado + velas
   const chestX = 2.6, chestZ = -4.2;
@@ -340,7 +356,7 @@ export function buildFearlessRoom(ctx) {
   ctx.interaction.add(guitar, { prompt: () => 'Presiona E para interactuar.', onInteract: () => ctx.audio.chord() });
 
   // Atril con libro de pistas
-  const lecX = -2.4, lecZ = 2.0;
+  const lecX = 2.0, lecZ = 2.8;   // en el medio de la sala: a un lado las historias, al otro la melodía
   const column = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.15, 1.0, 10), wood); column.position.set(lecX, 0.5, lecZ); g.add(column);
   const board = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.05, 0.5), wood); board.position.set(lecX, 1.05, lecZ); board.rotation.x = 0.5; g.add(board);
   addCollider(ctx, lecX, lecZ, 0.3);
@@ -363,15 +379,15 @@ export function buildFearlessRoom(ctx) {
   ];
   const loader = new THREE.TextureLoader();
   const photoFiles = ['assets/images/foto1.jpg', 'assets/images/foto2.jpg', 'assets/images/foto3.jpg'];
-  [-3.6, 0, 3.6].forEach((x, i) => {
-    const ph = new THREE.Group(); ph.position.set(x, 1.8, 4.76); ph.rotation.y = Math.PI; g.add(ph);
-    const frame = new THREE.Mesh(new THREE.BoxGeometry(0.8, 1.0, 0.04), gold);
+  [-3.6, 2, 6.0].forEach((x, i) => {
+    const ph = new THREE.Group(); ph.position.set(x, 2.5, 4.77); ph.rotation.y = Math.PI; g.add(ph);
+    const frame = new THREE.Mesh(new THREE.BoxGeometry(1.2, 1.5, 0.06), gold);
     // Las imágenes ya están recortadas a 704x896 (proporción 0.66:0.84 del marco), así que no se deforman.
     const tex = loader.load(photoFiles[i]);
     tex.colorSpace = THREE.SRGBColorSpace;                    // colores correctos
     tex.anisotropy = 4;                                       // más nitidez al verla de costado
-    const pic = new THREE.Mesh(new THREE.PlaneGeometry(0.66, 0.84), new THREE.MeshBasicMaterial({ map: tex }));
-    pic.position.z = 0.025; ph.add(frame, pic);
+    const pic = new THREE.Mesh(new THREE.PlaneGeometry(1.0, 1.3), new THREE.MeshBasicMaterial({ map: tex }));
+    pic.position.z = 0.04; ph.add(frame, pic);
     ctx.interaction.add(ph, { prompt: () => 'Presiona E para mirar.', onInteract: () => ctx.ui.toast(quotes[i], 5000) });
   });
 
@@ -417,7 +433,7 @@ export function buildFearlessRoom(ctx) {
       onInteract: () => { until = now + 4; swarm.forEach((s) => (s.visible = true)); ctx.audio.chime(); },
     });
   }
-  [[-4.2, -4.2], [4.2, -4.2], [-4.2, 4.2], [4.2, 4.2]].forEach(([x, z]) => addPlant(x, z));
+  [[-4.2, -4.2], [8.2, -4.2], [-4.2, 4.2], [8.2, 4.2]].forEach(([x, z]) => addPlant(x, z));
 
   return { ...room, door, lights };
 }

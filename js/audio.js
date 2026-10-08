@@ -10,6 +10,9 @@ export class AudioManager {
       this.master = this.ctx.createGain();
       this.master.gain.value = 0.8;
       this.master.connect(this.ctx.destination);
+      this.ambientGain = this.ctx.createGain();
+      this.ambientGain.gain.value = 0.35;       // volumen del fondo: 0 = silencio, 1 = el original
+      this.ambientGain.connect(this.master);
       this._ambient();
     }
     this.ctx.resume();
@@ -97,7 +100,7 @@ export class AudioManager {
   }
 
   // Una nota simple con envolvente (ataque rápido, caída exponencial).
-  _tone(freq, { type = 'sine', dur = 0.5, vol = 0.2, delay = 0, slideTo = null } = {}) {
+  _tone(freq, { type = 'sine', dur = 0.5, vol = 0.2, delay = 0, slideTo = null, dest = null } = {}) {
     if (!this.ctx) return;
     const c = this.ctx, t = c.currentTime + delay;
     const o = c.createOscillator(), g = c.createGain();
@@ -107,7 +110,7 @@ export class AudioManager {
     g.gain.setValueAtTime(0, t);
     g.gain.linearRampToValueAtTime(vol, t + 0.02);
     g.gain.exponentialRampToValueAtTime(0.001, t + dur);
-    o.connect(g).connect(this.master);
+    o.connect(g).connect(dest || this.master);
     o.start(t); o.stop(t + dur + 0.05);
   }
 
@@ -123,7 +126,7 @@ export class AudioManager {
     const lfo = c.createOscillator(); lfo.frequency.value = 0.12;      // el viento "respira"
     const lfoGain = c.createGain(); lfoGain.gain.value = 0.03;
     lfo.connect(lfoGain).connect(wind.gain);
-    src.connect(bp).connect(wind).connect(this.master);
+    src.connect(bp).connect(wind).connect(this.ambientGain);
     src.start(); lfo.start();
 
     const scale = [261.6, 293.7, 329.6, 392, 440, 523.3];             // pentatónica de Do

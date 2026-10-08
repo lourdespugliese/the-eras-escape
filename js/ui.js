@@ -15,7 +15,7 @@ export class UI {
     const $ = (id) => document.getElementById(id);
     this.overlay = $('overlay'); this.hud = $('hud'); this.startBtn = $('start-btn');
     this.roomEl = $('room-name'); this.promptEl = $('prompt'); this.toastEl = $('toast');
-    this.countEl = $('count'); this.listEl = $('inv-list');
+    this.heldEl = $('held'); this.countEl = $('count'); this.listEl = $('inv-list');
     this._toastTimer = null;
     this.updateInventory(new Set());
   }
@@ -28,6 +28,12 @@ export class UI {
     this.overlay.classList.toggle('hidden', playing);
     this.hud.classList.toggle('hidden', !playing);
     if (!playing) this.startBtn.textContent = 'CONTINUAR';
+  }
+
+  // Muestra (o borra, con texto vacío) el objeto que el jugador lleva en la mano.
+  setHeld(text) {
+    this.heldEl.textContent = text ? `Llevas: ${text}` : '';
+    this.heldEl.classList.toggle('hidden', !text);
   }
 
   setRoom(name) { if (this.roomEl.textContent !== name) this.roomEl.textContent = name; }
