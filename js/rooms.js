@@ -6,7 +6,7 @@ export const WALL_H = 4, DOOR_H = 3.2, WALL_T = 0.4;
 const TAU = Math.PI * 2;
 
 // ================= Texturas generadas con <canvas> =================
-function canvasTex(w, h, draw) {
+export function canvasTex(w, h, draw) {
   const c = document.createElement('canvas'); c.width = w; c.height = h;
   draw(c.getContext('2d'), w, h);
   const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace;
@@ -104,7 +104,7 @@ export function addWall(ctx, group, x, z, w, d, material) {
 }
 
 // Habitación rectangular con hueco de puerta en la pared norte (-Z).
-export function createRoom(ctx, { name, x = 0, z = 0, w = 10, d = 10, wallMat, floorMat, ceilColor = 0x3a2a14, doorWidth = 3 }) {
+export function createRoom(ctx, { name, x = 0, z = 0, w = 10, d = 10, wallMat, floorMat, ceilColor = 0x3a2a14, doorWidth = 3, southOpening = 0 }) {
   const group = new THREE.Group(); ctx.scene.add(group);
   const floor = new THREE.Mesh(new THREE.PlaneGeometry(w, d), floorMat);
   floor.rotation.x = -Math.PI / 2; floor.position.set(x, 0, z);
@@ -113,7 +113,14 @@ export function createRoom(ctx, { name, x = 0, z = 0, w = 10, d = 10, wallMat, f
   group.add(floor, ceil);
 
   const t = WALL_T, side = (w - doorWidth) / 2;
-  addWall(ctx, group, x, z + d / 2, w, t, wallMat);
+  if (southOpening) {   // entrada abierta en la pared sur (conecta con el pasillo de la sala anterior)
+    const s = (w - southOpening) / 2;
+    addWall(ctx, group, x - southOpening / 2 - s / 2, z + d / 2, s, t, wallMat);
+    addWall(ctx, group, x + southOpening / 2 + s / 2, z + d / 2, s, t, wallMat);
+    const sl = new THREE.Mesh(new THREE.BoxGeometry(southOpening, WALL_H - DOOR_H, t), wallMat);
+    sl.position.set(x, DOOR_H + (WALL_H - DOOR_H) / 2, z + d / 2);
+    group.add(sl);
+  } else addWall(ctx, group, x, z + d / 2, w, t, wallMat);
   addWall(ctx, group, x - w / 2, z, t, d, wallMat);
   addWall(ctx, group, x + w / 2, z, t, d, wallMat);
   addWall(ctx, group, x - doorWidth / 2 - side / 2, z - d / 2, side, t, wallMat);
@@ -240,7 +247,9 @@ export function buildFearlessRoom(ctx) {
   const lamp2 = new THREE.PointLight(0xffd070, 18, 14); lamp2.position.set(2.5, 3.4, -2.5);
   g.add(ambient, sun, lamp1, lamp2);
   const lights = {   // el acertijo los usa para "iluminar la habitación" al resolverse
-    set(k) { ambient.intensity = 0.8 * k; sun.intensity = 1.6 * k; lamp1.intensity = lamp2.intensity = 18 * k; },
+    k: 1, mute: 1,   // mute (0..1): lo usa la sala 2 para apagar estas luces cuando el jugador ya no está aquí
+    set(k) { this.k = k; this.apply(); },
+    apply() { const m = this.k * this.mute; ambient.intensity = 0.8 * m; sun.intensity = 1.6 * m; lamp1.intensity = lamp2.intensity = 18 * m; },
   };
 
   // --- Guirnaldas de luces en el techo (InstancedMesh = 1 sola draw call) ---
@@ -278,14 +287,14 @@ export function buildFearlessRoom(ctx) {
   const hallMat = new THREE.MeshStandardMaterial({ color: 0x5a4028, roughness: 1 });
   addWall(ctx, g, room.x - 1.6, doorZ - len / 2, 0.2, len, hallMat);
   addWall(ctx, g, room.x + 1.6, doorZ - len / 2, 0.2, len, hallMat);
-  addWall(ctx, g, room.x, doorZ - len, 3.4, 0.2, hallMat);
+  // (sin pared al fondo: el pasillo desemboca en la Habitación 2)
   const hallFloor = new THREE.Mesh(new THREE.PlaneGeometry(3, len), new THREE.MeshStandardMaterial({ color: 0x3a2a18 }));
   hallFloor.rotation.x = -Math.PI / 2; hallFloor.position.set(room.x, 0.005, doorZ - len / 2);
   const hallCeil = hallFloor.clone(); hallCeil.rotation.x = Math.PI / 2; hallCeil.position.y = WALL_H;
   const sign = new THREE.Mesh(new THREE.PlaneGeometry(2.8, 0.9), new THREE.MeshBasicMaterial({
     map: makeTextTexture('Cada recuerdo abre una nueva era...', { w: 640, h: 200, color: '#fff0c4', font: '38px Georgia' }), transparent: true,
   }));
-  sign.position.set(room.x, 2, doorZ - len + 0.12);
+  sign.position.set(room.x - 1.49, 2, doorZ - len / 2); sign.rotation.y = Math.PI / 2;   // sobre la pared izquierda del pasillo
   const hallLight = new THREE.PointLight(0xffffff, 0, 9); hallLight.position.set(room.x, 3, doorZ - 2);
   g.add(hallFloor, hallCeil, sign, hallLight);
 
@@ -294,11 +303,12 @@ export function buildFearlessRoom(ctx) {
   gearL.position.set(-2.6, 2.7, doorZ + 0.3); gearR.position.set(2.6, 2.7, doorZ + 0.3);
   g.add(gearL, gearR);
 
+  let hallBase = 0;
   const door = createDoor(ctx, { x: room.x, z: doorZ, width: room.doorWidth });
   ctx.updaters.push((dt) => {
     if (!door.opening) return;
     if (door.mesh.visible) { gearL.rotation.z += dt * 1.2; gearR.rotation.z -= dt * 1.2; }
-    hallLight.intensity = Math.min(14, hallLight.intensity + dt * 5);   // luz blanca del pasillo
+    hallBase = Math.min(14, hallBase + dt * 5); hallLight.intensity = hallBase * lights.mute;   // luz blanca del pasillo
   });
 
   // ================= Decoración =================

@@ -12,6 +12,8 @@ import { Particles } from './particles.js';
 import { buildFearlessRoom } from './rooms.js';
 import { createFearlessPuzzle } from './puzzles.js';
 import { createGlitter } from './glitter.js';
+import { buildRoom1989 } from './room1989.js';
+import { buildRoomReputation } from './roomReputation.js';
 
 const canvas = document.getElementById('game');
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
@@ -48,6 +50,8 @@ const ctx = {
 const room1 = buildFearlessRoom(ctx);
 ctx.glitter = createGlitter(ctx);            // glitter por toda la sala
 createFearlessPuzzle(ctx, room1);
+const room2 = buildRoom1989(ctx, room1);      // Habitación 2 (sala + acertijo)
+buildRoomReputation(ctx, room2);             // Habitación 3 (sala + acertijo)
 
 ui.onStart(() => { audio.start(); player.lock(); });   // el audio necesita un click del usuario
 player.controls.addEventListener('lock', () => { audio.start(); ui.showGame(true); });
