@@ -13,7 +13,7 @@ import { buildFearlessRoom } from './rooms.js';
 import { createFearlessPuzzle } from './puzzles.js';
 import { createGlitter } from './glitter.js';
 import { buildRoom1989 } from './room1989.js';
-import { buildRoomReputation } from './roomreputation.js';
+import { buildRoomReputation } from './roomReputation.js';
 
 const canvas = document.getElementById('game');
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
@@ -23,7 +23,7 @@ renderer.setSize(innerWidth, innerHeight);
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x120c05);
 const camera = new THREE.PerspectiveCamera(70, innerWidth / innerHeight, 0.1, 100);
-camera.position.set(2, 1.7, 4.0);
+camera.position.set(0, 1.7, 3.8);
 
 // Bloom: solo se usa cuando ctx.fx.bloom = true (así no cuesta rendimiento antes de resolver el acertijo).
 const composer = new EffectComposer(renderer);
@@ -48,7 +48,7 @@ const ctx = {
 };
 
 const room1 = buildFearlessRoom(ctx);
-ctx.glitter = createGlitter(ctx, { count: 300, size: { x: 13.5, y: 3.6, z: 9.5 }, center: [2, 0, 0] });   // glitter por toda la sala
+ctx.glitter = createGlitter(ctx);            // glitter por toda la sala
 createFearlessPuzzle(ctx, room1);
 const room2 = buildRoom1989(ctx, room1);      // Habitación 2 (sala + acertijo)
 buildRoomReputation(ctx, room2);             // Habitación 3 (sala + acertijo)
