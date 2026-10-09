@@ -14,11 +14,11 @@ const CZ = -14;                                          // centro de la sala en
 const PINK = 0xff2d95, BLUE = 0x2de2ff;
 // Canción del toca discos secreto (el quiosco). Copia tu archivo de audio en esa ruta (relativa a index.html).
 // Si el archivo no existe, el disco toca un tema synthwave original generado por el propio juego (audio.js).
-const RECORD = { url: 'assets/audio/song.mp3', title: 'Welcome to New York', fallbackTitle: 'Neon Skyline (pista original)' };
+// Si el archivo no existe, el disco toca un tema synthwave original generado por el propio juego (audio.js).
+const RECORD = { url: 'assets/audio/Blank Space Taylors Version.mp3', title: "Blank Space (Taylor's Version)", fallbackTitle: 'Neon Skyline (pista original)' };
 const clamp = THREE.MathUtils.clamp;
 // Color "más brillante que blanco": con el Bloom activo hace que el material brille como un neón.
 export const neon = (hex, k = 2.5) => new THREE.Color(hex).multiplyScalar(k);
-
 // ================= Texturas (canvas) =================
 // Se dibuja un skyline aleatorio (dos capas de edificios, la delantera con ventanas encendidas).
 function drawSkyline(g, w, h, horizon) {

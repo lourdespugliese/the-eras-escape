@@ -5,6 +5,7 @@
 // a la DERECHA (este) cuadros + pedestales donde se colocan los objetos.
 // Se pueden resolver en cualquier orden. Cuando ambos están completos, emerge la guitarra.
 import * as THREE from 'three';
+import { createSongClips } from './songclips.js';
 import { makeButterfly, flap, makeGuitar, makeSymbolTexture, makeTextTexture, addCollider } from './rooms.js';
 
 // ---------- Datos del acertijo 1 (melodía) ----------
@@ -18,9 +19,12 @@ const FRAME_X = 8.77, PLINTH_X = 8.25, PLINTH_TOP = 0.95, TABLE_TOP = 0.74;
 // Cada cuadro vacío lleva una placa con el nombre de la canción; "item" es el objeto correcto.
 // "image" = imagen del cuadro (ya recortada a 1000x1300 px, la proporción del marco 1.0 x 1.3 m).
 const SONGS = [
-  { title: 'Love Story', item: 'ring', z: -3, image: 'assets/images/historia1.jpg' },
-  { title: 'You Belong With Me', item: 'jacket', z: 0, image: 'assets/images/historia2.jpg' },
-  { title: 'Fearless', item: 'star', z: 3, image: 'assets/images/historia3.jpg' },
+  { title: 'Love Story', item: 'ring', z: -3, image: 'assets/images/historia1.jpg', jingle: 0,
+    clip: { url: 'assets/audio/Love Story.mp3', start: 0, dur: 7, volume: 1 } },
+  { title: 'You Belong With Me', item: 'jacket', z: 0, image: 'assets/images/historia2.jpg', jingle: 1,
+    clip: { url: 'assets/audio/You Belong With Me.mp3', start: 0, dur: 7, volume: 0.8 } },
+  { title: 'Fearless', item: 'star', z: 3, image: 'assets/images/historia3.jpg', jingle: 2,
+    clip: { url: 'assets/audio/Fearless.mp3', start: 0, dur: 7, volume: 0.7 } },
 ];
 // true  = los cuadros empiezan vacíos y las imágenes aparecen al completar la historia.
 // false = las imágenes se ven desde el principio.
@@ -199,6 +203,8 @@ export function createFearlessPuzzle(ctx, room) {
 
   // ================= ACERTIJO 2: completar la historia =================
   let held = null, storyBusy = false;
+  const clips = createSongClips(ctx);
+  SONGS.forEach((s) => clips.preload(s));
 
   // Banner sobre los cuadros
   const banner = new THREE.Mesh(new THREE.PlaneGeometry(3.2, 0.5), new THREE.MeshBasicMaterial({
@@ -280,8 +286,15 @@ export function createFearlessPuzzle(ctx, room) {
       it.group.position.set(PLINTH_X, PLINTH_TOP, pl.song.z);
       it.group.rotation.y = -Math.PI / 2;               // de frente a la sala
       pl.item = it;
-      ctx.audio.note(440);
       ctx.particles.burst(tmp.set(PLINTH_X, 1.1, pl.song.z), 15);
+      if (it.id === pl.song.item) {                      // ¡objeto correcto! suena un fragmento de su canción
+        ctx.ui.toast(`♪ ${pl.song.title}`, 4000);
+        ctx.particles.burst(tmp.set(PLINTH_X, 1.3, pl.song.z), 25, { speed: 1.2, up: 1.2 });
+        clips.play(pl.song);
+      } else {
+        clips.stop();
+        ctx.audio.note(440);
+      }
       evaluate();
     } else if (pl.item) {
       pickUp(pl.item); pl.item = null;
@@ -296,9 +309,9 @@ export function createFearlessPuzzle(ctx, room) {
     if (plinths.every((p) => p.item.id === p.song.item)) { solveStory(); return; }
     storyBusy = true;
     ctx.audio.error();
-    ctx.ui.toast('Algo no encaja en estas historias... los objetos regresan a su lugar.', 3000);
+    ctx.ui.toast('Algo no encaja en estas historias... los objetos equivocados regresan a su lugar.', 3000);
     setTimeout(() => {
-      plinths.forEach((p) => { sendHome(p.item); p.item = null; });
+      plinths.forEach((p) => { if (p.item.id !== p.song.item) { sendHome(p.item); p.item = null; } });   // los correctos se quedan
       storyBusy = false;
     }, 1800);
   }
