@@ -10,9 +10,6 @@ export class AudioManager {
       this.master = this.ctx.createGain();
       this.master.gain.value = 0.8;
       this.master.connect(this.ctx.destination);
-      this.ambientGain = this.ctx.createGain();
-      this.ambientGain.gain.value = 0.35;       // volumen del fondo: 0 = silencio, 1 = el original
-      this.ambientGain.connect(this.master);
       this._ambient();
     }
     this.ctx.resume();
@@ -100,7 +97,7 @@ export class AudioManager {
   }
 
   // Una nota simple con envolvente (ataque rápido, caída exponencial).
-  _tone(freq, { type = 'sine', dur = 0.5, vol = 0.2, delay = 0, slideTo = null, dest = null } = {}) {
+  _tone(freq, { type = 'sine', dur = 0.5, vol = 0.2, delay = 0, slideTo = null } = {}) {
     if (!this.ctx) return;
     const c = this.ctx, t = c.currentTime + delay;
     const o = c.createOscillator(), g = c.createGain();
@@ -110,7 +107,7 @@ export class AudioManager {
     g.gain.setValueAtTime(0, t);
     g.gain.linearRampToValueAtTime(vol, t + 0.02);
     g.gain.exponentialRampToValueAtTime(0.001, t + dur);
-    o.connect(g).connect(dest || this.master);
+    o.connect(g).connect(this.master);
     o.start(t); o.stop(t + dur + 0.05);
   }
 
@@ -126,7 +123,7 @@ export class AudioManager {
     const lfo = c.createOscillator(); lfo.frequency.value = 0.12;      // el viento "respira"
     const lfoGain = c.createGain(); lfoGain.gain.value = 0.03;
     lfo.connect(lfoGain).connect(wind.gain);
-    src.connect(bp).connect(wind).connect(this.ambientGain);
+    src.connect(bp).connect(wind).connect(this.master);
     src.start(); lfo.start();
 
     const scale = [261.6, 293.7, 329.6, 392, 440, 523.3];             // pentatónica de Do
@@ -144,6 +141,46 @@ export class AudioManager {
   // ---- Efectos ----
   note(freq) { this._tone(freq, { type: 'triangle', dur: 0.9, vol: 0.25 }); this._tone(freq * 2, { dur: 0.6, vol: 0.06 }); }
   error() { this._tone(220, { type: 'sawtooth', dur: 0.45, vol: 0.12, slideTo: 90 }); }
+  crack() {   // cristal que se quiebra (espejo incorrecto)
+    if (!this.ctx) return;
+    const c = this.ctx, t = c.currentTime, n = Math.floor(c.sampleRate * 0.45);
+    const b = c.createBuffer(1, n, c.sampleRate), d = b.getChannelData(0);
+    for (let i = 0; i < n; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / n, 3);
+    const s = c.createBufferSource(), f = c.createBiquadFilter(), g = c.createGain();
+    s.buffer = b; f.type = 'highpass'; f.frequency.value = 2500; g.gain.value = 0.3;
+    s.connect(f); f.connect(g); g.connect(this.master); s.start(t);
+    this._tone(1900, { dur: 0.3, vol: 0.05, slideTo: 300 });
+  }
+  hiss() {    // siseo lejano de serpiente (ambiente misterioso)
+    if (!this.ctx) return;
+    const c = this.ctx, t = c.currentTime, n = Math.floor(c.sampleRate * 1.5);
+    const b = c.createBuffer(1, n, c.sampleRate), d = b.getChannelData(0);
+    for (let i = 0; i < n; i++) d[i] = Math.random() * 2 - 1;
+    const s = c.createBufferSource(), f = c.createBiquadFilter(), g = c.createGain();
+    s.buffer = b; f.type = 'bandpass'; f.frequency.value = 5000; f.Q.value = 0.8;
+    g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(0.05, t + 0.35); g.gain.exponentialRampToValueAtTime(0.001, t + 1.4);
+    s.connect(f); f.connect(g); g.connect(this.master); s.start(t);
+  }
+  swoosh() {  // bate cortando el aire
+    if (!this.ctx) return;
+    const c = this.ctx, t = c.currentTime, n = Math.floor(c.sampleRate * 0.3);
+    const b = c.createBuffer(1, n, c.sampleRate), d = b.getChannelData(0);
+    for (let i = 0; i < n; i++) d[i] = Math.random() * 2 - 1;
+    const s = c.createBufferSource(), f = c.createBiquadFilter(), g = c.createGain();
+    s.buffer = b; f.type = 'bandpass'; f.Q.value = 1.2; f.frequency.setValueAtTime(600, t); f.frequency.exponentialRampToValueAtTime(2500, t + 0.2);
+    g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(0.12, t + 0.08); g.gain.exponentialRampToValueAtTime(0.001, t + 0.28);
+    s.connect(f); f.connect(g); g.connect(this.master); s.start(t);
+  }
+  thud() {    // impacto del bate
+    if (!this.ctx) return;
+    this._tone(110, { dur: 0.25, vol: 0.35, slideTo: 45 });
+    const c = this.ctx, t = c.currentTime, n = Math.floor(c.sampleRate * 0.08);
+    const b = c.createBuffer(1, n, c.sampleRate), d = b.getChannelData(0);
+    for (let i = 0; i < n; i++) d[i] = (Math.random() * 2 - 1) * (1 - i / n);
+    const s = c.createBufferSource(), f = c.createBiquadFilter(), g = c.createGain();
+    s.buffer = b; f.type = 'lowpass'; f.frequency.value = 1200; g.gain.value = 0.3;
+    s.connect(f); f.connect(g); g.connect(this.master); s.start(t);
+  }
   success() {
     [523.25, 659.25, 783.99, 1046.5, 1318.5].forEach((f, i) => this._tone(f, { type: 'triangle', dur: 1.4, vol: 0.18, delay: i * 0.16 }));
     [523.25, 659.25, 783.99].forEach((f) => this._tone(f, { dur: 2.2, vol: 0.12, delay: 0.9 }));

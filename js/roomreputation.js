@@ -13,11 +13,17 @@ import { addBox, addTube, neon } from './room1989.js';
 import { createGlitter } from './glitter.js';
 
 const TAU = Math.PI * 2;
-const CZ = -29, SIZE = 12;                               // centro en Z y lado de la sala (sala 2 = -14; su pasillo termina en z = -23)
+const SIZE = 12;                                         // lado de la sala (las anteriores: 10 y 13 m); su Z se calcula a partir de la sala 2
+const HALL = 4;                                          // largo del pasillo entre salas
 const WORD = 'REPUTATION';
 const GOLD = 0xd4a640, RED = 0xd01828;
 const COVER_URL = 'assets/images/reputation.png';        // portada del álbum (copiar el archivo a esa ruta)
 const clamp = THREE.MathUtils.clamp;
+// Combate con el bate (se pueden ajustar)
+const HITS_PER_SNAKE = 2;       // golpes que aguanta cada serpiente
+const REACH = 3.2;              // alcance del bate (m)
+const AIM = 0.45;               // tolerancia de puntería: distancia máxima (m) entre la mira y el cuerpo de la serpiente
+const SWING_DUR = 0.4;          // duración del golpe (s)
 
 // Espejos del suelo (x, z locales; el centro de la sala es 0,0 y el norte es -Z). Hay 10: 9 letras + la H de engaño.
 // Recorrido correcto: R(-1.2,-2.6) E P U T A T I O N, un zigzag que da la vuelta a la sala.
@@ -194,6 +200,7 @@ function makeBigSnake(points, R, mats, up, heads) {
   const head = makeHead(R * 1.5, mats), tan = curve.getTangent(1);
   head.position.copy(curve.getPoint(1)).addScaledVector(tan, -R * 0.4); orientHead(head, tan, up);
   grp.add(head); heads.push(head);
+  grp.userData.curve = curve;
   return grp;
 }
 // Camino ondulante ("reptación") entre a y b sobre una pared. plane 'zy': a,b = [z, y] con x = depth · plane 'xy': a,b = [x, y] con z = depth.
@@ -206,9 +213,23 @@ function slither(plane, a, b, amp, waves, depth, n = 30) {
   return pts;
 }
 
+// Bate de madera (el mango en y=0, la punta en y=0.89): perfil de revolución + cinta de agarre + aro dorado.
+function makeBat() {
+  const grp = new THREE.Group();
+  const prof = [[0, 0], [0.018, 0], [0.017, 0.02], [0.014, 0.05], [0.013, 0.3], [0.016, 0.45], [0.026, 0.6], [0.034, 0.72], [0.036, 0.8], [0.032, 0.85], [0.02, 0.88], [0, 0.89]].map(([r, y]) => new THREE.Vector2(r, y));
+  const std = (color, o = {}) => new THREE.MeshStandardMaterial({ color, roughness: 0.55, ...o });
+  grp.add(new THREE.Mesh(new THREE.LatheGeometry(prof, 20), std(0xb98245, { emissive: 0x2a180a })));
+  const grip = new THREE.Mesh(new THREE.CylinderGeometry(0.0145, 0.0155, 0.26, 14), std(0x1a1a1a, { emissive: 0x050505 })); grip.position.y = 0.16; grp.add(grip);
+  const knob = new THREE.Mesh(new THREE.SphereGeometry(0.022, 10, 8), std(0x1a1a1a)); knob.position.y = 0.005; grp.add(knob);
+  const band = new THREE.Mesh(new THREE.CylinderGeometry(0.0175, 0.0175, 0.025, 14), std(GOLD, { metalness: 0.55, roughness: 0.4, emissive: 0x3a2808 })); band.position.y = 0.34; grp.add(band);
+  return grp;
+}
+
 // ================= Habitación 3: Reputation =================
 export function buildRoomReputation(ctx, room2) {
   const cam = ctx.camera.position;
+  const hallStart = room2.bounds.minZ;                    // puerta de la sala 2 (z del mundo)
+  const CZ = hallStart - HALL - SIZE / 2;                 // centro de esta sala: justo después del pasillo
   const half = SIZE / 2;                                  // 6 -> el interior llega a ±5.8
   const wallTex = makeWallTexture(); wallTex.wrapS = wallTex.wrapT = THREE.RepeatWrapping;
   const wallMat = new THREE.MeshStandardMaterial({ map: wallTex, roughness: 0.55, metalness: 0.25, emissive: 0x2a1c06 });
@@ -294,13 +315,22 @@ export function buildRoomReputation(ctx, room2) {
     ctx.interaction.add(m, { prompt: () => 'Presiona E para mirar el espejo.', onInteract: () => ctx.ui.toast('Solo devuelve tu mirada... el camino está en el suelo.', 4000) });
   });
 
+  const targets = [];                                     // serpientes golpeables
   // --- Serpientes grandes en las paredes (detrás del trono, en el oeste y sobre la pared norte) ---
   [
     { r: 0.11, up: [-1, 0, 0], pts: slither('zy', [-5.0, 0.15], [0.3, 3.1], 0.45, 2.5, 5.66) },        // este: sube hacia el trono
     { r: 0.11, up: [-1, 0, 0], pts: slither('zy', [5.0, 0.15], [-0.3, 3.2], 0.45, 2.5, 5.66) },
     { r: 0.07, up: [1, 0, 0], pts: slither('zy', [-5.2, 0.5], [5.2, 0.5], 0.22, 6, -5.66) },          // oeste: a ras de suelo
     { r: 0.08, up: [0, 0, 1], pts: slither('xy', [-5.6, 3.78], [0.9, 3.78], 0.1, 4, -5.64) },         // norte: sobre la portada y la puerta
-  ].forEach((sn) => g.add(makeBigSnake(sn.pts, sn.r, snakeMats, new THREE.Vector3(...sn.up), heads)));
+  ].forEach((sn) => {
+    // Cada serpiente tiene su propio material (para parpadear sola) y un pivote en su centro (para encogerse al caer).
+    const mats = { body: snakeMats.body.clone(), belly: snakeMats.belly.clone(), eye: snakeMats.eye };
+    const grp = makeBigSnake(sn.pts, sn.r, mats, new THREE.Vector3(...sn.up), heads);
+    const pts = grp.userData.curve.getPoints(40).map((p) => new THREE.Vector3(p.x, p.y, p.z + CZ));   // puntos en coordenadas del mundo (para la puntería)
+    const c = new THREE.Vector3(); pts.forEach((p) => c.add(p)); c.divideScalar(pts.length); c.z -= CZ;
+    const pivot = new THREE.Group(); pivot.position.copy(c); grp.position.copy(c).negate(); pivot.add(grp); g.add(pivot);
+    targets.push({ pivot, mats, pts, base: c.clone(), baseEm: mats.body.emissive.clone(), hp: HITS_PER_SNAKE, hitAt: -9, dead: false, deadAt: 0 });
+  });
 
   // --- Trono dorado con calaveras en los brazos (pared este, mira al oeste) ---
   const throne = new THREE.Group(); throne.position.set(5.1, 0, 0); throne.rotation.y = -Math.PI / 2; g.add(throne);
@@ -375,16 +405,70 @@ export function buildRoomReputation(ctx, room2) {
     enabled: () => snake.visible && ready,
     onInteract: () => {
       snake.visible = false; ctx.audio.reward(); ctx.collect('snake');
-      ctx.ui.toast('Has recuperado el recuerdo de Reputation.', 5000);
+      door.unlock();                                      // la puerta solo se abre al recoger el premio
+      if (batHeld) {                                      // el bate desaparece
+        batHeld = false; heldBat.visible = false;
+        ctx.camera.getWorldDirection(aimDir); ctx.particles.burst(aimV.copy(cam).addScaledVector(aimDir, 0.8), 25, { speed: 0.6, up: 0.8 });
+      }
+      ctx.ui.toast('Has recuperado el recuerdo de Reputation. El bate se desvanece y la puerta se desbloquea.', 5500);
     },
   });
+
+  // --- El bate: aparece al completar la palabra; sirve para golpear a TODAS las serpientes de la sala ---
+  const batPickup = new THREE.Group(); batPickup.visible = false; g.add(batPickup);
+  const batModel = makeBat(); batModel.rotation.z = 0.6; batModel.position.y = -0.4; batPickup.add(batModel);
+  const batGlow = new THREE.Sprite(new THREE.SpriteMaterial({ map: glowTex, color: 0xffd36a, blending: THREE.AdditiveBlending, transparent: true, depthWrite: false })); batGlow.scale.setScalar(1.1); batPickup.add(batGlow);
+  let batEmergeAt = -1, batReady = false, batHeld = false;
+  const heldBat = new THREE.Group(); heldBat.visible = false; heldBat.add(makeBat());                      // el bate "en la mano" cuelga de la cámara
+  heldBat.traverse((o) => { if (o.isMesh) { o.material.depthTest = false; o.renderOrder = 999; } });       // siempre se dibuja encima (no atraviesa paredes)
+  if (!ctx.camera.parent) ctx.scene.add(ctx.camera);                                                     // para que se vea lo que cuelga de la cámara
+  ctx.camera.add(heldBat);
+  ctx.interaction.add(batPickup, {
+    prompt: () => 'Presiona E para recoger el bate.',
+    enabled: () => batPickup.visible && batReady,
+    onInteract: () => {
+      batPickup.visible = false; batHeld = true; heldBat.visible = true; ctx.audio.reward();
+      ctx.ui.toast('Tienes un bate. Haz clic con el mouse para golpear: acaba con todas las criticas de la sala.', 7000);
+    },
+  });
+  let swingStart = -9, swingHit = true, nowRef = 0;
+  const swing = () => { if (!batHeld || nowRef - swingStart < SWING_DUR + 0.05) return; swingStart = nowRef; swingHit = false; ctx.audio.swoosh(); };
+  document.addEventListener('mousedown', (e) => { if (e.button === 0 && document.pointerLockElement) swing(); });   // clic izquierdo (solo con el juego activo)
+  const aimDir = new THREE.Vector3(), aimV = new THREE.Vector3();
+  function doHit() {                                      // a mitad del golpe: ¿hay una serpiente cerca de la mira, al alcance?
+    ctx.camera.getWorldDirection(aimDir);
+    let best = null, bestD = Infinity, hitP = null;
+    targets.forEach((tg) => {
+      if (tg.dead) return;
+      tg.pts.forEach((p) => {
+        aimV.copy(p).sub(cam); const along = aimV.dot(aimDir);
+        if (along < 0.2 || along > REACH) return;
+        const d = aimV.addScaledVector(aimDir, -along).length();
+        if (d < AIM && d < bestD) { best = tg; bestD = d; hitP = p; }
+      });
+    });
+    if (!best) return;                                    // golpe al aire
+    best.hp--; best.hitAt = nowRef; ctx.audio.thud();
+    ctx.particles.burst(hitP, 18, { speed: 0.9, up: 1 });
+    if (best.hp > 0) return;
+    best.dead = true; best.deadAt = nowRef; ctx.audio.hiss();                              // la serpiente cae y se desvanece
+    best.pts.filter((_, i) => i % 10 === 0).forEach((p) => ctx.particles.burst(p, 10, { speed: 0.7, up: 1 }));
+    const left = targets.filter((tg) => !tg.dead).length;
+    if (left) ctx.ui.toast(`Serpientes restantes: ${left}`, 2500); else prizeAppear();
+  }
+  function prizeAppear() {                                // todas derrotadas: recién ahora sale el premio
+    ctx.game.solved++; ctx.audio.success(); emergeAt = nowRef;
+    snake.visible = true; snake.position.set(5.0, 0.8, 0);
+    ctx.particles.burst(wp(5.0, 1.2, 0), 70, { speed: 1.4, up: 1.8 });
+    ctx.ui.toast('Las serpientes se desvanecen... algo plateado se mueve sobre el trono.', 5500);
+  }
 
   // --- Polvo dorado y brasas rojas flotando ---
   createGlitter(ctx, { count: 140, size: { x: 11, y: 3.6, z: 11 }, center: [0, 0, CZ], color: 0xffd36a }).uniforms.uIntensity.value = 0.8;
   createGlitter(ctx, { count: 60, size: { x: 11, y: 3.6, z: 11 }, center: [0, 0, CZ], color: 0xff2030 }).uniforms.uIntensity.value = 0.6;
 
   // --- Puerta de salida (norte) + pasillo hacia la siguiente era ---
-  const doorZ = CZ - half, len = 4;
+  const doorZ = CZ - half, len = HALL;
   const door = createDoor(ctx, { x: 0, z: doorZ, width: room.doorWidth });
   door.mesh.material.color.set(0x8a6a1e); door.mesh.material.emissive.set(0x2a1a04); door.mesh.material.metalness = 0.5;
   addTube(g, 0.07, DOOR_H, 0.07, RED, -1.56, DOOR_H / 2, -half + 0.02, 1.6); addTube(g, 0.07, DOOR_H, 0.07, RED, 1.56, DOOR_H / 2, -half + 0.02, 1.6);
@@ -427,23 +511,23 @@ export function buildRoomReputation(ctx, room2) {
   let boardWrongUntil = 0;
 
   function solve() {
-    solved = true; ctx.game.solved++;
+    solved = true;
     boardState = 'solved'; boardDirty = true;
     tiles.forEach((tl) => (tl.lit = tl.l !== 'H'));        // celebración: se encienden todas las letras de la palabra (la H no)
-    ctx.audio.success(); redPop = 0; emergeAt = now;
-    snake.visible = true; snake.position.set(5.0, 0.8, 0);
+    ctx.audio.success(); redPop = 0;
+    batPickup.visible = true; batEmergeAt = now; batReady = false;
+    batPickup.position.set(4.95, 0.8, 0);
     ctx.particles.burst(wp(5.0, 1.2, 0), 70, { speed: 1.4, up: 1.8 });
-    door.unlock();                                        // (para desbloquear al RECOGER la serpiente, mover esta línea al onInteract de arriba)
-    ctx.ui.toast('La palabra está completa... una nueva etapa comienza. Algo plateado se mueve sobre el trono. La puerta se desbloquea.', 6000);
+    ctx.ui.toast('La palabra está completa... algo aparece sobre el trono.', 5000);
   }
 
   // ================= Animación y luces (cada frame) =================
   let nextHiss = 15;
   ctx.updaters.push((dt, t) => {
-    now = t;
+    now = t; nowRef = t;
     const z = cam.z;
-    const k3 = clamp((-z - 19) / 4, 0, 1);               // 0 en la sala 2 -> 1 dentro de la sala 3
-    room2.lights.mute = clamp((z + 23) / 4, 0.04, 1);    // las luces de la sala 2 se apagan al cruzar el pasillo
+    const k3 = clamp((hallStart - z) / HALL, 0, 1);               // 0 en la sala 2 -> 1 dentro de la sala 3
+    room2.lights.mute = clamp((z - (hallStart - HALL)) / HALL, 0.04, 1);    // las luces de la sala 2 se apagan al cruzar el pasillo
     redPop = Math.max(0, redPop - dt * 1.2);
     goldBoost += ((solved ? 1.5 : 1) - goldBoost) * Math.min(1, dt * 1.5);
     const base = k3 * lights.mute;
@@ -480,6 +564,29 @@ export function buildRoomReputation(ctx, room2) {
       snake.rotation.y += dt * 0.8;
       if (e >= 1) ready = true;
     }
+    if (batPickup.visible) {                              // el bate se eleva sobre el trono y gira
+      const e = clamp((t - batEmergeAt) / 2.5, 0, 1), k = 1 - Math.pow(1 - e, 3);
+      batPickup.position.set(4.95, 0.8 + 0.8 * k + (batReady ? Math.sin(t * 2) * 0.04 : 0), 0);
+      batPickup.rotation.y += dt * 1.2;
+      if (e >= 1) batReady = true;
+    }
+    if (heldBat.visible) {                                // bate en la mano: reposo abajo a la derecha + animación del golpe
+      const sw = clamp((t - swingStart) / SWING_DUR, 0, 1), sn = Math.sin(Math.PI * sw);      // 0 -> 1 -> 0
+      heldBat.position.set(0.38 - 0.35 * sn, -0.34 + 0.05 * sn + Math.sin(t * 1.5) * 0.006, -0.62 - 0.3 * sn);
+      heldBat.rotation.set(-0.5 - 1.2 * sn, 0, 0.35 - 0.6 * sn);
+    }
+    if (batHeld && !swingHit && t - swingStart >= 0.14) { swingHit = true; doHit(); }
+    targets.forEach((tg) => {                             // reacción a los golpes: parpadeo rojo + sacudida; al caer, se encoge
+      const e = tg.mats.body.emissive;
+      if (tg.dead) {
+        const k = clamp((t - tg.deadAt) / 0.7, 0, 1);
+        e.setRGB(1, 0.1, 0.05); tg.pivot.scale.setScalar(Math.max(0.001, 1 - k * k)); tg.pivot.visible = k < 1;
+      } else {
+        const h = t - tg.hitAt;
+        if (h < 0.5) { const f = 1 - h / 0.5; e.setRGB(0.9 * f + tg.baseEm.r, 0.04 * f + tg.baseEm.g, 0.02 * f + tg.baseEm.b); tg.pivot.position.set(tg.base.x + (Math.random() - 0.5) * 0.08 * f, tg.base.y + (Math.random() - 0.5) * 0.08 * f, tg.base.z + (Math.random() - 0.5) * 0.08 * f); }
+        else if (h < 0.6) { e.copy(tg.baseEm); tg.pivot.position.copy(tg.base); }
+      }
+    });
     if (door.opening) hallBase = Math.min(10, hallBase + dt * 4);
     hallLight.intensity = hallBase * lights.mute;
     if (k3 > 0.9 && t > nextHiss) { nextHiss = t + 25 + Math.random() * 20; ctx.audio.hiss(); }   // siseo lejano ocasional
