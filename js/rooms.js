@@ -240,7 +240,7 @@ export function buildFearlessRoom(ctx) {
   const floorTex = makeWoodTexture({ base: '#80603a', dark: '#5e4325', vertical: false });
   floorTex.repeat.set(4, 4);
   const floorMat = new THREE.MeshStandardMaterial({ map: floorTex, roughness: 0.8 });
-  const room = createRoom(ctx, { name: 'Habitación 1 — Fearless', x: 2, w: 14, d: 10, doorX: 0, wallMat, floorMat, ceilColor: 0x6b4a2a });
+  const room = createRoom(ctx, { name: 'Habitación 1 — Fearless', x: 2, w: 14, d: 10, doorX: 0, southOpening: 3, wallMat, floorMat, ceilColor: 0x6b4a2a });
   const g = room.group;
 
   const gold = new THREE.MeshStandardMaterial({ color: 0xd4a017, metalness: 0.8, roughness: 0.3, emissive: 0x442e00 });
@@ -379,7 +379,7 @@ export function buildFearlessRoom(ctx) {
   ];
   const loader = new THREE.TextureLoader();
   const photoFiles = ['assets/images/foto1.jpg', 'assets/images/foto2.jpg', 'assets/images/foto3.jpg'];
-  [-3.6, 2, 6.0].forEach((x, i) => {
+  [-3.6, -1.2, 6.0].forEach((x, i) => {
     const ph = new THREE.Group(); ph.position.set(x, 2.5, 4.77); ph.rotation.y = Math.PI; g.add(ph);
     const frame = new THREE.Mesh(new THREE.BoxGeometry(1.2, 1.5, 0.06), gold);
     // Las imágenes ya están recortadas a 704x896 (proporción 0.66:0.84 del marco), así que no se deforman.
