@@ -90,11 +90,29 @@ function glowTexture(inner = '255,236,170') {
   });
 }
 
+// El sonido nunca debe romper el juego: si una llamada de Web Audio lanza un error (pasa más en Safari),
+// se ignora (con un aviso en la consola) y la secuencia continúa sin ese sonido.
+function safeSound(make) {
+  const silent = new Proxy({}, { get: () => () => {} });
+  let warned = false;
+  const warn = (e) => { if (!warned) { warned = true; console.warn('[intro] error de audio ignorado (el juego sigue sin ese sonido):', e); } };
+  let real;
+  try { real = make(); } catch (e) { warn(e); return silent; }
+  return new Proxy(real, {
+    get(t, k) {
+      const v = t[k];
+      return typeof v === 'function' ? (...a) => { try { return v.apply(t, a); } catch (e) { warn(e); } } : v;
+    },
+  });
+}
+
 export function buildIntro(ctx, room1, { player, skip = false } = {}) {
   const { scene, camera } = ctx;
   const root = new THREE.Group(); scene.add(root);
   const locked = () => player.controls.isLocked;
   const baseSpeed = player.speed;
+  const qs = typeof location !== 'undefined' ? new URLSearchParams(location.search) : new URLSearchParams('');
+  const debug = qs.has('debug'), hallStart = qs.has('hall');        // ?debug = panel de diagnóstico | ?hall = empieza ya dentro del hall
   const hudEl = document.getElementById('hud');
 
   // ---------- Interfaz propia de la intro (se crea aquí, sin tocar index.html) ----------
@@ -114,6 +132,14 @@ export function buildIntro(ctx, room1, { player, skip = false } = {}) {
   const veil = document.createElement('div'); veil.id = 'letter-veil';
   veil.innerHTML = `<div id="letter">${LETTER.map((l) => `<p>${l}</p>`).join('')}<small>PRESIONA E PARA CONTINUAR</small></div>`;
   document.body.appendChild(veil);
+
+  // ---------- Panel de diagnóstico (solo con ?debug) ----------
+  let dbgEl = null, dbgN = 0, lastErr = '', errCount = 0;
+  if (debug) {
+    dbgEl = document.createElement('pre');
+    dbgEl.style.cssText = 'position:fixed;left:8px;top:8px;z-index:30;margin:0;padding:8px 10px;color:#9f9;background:rgba(0,0,0,.72);font:12px/1.35 monospace;pointer-events:none;max-width:560px;white-space:pre-wrap';
+    document.body.appendChild(dbgEl);
+  }
 
   // ---------- Estado ----------
   let sound = null, started = false, phase = 'idle', phaseT = 0, it = 0;
@@ -369,6 +395,28 @@ export function buildIntro(ctx, room1, { player, skip = false } = {}) {
     },
   });
 
+  // ---------- La sala 1 necesita una abertura en su pared sur (donde está la puerta dorada) ----------
+  // Normalmente la crea rooms.js con "southOpening: 3". Si tu rooms.js todavía no la tiene, se abre aquí automáticamente:
+  // sin abertura las hojas de la puerta quedan DENTRO del muro y no se puede entrar.
+  (function ensureEntrance() {
+    const g1 = room1.group, near = (a, b, e = 0.02) => Math.abs(a - b) < e;
+    const full = ctx.colliders.find((c) => near(c.minX, -5, 0.05) && near(c.maxX, 9, 0.05) && near(c.minZ, 4.8) && near(c.maxZ, 5.2));
+    if (full) {                                                                    // pared sur entera: se reemplaza por dos tramos + dintel
+      ctx.colliders.splice(ctx.colliders.indexOf(full), 1);
+      const old = g1.children.find((o) => o.isMesh && o.geometry.parameters && near(o.geometry.parameters.width, 14, 0.05) && near(o.geometry.parameters.depth, 0.4) && near(o.position.z, 5));
+      const mat = old ? old.material : wall;
+      if (old) { g1.remove(old); old.geometry.dispose(); }
+      slab(-5, 0.5, 0, 4, 4.8, 5.2, mat, true, g1); slab(3.5, 9, 0, 4, 4.8, 5.2, mat, true, g1); slab(0.5, 3.5, 3.2, 4, 4.8, 5.2, mat, false, g1);
+    }
+    [...g1.children].forEach((o) => {
+      if (o.isGroup && near(o.position.x, 2, 0.05) && near(o.position.z, 4.77, 0.05) && o.position.y > 1) o.position.x = -1.2;   // foto que tapaba la entrada
+      const gp = o.isMesh && o.geometry.parameters;
+      if (gp && near(gp.width, 13.6, 0.05) && near(gp.height, 0.08, 0.01) && near(o.position.z, 4.77, 0.05)) {                   // moldura dorada: no debe cruzar la puerta
+        g1.remove(o); slab(-4.8, 0.5, 0.96, 1.04, 4.75, 4.79, o.material, false, g1); slab(3.5, 8.8, 0.96, 1.04, 4.75, 4.79, o.material, false, g1);
+      }
+    });
+  })();
+
   // ---------- Luz guía ----------
   const orb = new THREE.Group(); orb.visible = false; root.add(orb);
   const orbVis = new THREE.Group(); orb.add(orbVis);                       // parte visible (sube y baja suavemente)
@@ -391,6 +439,24 @@ export function buildIntro(ctx, room1, { player, skip = false } = {}) {
   }
   addEventListener('keydown', (e) => { if (e.code === 'KeyE' && phase === 'reading' && phaseT > 1.2) closeLetter(); });
 
+  // Abre la puerta dorada. force = true: la deja abierta de inmediato (plan B si la animación fallara).
+  function openFearless(force = false) {
+    fTarget = 1.85;
+    if (force) { fAngle = fTarget; fL.rotation.y = fAngle; fR.rotation.y = -fAngle; }
+    if (fAngle > 0.5 || force) { fCol.minZ = fCol.maxZ = -999; fOpen = true; }
+  }
+  function debugText(cam) {
+    const blockers = ctx.colliders.filter((c) => { const cx = clamp(cam.x, c.minX, c.maxX), cz = clamp(cam.z, c.minZ, c.maxZ); return (cam.x - cx) ** 2 + (cam.z - cz) ** 2 < 0.55 * 0.55; })
+      .map((c) => `x[${c.minX.toFixed(1)},${c.maxX.toFixed(1)}] z[${c.minZ.toFixed(1)},${c.maxZ.toFixed(1)}]`);
+    return [
+      `fase: ${phase}   cursor bloqueado: ${locked()}   t: ${it.toFixed(1)} s`,
+      `luz guía: ${orbPhase} (${orbT.toFixed(1)} s)   waypoint: ${wp}`,
+      `puerta de Fearless -> objetivo: ${fTarget.toFixed(2)}  ángulo: ${fAngle.toFixed(2)}  abierta: ${fOpen}  colisión: ${fCol.minZ === -999 ? 'QUITADA' : 'ACTIVA'}`,
+      `jugador: x ${cam.x.toFixed(2)}  y ${cam.y.toFixed(2)}  z ${cam.z.toFixed(2)}`,
+      `choca con: ${blockers.length ? blockers.join(' | ') : 'nada'}`,
+      `errores: ${errCount}${lastErr ? '  último: ' + lastErr : ''}`,
+    ].join('\n');
+  }
   function hudMode(m) { hudEl.classList.toggle('minimal', m === 'minimal'); }
   function spawnGuide() { orbPhase = 'follow'; orbT = 0; wp = 0; waitT = 0; recall = false; orb.visible = true; orb.position.copy(ROUTE[0]); statueLamp.visible = false; sound.sparkle(); ctx.particles.burst(ROUTE[0], 30, { speed: 1, up: 1 }); }
 
@@ -428,6 +494,7 @@ export function buildIntro(ctx, room1, { player, skip = false } = {}) {
     room1.lights.apply();
     rainMesh.visible = out > 0.02; rainMesh.material.opacity = 0.32 * out;
     sparkles.visible = envHalo.visible;
+    if (dbgEl && ++dbgN % 6 === 0) dbgEl.textContent = debugText(cam);
     if (!locked() || !started) return;                                           // pausa o antes de empezar: se congela la secuencia
 
     it += dt; phaseT += dt;
@@ -504,6 +571,8 @@ export function buildIntro(ctx, room1, { player, skip = false } = {}) {
     fAngle += (fTarget - fAngle) * Math.min(1, dt * 0.7);
     fL.rotation.y = fAngle; fR.rotation.y = -fAngle;
     if (fAngle > 0.5 && fCol.minZ !== -999) { fCol.minZ = fCol.maxZ = -999; fOpen = true; }
+    // Plan B: si la luz ya atravesó la puerta y por cualquier motivo no quedó abierta, se abre del todo igualmente.
+    if (!fOpen && ((orbPhase === 'through' && orbT > 3) || orbPhase === 'fade' || orbPhase === 'gone')) openFearless(true);
 
     // ----- Placa de la estatua: se lee sola al acercarse -----
     if (!plaqueShown && phase !== 'opening' && Math.hypot(cam.x - HCX, cam.z - 17) < 4.5 && z < FZ - 1) { plaqueShown = true; ctx.ui.toast(PLAQUE, 9000); }
@@ -533,7 +602,7 @@ export function buildIntro(ctx, room1, { player, skip = false } = {}) {
         const k = Math.min(1, orbT / 2.5);
         lockM.emissive.setRGB(0.4 + 0.8 * k, 0.29 + 0.6 * k, 0.06 + 0.2 * k); lockM.emissiveIntensity = 1 + 2 * k;
         lockMesh.scale.setScalar(1 + 0.8 * k * (0.8 + 0.2 * Math.sin(t * 8)));
-        if (orbT > 2.8) { fTarget = 1.85; sound.creak(5); setTimeout(() => sound.boom(), 3200); orbPhase = 'through'; orbT = 0; }
+        if (orbT > 2.8) { orbPhase = 'through'; orbT = 0; openFearless(); sound.creak(5); setTimeout(() => sound.boom(), 3200); }
       } else if (orbPhase === 'through') {                                               // la luz atraviesa la puerta y desaparece
         orb.position.lerp(new THREE.Vector3(FDOOR_X, 2.0, 1.5), Math.min(1, dt * 0.6));
         if (orbT > 4.5) { orbPhase = 'fade'; orbT = 0; ctx.particles.burst(orb.position, 40, { speed: 1.4, up: 1 }); }
@@ -544,7 +613,12 @@ export function buildIntro(ctx, room1, { player, skip = false } = {}) {
     if (phase === 'done' && !done) { done = true; hudMode('full'); sound.restoreRooms(0.8, 3.5); }
   }
   let done = false;
-  ctx.updaters.push(update);
+  ctx.updaters.push((dt, t) => {
+    try { update(dt, t); } catch (e) {
+      lastErr = String((e && e.message) || e); errCount++;
+      if (errCount <= 5) console.error('[intro] error en la secuencia:', e);
+    }
+  });
 
   // ================= API =================
   function finishInstant() {                                                        // ?skip: salta la intro y empieza en la sala 1
@@ -557,10 +631,15 @@ export function buildIntro(ctx, room1, { player, skip = false } = {}) {
     hudMode() { return phase === 'hall' || phase === 'guide' || phase === 'done' || skip ? 'full' : 'minimal'; },
     blockMove() { return !canMove() && !skip; },
     onLock() {
-      if (!sound) sound = createIntroSound(ctx.audio);
+      if (!sound) sound = safeSound(() => createIntroSound(ctx.audio));
       if (started) return;
       started = true;
       if (skip) { finishInstant(); return; }
+      if (hallStart) {                                                              // ?hall: ya dentro del hall, con la puerta principal cerrada
+        fadeEl.style.display = 'none'; env.visible = false; envHalo.visible = false; lanternOff = true;
+        camera.position.set(HCX, 1.7, FZ - 3); camera.rotation.set(0, 0, 0); lastX = camera.position.x; lastZ = camera.position.z;
+        hudMode('full'); setPhase('hall'); it = 20; sound.muteRooms(); return;
+      }
       sound.muteRooms();                                                           // durante la intro solo suenan el viento, la lluvia y los pasos
       camera.position.set(START.x, 1.7 + GROUND, START.z); camera.rotation.set(0, 0, 0);
       lastX = camera.position.x; lastZ = camera.position.z;
