@@ -109,6 +109,9 @@ function safeSound(make) {
 export function buildIntro(ctx, room1, { player, skip = false } = {}) {
   const { scene, camera } = ctx;
   const root = new THREE.Group(); scene.add(root);
+  const introColliderStart = ctx.colliders.length;                                   // para poder quitar luego los colisionadores del lobby
+  const introItems = [];                                                             // objetos interactivos del exterior y del lobby
+  const addItem = (mesh, opts) => { introItems.push(mesh); return ctx.interaction.add(mesh, opts); };
   const locked = () => player.controls.isLocked;
   const baseSpeed = player.speed;
   const qs = typeof location !== 'undefined' ? new URLSearchParams(location.search) : new URLSearchParams('');
@@ -146,6 +149,7 @@ export function buildIntro(ctx, room1, { player, skip = false } = {}) {
   let nextStep = 2, owlDone = false, stepDist = 0, lastX = 0, lastZ = 0;
   let doorAngle = 0, doorTarget = 0, doorOpen = false, plaqueShown = false;
   let fAngle = 0, fTarget = 0, fOpen = false, orbPhase = 'hidden', orbT = 0, wp = 0, waitT = 0, recall = false;
+  let frontLocked = false, fClosing = false, fClosed = false, closedT = 0, sealed = false, gone = false;
   let yaw0 = 0, pitch0 = 0, yBase = 0, lanternOff = false;
   const eul = new THREE.Euler(0, 0, 0, 'YXZ');
   const setPhase = (p) => { phase = p; phaseT = 0; };
@@ -317,10 +321,13 @@ export function buildIntro(ctx, room1, { player, skip = false } = {}) {
   frontDoor.add(leafL, leafR);
   const frontCol = { minX: DOOR_X - 2, maxX: DOOR_X + 2, minZ: FZ - 0.3, maxZ: FZ + 0.3 };
   ctx.colliders.push(frontCol);
-  ctx.interaction.add(frontDoor, {
-    prompt: () => 'Presiona E para abrir.',
-    enabled: () => phase === 'walk' && !doorOpen,
-    onInteract: () => { setPhase('doorOpening'); doorTarget = 1.85; doorOpen = true; sound.creak(6); setTimeout(() => sound.boom(), 400); },
+  addItem(frontDoor, {
+    prompt: () => (frontLocked ? 'Objeto bloqueado.' : 'Presiona E para abrir.'),
+    enabled: () => (phase === 'walk' && !doorOpen) || frontLocked,
+    onInteract: () => {
+      if (frontLocked) { ctx.ui.toast('La puerta se cerró detrás de ti. Ya no hay vuelta atrás.', 3200); return; }
+      setPhase('doorOpening'); doorTarget = 1.85; doorOpen = true; sound.creak(6); setTimeout(() => sound.boom(), 400);
+    },
   });
 
   // ================= HALL PRINCIPAL =================
@@ -395,6 +402,9 @@ export function buildIntro(ctx, room1, { player, skip = false } = {}) {
     },
   });
 
+  const mine = new Set(ctx.colliders.slice(introColliderStart));                      // colisionadores propios de la intro (exterior + lobby)
+  let photoMid = null, trimPieces = [], trimMat = null;                              // lo que se movió para abrir la entrada y hay que devolver
+
   // ---------- La sala 1 necesita una abertura en su pared sur (donde está la puerta dorada) ----------
   // Normalmente la crea rooms.js con "southOpening: 3". Si tu rooms.js todavía no la tiene, se abre aquí automáticamente:
   // sin abertura las hojas de la puerta quedan DENTRO del muro y no se puede entrar.
@@ -409,10 +419,11 @@ export function buildIntro(ctx, room1, { player, skip = false } = {}) {
       slab(-5, 0.5, 0, 4, 4.8, 5.2, mat, true, g1); slab(3.5, 9, 0, 4, 4.8, 5.2, mat, true, g1); slab(0.5, 3.5, 3.2, 4, 4.8, 5.2, mat, false, g1);
     }
     [...g1.children].forEach((o) => {
-      if (o.isGroup && near(o.position.x, 2, 0.05) && near(o.position.z, 4.77, 0.05) && o.position.y > 1) o.position.x = -1.2;   // foto que tapaba la entrada
+      if (o.isGroup && near(o.position.x, 2, 0.05) && near(o.position.z, 4.77, 0.05) && o.position.y > 1) { o.position.x = -1.2; photoMid = o; }   // foto que tapaba la entrada
+      else if (o.isGroup && near(o.position.x, -1.2, 0.05) && near(o.position.z, 4.77, 0.05) && o.position.y > 1) photoMid = o;            // (ya estaba movida en rooms.js)
       const gp = o.isMesh && o.geometry.parameters;
       if (gp && near(gp.width, 13.6, 0.05) && near(gp.height, 0.08, 0.01) && near(o.position.z, 4.77, 0.05)) {                   // moldura dorada: no debe cruzar la puerta
-        g1.remove(o); slab(-4.8, 0.5, 0.96, 1.04, 4.75, 4.79, o.material, false, g1); slab(3.5, 8.8, 0.96, 1.04, 4.75, 4.79, o.material, false, g1);
+        g1.remove(o); trimMat = o.material; trimPieces.push(slab(-4.8, 0.5, 0.96, 1.04, 4.75, 4.79, o.material, false, g1), slab(3.5, 8.8, 0.96, 1.04, 4.75, 4.79, o.material, false, g1));
       }
     });
   })();
@@ -441,10 +452,42 @@ export function buildIntro(ctx, room1, { player, skip = false } = {}) {
 
   // Abre la puerta dorada. force = true: la deja abierta de inmediato (plan B si la animación fallara).
   function openFearless(force = false) {
+    if (fClosing) return;
     fTarget = 1.85;
     if (force) { fAngle = fTarget; fL.rotation.y = fAngle; fR.rotation.y = -fAngle; }
     if (fAngle > 0.5 || force) { fCol.minZ = fCol.maxZ = -999; fOpen = true; }
   }
+
+  // Sella la entrada de Fearless (cuando el jugador ya está dentro y la puerta se cerró). Se quitan los colisionadores de la entrada y del exterior, se ocultan los elementos del lobby y se apagan las luces.
+  function removeColliders(pred) { for (let i = ctx.colliders.length - 1; i >= 0; i--) if (pred(ctx.colliders[i])) ctx.colliders.splice(i, 1); }
+  // Cuando el jugador ya está dentro de Fearless y la puerta se cerró: la entrada deja de existir.
+  function sealEntrance() {
+    if (sealed) return; sealed = true;
+    const g1 = room1.group, near = (a, b, e = 0.02) => Math.abs(a - b) < e;
+    // 1) la pared sur vuelve a ser UNA sola pared, como era antes de existir la entrada
+    const parts = g1.children.filter((o) => {
+      const gp = o.isMesh && o.geometry && o.geometry.parameters;
+      return gp && o.geometry.type === 'BoxGeometry' && near(gp.depth, 0.4) && near(o.position.z, 5) && ((near(gp.height, 4) && gp.width < 7) || (near(gp.height, 0.8) && near(gp.width, 3)));
+    });
+    const mat = parts.length ? parts[0].material : wall;
+    parts.forEach((o) => { g1.remove(o); o.geometry.dispose(); });
+    removeColliders((c) => near(c.minZ, 4.8) && near(c.maxZ, 5.2) && c.maxX - c.minX < 7 && c.minX > -5.05 && c.maxX < 9.05);
+    const full = new THREE.Mesh(new THREE.BoxGeometry(14, 4, 0.4), mat); full.position.set(2, 2, 5); g1.add(full);
+    ctx.colliders.push({ minX: -5, maxX: 9, minZ: 4.8, maxZ: 5.2 });
+    // 2) la moldura dorada vuelve a ser continua y 3) la foto del medio vuelve a su sitio original
+    if (trimPieces.length) { trimPieces.forEach((o) => { g1.remove(o); o.geometry.dispose(); }); const t = new THREE.Mesh(new THREE.BoxGeometry(13.6, 0.08, 0.04), trimMat); t.position.set(2, 1.0, 4.77); g1.add(t); }
+    if (photoMid) photoMid.position.x = 2;
+    // 4) el exterior y el lobby dejan de existir (no se dibujan, no tienen colisión ni se pueden usar)
+    removeColliders((c) => mine.has(c));
+    introItems.forEach((m) => (m.visible = false));
+    root.visible = false; orb.visible = false;
+    ambient.intensity = facadeLight.intensity = hallLight.intensity = 0;            // (las luces siguen en la escena para no recompilar los materiales)
+    sound.outdoor(0); sound.drone(0); player.speed = baseSpeed; hudMode('full');
+    gone = true;
+  }
+  const _v = new THREE.Vector3(), _d = new THREE.Vector3();
+  const lookingAtFearlessDoor = () => { camera.getWorldDirection(_d); _v.set(FDOOR_X, 1.6, 5).sub(camera.position); const dist = _v.length(); return dist < 9 && _d.dot(_v.normalize()) > 0.45; };
+
   function debugText(cam) {
     const blockers = ctx.colliders.filter((c) => { const cx = clamp(cam.x, c.minX, c.maxX), cz = clamp(cam.z, c.minZ, c.maxZ); return (cam.x - cx) ** 2 + (cam.z - cz) ** 2 < 0.55 * 0.55; })
       .map((c) => `x[${c.minX.toFixed(1)},${c.maxX.toFixed(1)}] z[${c.minZ.toFixed(1)},${c.maxZ.toFixed(1)}]`);
@@ -461,6 +504,7 @@ export function buildIntro(ctx, room1, { player, skip = false } = {}) {
   function spawnGuide() { orbPhase = 'follow'; orbT = 0; wp = 0; waitT = 0; recall = false; orb.visible = true; orb.position.copy(ROUTE[0]); statueLamp.visible = false; sound.sparkle(); ctx.particles.burst(ROUTE[0], 30, { speed: 1, up: 1 }); }
 
   function update(dt, t) {
+    if (gone) { if (dbgEl && ++dbgN % 6 === 0) dbgEl.textContent = debugText(camera.position); return; }   // el lobby ya no existe
     // ----- Animaciones del mundo (siempre) -----
     const cam = camera.position;
     for (let i = 0; i < RN; i++) {                                                // lluvia
@@ -546,7 +590,8 @@ export function buildIntro(ctx, room1, { player, skip = false } = {}) {
         doorAngle += (doorTarget - doorAngle) * Math.min(1, dt * 0.55);
         if (doorAngle > 0.6) frontCol.minZ = frontCol.maxZ = -999;               // ya se puede pasar
         if (z < FZ - 1.4) {                                                      // el jugador entró: la puerta se cierra sola
-          setPhase('hall'); doorTarget = 0; hudMode('full'); ctx.ui.setPrompt('');
+          setPhase('hall'); doorTarget = 0; frontLocked = true; Object.assign(frontCol, { minZ: FZ - 0.3, maxZ: FZ + 0.3 });   // se cierra y se bloquea YA
+          hudMode('full'); ctx.ui.setPrompt('');
         }
         break;
       }
@@ -568,11 +613,20 @@ export function buildIntro(ctx, room1, { player, skip = false } = {}) {
 
     // ----- Puerta principal / puerta de Fearless (animaciones) -----
     leafL.rotation.y = doorAngle; leafR.rotation.y = -doorAngle;
-    fAngle += (fTarget - fAngle) * Math.min(1, dt * 0.7);
+    fAngle += (fTarget - fAngle) * Math.min(1, dt * (fClosing ? 2.6 : 0.7));
     fL.rotation.y = fAngle; fR.rotation.y = -fAngle;
-    if (fAngle > 0.5 && fCol.minZ !== -999) { fCol.minZ = fCol.maxZ = -999; fOpen = true; }
+    if (!fClosing && fAngle > 0.5 && fCol.minZ !== -999) { fCol.minZ = fCol.maxZ = -999; fOpen = true; }
     // Plan B: si la luz ya atravesó la puerta y por cualquier motivo no quedó abierta, se abre del todo igualmente.
     if (!fOpen && ((orbPhase === 'through' && orbT > 3) || orbPhase === 'fade' || orbPhase === 'gone')) openFearless(true);
+    // Ya dentro de Fearless: la puerta se cierra detrás (y se bloquea al instante) y, cuando no se está mirando, la entrada desaparece.
+    if (fOpen && !fClosing && z < 3.9) { fClosing = true; fTarget = 0; Object.assign(fCol, { minZ: 4.85, maxZ: 5.15 }); }
+    if (fClosing) {
+      if (!fClosed && fAngle < 0.04) { fAngle = 0; fClosed = true; closedT = 0; sound.boom(); }
+      if (fClosed && !sealed) {
+        closedT += dt;
+        if ((orbPhase === 'gone' || orbPhase === 'hidden') && (!lookingAtFearlessDoor() || closedT > 10)) sealEntrance();
+      }
+    }
 
     // ----- Placa de la estatua: se lee sola al acercarse -----
     if (!plaqueShown && phase !== 'opening' && Math.hypot(cam.x - HCX, cam.z - 17) < 4.5 && z < FZ - 1) { plaqueShown = true; ctx.ui.toast(PLAQUE, 9000); }
@@ -626,6 +680,7 @@ export function buildIntro(ctx, room1, { player, skip = false } = {}) {
     fAngle = fTarget = 1.85; fL.rotation.y = fAngle; fR.rotation.y = -fAngle; fCol.minZ = fCol.maxZ = -999; fOpen = true;
     camera.position.set(2, 1.7, 4.0); camera.rotation.set(0, 0, 0);
     hudMode('full'); phase = 'done'; done = true; plaqueShown = true; orbPhase = 'gone';
+    fClosing = fClosed = true; sealEntrance();
   }
   return {
     hudMode() { return phase === 'hall' || phase === 'guide' || phase === 'done' || skip ? 'full' : 'minimal'; },
