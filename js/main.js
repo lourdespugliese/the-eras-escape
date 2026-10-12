@@ -16,6 +16,7 @@ import { buildRoom1989 } from './room1989.js';
 import { buildRoomReputation } from './roomreputation.js';
 import { buildIntro } from './intro.js';
 import { buildRoomLover } from './roomlover.js';
+import { buildTrophyHall } from './trophies.js';
 
 const canvas = document.getElementById('game');
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
@@ -59,6 +60,9 @@ buildRoomLover(ctx, room3);                  // Habitación 4 (+ túnel de coraz
 // Introducción inmersiva (exterior, hall y luz guía). Debe crearse DESPUÉS de las salas.
 // Para saltarla mientras desarrollas, abre el juego con  http://localhost:8000/?skip
 const intro = buildIntro(ctx, room1, { player, skip: new URLSearchParams(location.search).has('skip') });
+
+// Vitrinas del hall: cada trofeo recuperado (ctx.collect) aparece en su vitrina.
+buildTrophyHall(ctx);
 
 ui.onStart(() => { audio.start(); player.lock(); });   // el audio necesita un click del usuario
 player.controls.addEventListener('lock', () => { audio.start(); ui.showGame(true); intro.onLock(); });
