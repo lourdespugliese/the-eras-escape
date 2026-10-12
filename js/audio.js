@@ -1,23 +1,41 @@
 // audio.js — Sonido 100% sintetizado con Web Audio (no necesita archivos .mp3).
 // Más adelante podés reemplazar estos métodos por AudioLoader/Audio de Three.js con archivos reales.
 export class AudioManager {
-  constructor() { this.ctx = null; }
+  constructor() { this.ctx = null; this.volume = 0.8; this._paused = false; }
 
   // Debe llamarse desde un gesto del usuario (click) por reglas del navegador.
   start() {
     if (!this.ctx) {
       this.ctx = new (window.AudioContext || window.webkitAudioContext)();
       this.master = this.ctx.createGain();
-      this.master.gain.value = 0.8;
+      this.master.gain.value = this.volume;
       this.master.connect(this.ctx.destination);
       this._ambient();
     }
+    this._paused = false;
     this.ctx.resume();
     if (this._trackWasPlaying) { this._trackWasPlaying = false; this.track.play().catch(() => {}); }   // reanuda la canción tras la pausa
   }
   pause() {
+    this._paused = true;
     if (this.ctx) this.ctx.suspend();
     if (this.track && !this.track.paused) { this.track.pause(); this._trackWasPlaying = true; }
+  }
+
+  // ---- Volumen general (0..1): afecta a los efectos, al ambiente, al tema sintetizado y a la canción del toca discos ----
+  setVolume(v) {
+    this.volume = Math.max(0, Math.min(1, v));
+    if (this.master) this.master.gain.value = this.volume;
+    if (this.track) this.track.volume = Math.min(1, 0.7 * this.volume / 0.8);
+  }
+  // Tono corto para oír el volumen mientras el juego está en pausa (el contexto de audio está suspendido).
+  preview() {
+    if (!this.ctx) return;
+    const t = performance.now();
+    if (t - (this._lastPreview || 0) < 250) return;           // no saturar mientras se arrastra la barra
+    this._lastPreview = t;
+    if (this._paused) { this.ctx.resume(); clearTimeout(this._pvTimer); this._pvTimer = setTimeout(() => { if (this._paused) this.ctx.suspend(); }, 700); }
+    this._tone(660, { dur: 0.25, vol: 0.25 }); this._tone(880, { dur: 0.25, vol: 0.15, delay: 0.12 });
   }
 
   // ---- Música externa (archivo de audio real, p. ej. el toca discos) ----
@@ -25,7 +43,7 @@ export class AudioManager {
   playTrack(url, volume = 0.7) {
     this.stopTrack();
     return new Promise((resolve) => {
-      const a = new Audio(url); a.volume = volume;
+      const a = new Audio(url); a.volume = Math.min(1, volume * this.volume / 0.8);
       a.addEventListener('ended', () => { if (this.track === a) this.track = null; });
       a.play().then(() => { this.track = a; resolve(true); }).catch(() => resolve(false));
     });

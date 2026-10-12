@@ -15,7 +15,8 @@ export class UI {
     const $ = (id) => document.getElementById(id);
     this.overlay = $('overlay'); this.hud = $('hud'); this.startBtn = $('start-btn');
     this.roomEl = $('room-name'); this.promptEl = $('prompt'); this.toastEl = $('toast');
-    this.heldEl = $('held'); this.countEl = $('count'); this.listEl = $('inv-list');
+    this.countEl = $('count'); this.listEl = $('inv-list');
+    this.volEl = $('volume'); this.volVal = $('vol-val');
     this._toastTimer = null;
     this.updateInventory(new Set());
   }
@@ -23,17 +24,33 @@ export class UI {
   // Registra qué hacer cuando se presiona el botón de la pantalla inicial.
   onStart(callback) { this.startBtn.addEventListener('click', callback); }
 
+  // Barra de volumen del menú de pausa (valores de 0 a 1).
+  onVolume(callback) {
+    this.volEl.addEventListener('input', () => { this.volVal.textContent = this.volEl.value + '%'; callback(this.volEl.value / 100); });
+    this.volEl.addEventListener('change', () => this.volEl.blur());      // al soltar, el foco vuelve al juego
+  }
+  setVolume(v) { this.volEl.value = Math.round(v * 100); this.volVal.textContent = this.volEl.value + '%'; }
+
+  // Muestra qué objeto llevas en la mano (lo usa el acertijo "Las historias" de la sala 1: ctx.ui.setHeld(label)).
+  // Usa el elemento #held si existe en index.html; si no, lo crea. setHeld('') lo oculta.
+  setHeld(label) {
+    if (!this.heldEl) {
+      this.heldEl = document.getElementById('held');
+      if (!this.heldEl) {
+        this.heldEl = document.createElement('div'); this.heldEl.id = 'held';
+        this.heldEl.style.cssText = 'position:absolute;bottom:20px;left:20px;padding:.5rem 1rem;background:rgba(0,0,0,.6);border:1px solid #f3d38a;color:#fff0c4;';
+        this.hud.appendChild(this.heldEl);
+      }
+    }
+    this.heldEl.textContent = label ? '✋ Llevas: ' + label : '';
+    this.heldEl.style.display = label ? '' : 'none';
+  }
+
   // Alterna entre menú (pantalla inicial/pausa) y juego (HUD).
   showGame(playing) {
     this.overlay.classList.toggle('hidden', playing);
     this.hud.classList.toggle('hidden', !playing);
     if (!playing) this.startBtn.textContent = 'CONTINUAR';
-  }
-
-  // Muestra (o borra, con texto vacío) el objeto que el jugador lleva en la mano.
-  setHeld(text) {
-    this.heldEl.textContent = text ? `Llevas: ${text}` : '';
-    this.heldEl.classList.toggle('hidden', !text);
   }
 
   setRoom(name) { if (this.roomEl.textContent !== name) this.roomEl.textContent = name; }
