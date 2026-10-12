@@ -29,7 +29,7 @@ const PLAQUE = 'Los recuerdos permanecen dormidos. Solo quien los reúna podrá 
 const ERAS = [
   { name: 'Fearless', kind: 'butterfly', hex: '#ffc83d' },
   { name: '1989', kind: 'polaroid', hex: '#2de2ff' },
-  { name: 'Reputation', kind: 'snake', hex: '#c8ccd6' },
+  { name: 'Reputation', kind: 'snake', hex: '#ffc83d' },
   { name: 'Lover', kind: 'heart', hex: '#ff8fc8' },
   { name: 'Folklore', kind: 'pine', hex: '#b8c8a0' },
   { name: 'Midnights', kind: 'moon', hex: '#8a96ff' },
