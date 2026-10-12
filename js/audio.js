@@ -1,7 +1,7 @@
 // audio.js — Sonido 100% sintetizado con Web Audio (no necesita archivos .mp3).
 // Más adelante podés reemplazar estos métodos por AudioLoader/Audio de Three.js con archivos reales.
 export class AudioManager {
-  constructor() { this.ctx = null; this.volume = 0.8; this._paused = false; }
+  constructor() { this.ctx = null; this.volume = 0.8; this._paused = false;}
 
   // Debe llamarse desde un gesto del usuario (click) por reglas del navegador.
   start() {

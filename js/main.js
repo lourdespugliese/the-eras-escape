@@ -13,8 +13,9 @@ import { buildFearlessRoom } from './rooms.js';
 import { createFearlessPuzzle } from './puzzles.js';
 import { createGlitter } from './glitter.js';
 import { buildRoom1989 } from './room1989.js';
-import { buildRoomReputation } from './roomReputation.js';
-import { buildRoomLover } from './roomLover.js';
+import { buildRoomReputation } from './roomreputation.js';
+import { buildIntro } from './intro.js';
+import { buildRoomLover } from './roomlover.js';
 
 const canvas = document.getElementById('game');
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
@@ -49,14 +50,18 @@ const ctx = {
 };
 
 const room1 = buildFearlessRoom(ctx);
-ctx.glitter = createGlitter(ctx);            // glitter por toda la sala
+ctx.glitter = createGlitter(ctx);   // glitter por toda la sala
 createFearlessPuzzle(ctx, room1);
 const room2 = buildRoom1989(ctx, room1);      // Habitación 2 (sala + acertijo)
-const room3 = buildRoomReputation(ctx, room2); // Habitación 3 (sala + acertijo)
+const room3 = buildRoomReputation(ctx, room2);             // Habitación 3 (sala + acertijo)
 buildRoomLover(ctx, room3);                  // Habitación 4 (+ túnel de corazón)
 
+// Introducción inmersiva (exterior, hall y luz guía). Debe crearse DESPUÉS de las salas.
+// Para saltarla mientras desarrollas, abre el juego con  http://localhost:8000/?skip
+const intro = buildIntro(ctx, room1, { player, skip: new URLSearchParams(location.search).has('skip') });
+
 ui.onStart(() => { audio.start(); player.lock(); });   // el audio necesita un click del usuario
-player.controls.addEventListener('lock', () => { audio.start(); ui.showGame(true); });
+player.controls.addEventListener('lock', () => { audio.start(); ui.showGame(true); intro.onLock(); });
 player.controls.addEventListener('unlock', () => { audio.pause(); ui.showGame(false); });
 
 const clock = new THREE.Clock();
@@ -64,7 +69,7 @@ function animate() {
   requestAnimationFrame(animate);
   const dt = Math.min(clock.getDelta(), 0.1), t = clock.elapsedTime;
   if (player.controls.isLocked) {
-    player.update(dt);
+    if (!intro.blockMove()) player.update(dt);      // durante la intro solo se mueve la cámara hasta tomar el sobre
     interaction.update();
     const p = camera.position;
     const r = ctx.rooms.find((r) => p.x > r.bounds.minX && p.x < r.bounds.maxX && p.z > r.bounds.minZ && p.z < r.bounds.maxZ);
