@@ -474,9 +474,11 @@ export function buildRoomReputation(ctx, room2) {
   addTube(g, 0.07, DOOR_H, 0.07, RED, -1.56, DOOR_H / 2, -half + 0.02, 1.6); addTube(g, 0.07, DOOR_H, 0.07, RED, 1.56, DOOR_H / 2, -half + 0.02, 1.6);
   addTube(g, 3.2, 0.07, 0.07, RED, 0, DOOR_H, -half + 0.02, 1.6);
   const hallMat = mat(0x6b4f1a, { roughness: 1, emissive: 0x1a1204 });
-  addWall(ctx, abs, -1.6, doorZ - len / 2, 0.2, len, hallMat);
-  addWall(ctx, abs, 1.6, doorZ - len / 2, 0.2, len, hallMat);
-  addWall(ctx, abs, 0, doorZ - len, 3.4, 0.2, hallMat);                    // (al crear la sala 4: quitar esta pared, como en las salas 1 y 2)
+  const hallWalls = [];                                                     // paredes del pasillo provisional (malla + colisión), para poder quitarlas
+  const hallWall = (x, z, w, d) => { const c = ctx.colliders.length; addWall(ctx, abs, x, z, w, d, hallMat); hallWalls.push({ mesh: abs.children[abs.children.length - 1], col: ctx.colliders[c] }); };
+  hallWall(-1.6, doorZ - len / 2, 0.2, len);
+  hallWall(1.6, doorZ - len / 2, 0.2, len);
+  hallWall(0, doorZ - len, 3.4, 0.2);                                       // pared del fondo (la sala 4 llama a removeHall() y el túnel de Lover ocupa su lugar)
   const hallFloor = new THREE.Mesh(new THREE.PlaneGeometry(3, len), mat(0x0b0f12));
   hallFloor.rotation.x = -Math.PI / 2; hallFloor.position.set(0, 0.005, doorZ - len / 2);
   const hallCeil = hallFloor.clone(); hallCeil.rotation.x = Math.PI / 2; hallCeil.position.y = 4;
@@ -592,5 +594,11 @@ export function buildRoomReputation(ctx, room2) {
     if (k3 > 0.9 && t > nextHiss) { nextHiss = t + 25 + Math.random() * 20; ctx.audio.hiss(); }   // siseo lejano ocasional
   });
 
-  return { ...room, door, lights };
+  // Quita el pasillo provisional (paredes, colisiones, piso, techo, cartel y luz). Lo llama la sala 4 (Lover), cuyo túnel lo reemplaza.
+  const removeHall = () => {
+    hallWalls.forEach(({ mesh, col }) => { abs.remove(mesh); const i = ctx.colliders.indexOf(col); if (i >= 0) ctx.colliders.splice(i, 1); });
+    abs.remove(hallFloor, hallCeil, hallSign, hallLight);
+  };
+
+  return { ...room, door, lights, removeHall };
 }

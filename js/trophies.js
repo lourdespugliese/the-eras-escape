@@ -20,7 +20,7 @@ const easeOutBack = (k) => 1 + 2.70158 * Math.pow(k - 1, 3) + 1.70158 * Math.pow
 const SPOTS = [
   { id: 'guitar',   era: 'Fearless',   hex: '#ffc83d', x: 4.5,  z: 20.5, desc: 'La guitarra dorada de Fearless. Vuelve a sonar.' },
   { id: 'polaroid', era: '1989',       hex: '#2de2ff', x: 15.5, z: 20.5, desc: 'Una polaroid de 1989: un instante congelado en el tiempo.' },
-  { id: 'snake',    era: 'Reputation', hex: '#c8ccd6', x: 4.5,  z: 15.5, desc: 'La serpiente de Reputation, ahora en silencio.' },
+  { id: 'snake',    era: 'Reputation', hex: '#ffc83d', x: 4.5,  z: 15.5, desc: 'La serpiente de Reputation, ahora en silencio.' },
   { id: 'heart',    era: 'Lover',      hex: '#ff8fc8', x: 15.5, z: 15.5, desc: 'El corazón de Lover, cálido de nuevo.' },
   { id: 'oldkey',   era: 'Folklore',   hex: '#b8c8a0', x: 4.5,  z: 10.5, desc: 'Una llave antigua. Abre algo que lleva mucho cerrado.' },
   { id: 'finalkey', era: 'Midnights',  hex: '#8a96ff', x: 15.5, z: 10.5, desc: 'La llave final. Solo falta usarla.' },

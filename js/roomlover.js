@@ -4,7 +4,7 @@
 // transversal es un corazón rosa. Se ve en cuanto se abre la puerta de la sala 3: las luces del túnel se encienden y
 // unas nervaduras luminosas pulsan hacia la sala 4 mientras el jugador camina.
 //
-// El acertijo de esta sala TODAVÍA NO ESTÁ DEFINIDO: el corazón del centro es provisional (ver "TODO").
+// Acertijos (al final de este archivo): arcoíris de corazones + cofre de las eras. Al resolver ambos baja el corazón final.
 import * as THREE from 'three';
 import { createRoom, createDoor, addWall, canvasTex, makeTextTexture, makeButterfly, flap, DOOR_H, WALL_H } from './rooms.js';
 import { addBox, addTube, neon, makeSign } from './room1989.js';
@@ -119,6 +119,7 @@ export function buildRoomLover(ctx, room3) {
   const CZ = hallStart - TUNNEL - SIZE / 2;               // centro de esta sala
   const half = SIZE / 2;
   const door3 = room3.door;
+  room3.removeHall();                                     // el túnel reemplaza el pasillo provisional de la sala 3 (si no, su pared del fondo tapa y bloquea el túnel)
 
   const wallTex = makeLoverWall(); wallTex.wrapS = wallTex.wrapT = THREE.RepeatWrapping;
   const wallMat = new THREE.MeshStandardMaterial({ map: wallTex, roughness: 0.8, emissive: 0x5a3a4a });
@@ -185,11 +186,12 @@ export function buildRoomLover(ctx, room3) {
   ].map((o) => { o.l = new THREE.PointLight(o.color, o.base, 15); o.l.position.set(...o.pos); g.add(o.l); return o; });
 
   // --- Cartel LOVER sobre la puerta + arcoíris pastel en las paredes oeste y este ---
-  const title = makeSign('LOVER', 0xff5fa8, 2.2, 0.5); title.group.position.set(0, 3.6, -half + 0.06); g.add(title.group);
+  const title = makeSign('LOVER', 0xff5fa8, 2.2, 0.5); title.group.position.set(0, 3.6, -half + 0.25); g.add(title.group);
   const rainbowCols = [0xffa3b5, 0xffc89a, 0xfff0a0, 0xb5f0b5, 0xa5d8ff, 0xb9b5ff, 0xe0b5ff];
+  const rainbowMeshes = [];                                // los arcos de las paredes (el acertijo los ilumina al resolverse)
   [-1, 1].forEach((side) => {
-    const rb = new THREE.Group(); rb.position.set(side * (half - 0.06), 0.2, 0); rb.rotation.y = -side * Math.PI / 2; g.add(rb);
-    rainbowCols.forEach((c, i) => rb.add(new THREE.Mesh(new THREE.TorusGeometry(1.0 + i * 0.14, 0.065, 8, 48, Math.PI), mat(c, { roughness: 0.5, emissive: new THREE.Color(c).multiplyScalar(0.45) }))));
+    const rb = new THREE.Group(); rb.position.set(side * (half - 0.27), 0.2, 0); rb.rotation.y = -side * Math.PI / 2; g.add(rb);
+    rainbowCols.forEach((c, i) => { const arc = new THREE.Mesh(new THREE.TorusGeometry(1.0 + i * 0.14, 0.065, 8, 48, Math.PI), mat(c, { roughness: 0.5, emissive: new THREE.Color(c).multiplyScalar(0.45) })); rb.add(arc); rainbowMeshes.push(arc); });
   });
 
   // --- Nubes colgantes ---
@@ -205,7 +207,7 @@ export function buildRoomLover(ctx, room3) {
   const garlands = [-1.5, 2.5].flatMap((z) => {
     const cord = [], hs = [];
     for (let i = 0; i <= 11; i++) {
-      const x = -5.7 + (i / 11) * 11.4, y = 3.7 - 0.55 * (1 - Math.pow(x / 5.7, 2));
+      const x = -5.5 + (i / 11) * 11, y = 3.7 - 0.55 * (1 - Math.pow(x / 5.5, 2));
       cord.push(new THREE.Vector3(x, y, z));
       const h = new THREE.Mesh(heartGeo, heartMat(garlandCols[i % 4])); h.scale.setScalar(0.3); h.position.set(x, y - 0.12, z); g.add(h); hs.push({ h, i });
     }
@@ -227,20 +229,8 @@ export function buildRoomLover(ctx, room3) {
   box(0.5, 0.45, 0.14, mat(0xa5d8ff, { roughness: 1, emissive: 0x102030 }), -0.5, 0.75, -0.2, sofa); box(0.5, 0.45, 0.14, mat(0xe0b5ff, { roughness: 1, emissive: 0x201030 }), 0.5, 0.75, -0.2, sofa);
   colBox(-5.7, -4.8, 2.35, 4.45);
 
-  // --- TODO: acertijo de Lover. Mientras tanto, un corazón sobre un pedestal en el centro: recogerlo da el objeto "Corazón" y abre la puerta. ---
-  const PX = 0, PZ = -1.0;
-  const ped = new THREE.Mesh(new THREE.CylinderGeometry(0.42, 0.5, 0.9, 24), mat(0xfff5fa, { roughness: 0.3, emissive: 0x403038 })); ped.position.set(PX, 0.45, PZ); g.add(ped);
-  const pedRing = new THREE.Mesh(new THREE.CylinderGeometry(0.44, 0.44, 0.03, 24), new THREE.MeshBasicMaterial({ color: neon(PINK_D, 1.6) })); pedRing.position.set(PX, 0.9, PZ); g.add(pedRing);
-  colBox(PX - 0.55, PX + 0.55, PZ - 0.55, PZ + 0.55);
-  const heart = new THREE.Group(); heart.position.set(PX, 1.6, PZ); g.add(heart);
-  const heartMesh = new THREE.Mesh(heartGeo, heartMat(0xff4f9a)); heartMesh.scale.setScalar(0.75); heart.add(heartMesh, makeGlow(0xff7ab8, 1.6));
-  ctx.interaction.add(heart, {
-    prompt: () => 'Presiona E para recoger el corazón.',
-    onInteract: () => {
-      heart.visible = false; ctx.audio.reward(); ctx.collect('heart'); door.unlock(); ctx.game.solved++;
-      ctx.ui.toast('Has recuperado el recuerdo de Lover.', 5000);
-    },
-  });
+  // --- Acertijos de Lover (createLoverPuzzle, al final de este archivo): arcoíris de corazones + cofre de las eras. Al resolver ambos baja el corazón final. ---
+  createLoverPuzzle(ctx, { g, half, mat, colBox, heartGeo, heartMat, makeGlow, rainbowCols, rainbowMeshes, neon, pinkDark: PINK_D, onSolved: () => door.unlock() });
 
   // --- Destellos pastel ---
   createGlitter(ctx, { count: 160, size: { x: 11, y: 3.6, z: 11 }, center: [0, 0, CZ], color: 0xff9ccd }).uniforms.uIntensity.value = 0.9;
@@ -294,11 +284,286 @@ export function buildRoomLover(ctx, room3) {
       f.b.group.position.set(Math.cos(a) * f.R, f.y + Math.sin(t * 1.3 + f.ph) * 0.25, -1 + Math.sin(a) * f.R * 0.8);
       f.b.group.rotation.y = -a + (f.w > 0 ? 0 : Math.PI);
     });
-    if (heart.visible) { heart.rotation.y += dt * 1.2; heart.position.y = 1.6 + Math.sin(t * 2) * 0.06; }
 
     if (door.opening) hallBase = Math.min(10, hallBase + dt * 4);
     hallLight.intensity = hallBase * lights.mute;
   });
 
   return { ...room, door, lights };
+}
+
+// ============================================================================================================
+// ACERTIJOS DE LA SALA — Acertijos de la Habitación 4 (Lover). Se crea desde roomlover.js con createLoverPuzzle(ctx, env).
+//
+// ACERTIJO 1 · "El arcoíris de corazones"
+//   7 corazones de cristal pastel están escondidos por la sala. Se llevan de a uno (como los objetos de Fearless)
+//   y se colocan en el altar del arcoíris (7 ranuras). El orden correcto es el de los arcoíris pintados en las paredes:
+//   de adentro hacia afuera (rojo, naranja, amarillo, verde, celeste, añil, violeta). También se acepta al revés.
+// ACERTIJO 2 · "El cofre de las eras"
+//   Pista del cofre: "Deja que el color de tu progreso abra el cofre". Cuatro botones en forma de corazón (uno por era, con su
+//   nombre debajo) que ciclan entre dorado, celeste y rosa. La clave son los colores de cada era, en orden:
+//   Fearless (dorado), 1989 (celeste), Reputation (dorado) y Lover (rosa). Esos mismos colores aparecen junto a cada objeto
+//   en el inventario del HUD (ui.js), en los medallones del hall y en las placas de las vitrinas.
+// Cuando ambos están resueltos, el corazón final baja del techo hasta el pedestal central.
+// ============================================================================================================
+const NOTES = [523.25, 587.33, 659.25, 698.46, 783.99, 880, 987.77];               // una nota por color del arcoíris
+const COLOR_NAMES = ['rojo pastel', 'naranja', 'amarillo', 'verde', 'celeste', 'añil', 'violeta'];
+
+// Colores del cofre (mismos hex que ERAS en intro.js y que ITEMS en ui.js). Orden del ciclo de cada botón: dorado -> celeste -> rosa.
+const ERA_CYCLE = [0xffc83d, 0x2de2ff, 0xff8fc8];
+const BTN_NOTES = [523.25, 659.25, 783.99];
+const CHEST_SOLUTION = [0, 1, 0, 2];                                                // Fearless dorado, 1989 celeste, Reputation dorado, Lover rosa
+const CHEST_LABELS = ['Fearless', '1989', 'Reputation', 'Lover'];
+
+// NOTA: las paredes están centradas en ±6 con 0.4 m de grosor, así que su cara interior está en ±5.8.
+// Todo lo que se apoye en una pared debe quedar por dentro de ±5.8 (si no, queda enterrado y no se ve).
+// Escondites de los 7 corazones (coordenadas locales de la sala; c = índice de color en el arcoíris).
+const HIDING = [
+  { c: 3, p: [-4.95, 0.7, 2.9], prop: null },        // sobre el asiento del sofá
+  { c: 5, p: [4.4, 0.84, 3.9], prop: 'table' },      // en una mesita
+  { c: 0, p: [-3.0, 2.6, -2.5], prop: 'hang' },      // colgando de una nube (hay que mirar arriba)
+  { c: 6, p: [5.25, 0.3, -2.1], prop: 'stand' },     // al pie del arcoíris este
+  { c: 2, p: [-5.25, 0.3, -2.1], prop: 'stand' },    // al pie del arcoíris oeste
+  { c: 1, p: [-5.55, 1.6, -4.2], prop: 'shelf' },    // en un estante de la pared oeste
+  { c: 4, p: [4.9, 0.62, -3.7], prop: 'pouf' },      // sobre un puf
+];
+const ALT = { x: -3.8, z: -5.5 };                    // altar del arcoíris (pared norte, a la izquierda de la puerta)
+const CHEST = { x: 3.9, z: -5.4 };                   // cofre de las eras (pared norte, a la derecha de la puerta)
+const PED = { x: 0, z: -1.0 };                        // pedestal central
+const ease = (k) => 1 - Math.pow(1 - k, 3);
+
+function createLoverPuzzle(ctx, env) {
+  const { g, half, mat, colBox, heartGeo, heartMat, makeGlow, rainbowCols, rainbowMeshes, neon, pinkDark, onSolved } = env;
+  const done = { rainbow: false, chest: false };
+  const noRay = (o) => { o.raycast = () => {}; return o; };                      // los destellos no deben bloquear la mira
+  const hitBox = (w, h, d, x, y, z) => {                                         // caja invisible que facilita apuntar
+    const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), new THREE.MeshBasicMaterial({ visible: false })); m.position.set(x, y, z); return m;
+  };
+  const plate = (lines, w, h, x, y, z) => {                                      // placa de texto (varias líneas)
+    const px = 800, py = Math.round(800 * h / w);
+    const tex = canvasTex(px, py, (c) => {
+      c.fillStyle = '#fff1f7'; c.fillRect(0, 0, px, py);
+      c.strokeStyle = '#ff8fc8'; c.lineWidth = 8; c.strokeRect(8, 8, px - 16, py - 16);
+      c.fillStyle = '#9a2a62'; c.font = 'italic 38px Georgia'; c.textAlign = 'center'; c.textBaseline = 'middle';
+      lines.forEach((l, i) => c.fillText(l, px / 2, py / 2 + (i - (lines.length - 1) / 2) * 48));
+    });
+    const m = new THREE.Mesh(new THREE.PlaneGeometry(w, h), new THREE.MeshBasicMaterial({ map: tex }));
+    m.position.set(x, y, z); g.add(m); return m;
+  };
+
+  // ================= Pedestal central + corazón final (aparece al resolver los DOS acertijos) =================
+  const ped = new THREE.Mesh(new THREE.CylinderGeometry(0.42, 0.5, 0.9, 24), mat(0xfff5fa, { roughness: 0.3, emissive: 0x403038 })); ped.position.set(PED.x, 0.45, PED.z); g.add(ped);
+  const pedRing = new THREE.Mesh(new THREE.CylinderGeometry(0.44, 0.44, 0.03, 24), new THREE.MeshBasicMaterial({ color: neon(pinkDark, 0.5) })); pedRing.position.set(PED.x, 0.9, PED.z); g.add(pedRing);
+  colBox(PED.x - 0.55, PED.x + 0.55, PED.z - 0.55, PED.z + 0.55);
+  const finalHeart = new THREE.Group(); finalHeart.position.set(PED.x, 4.4, PED.z); finalHeart.visible = false; g.add(finalHeart);
+  const fhMesh = new THREE.Mesh(heartGeo, heartMat(0xff4f9a)); fhMesh.scale.setScalar(0.75); finalHeart.add(fhMesh, makeGlow(0xff7ab8, 1.6));
+  let descend = -1, ready = false;                                               // descend: segundos transcurridos (-1 = no empezó)
+  ctx.interaction.add(finalHeart, {
+    prompt: () => 'Presiona E para recoger el corazón.',
+    enabled: () => finalHeart.visible && ready,
+    onInteract: () => {
+      finalHeart.visible = false; ctx.audio.reward(); ctx.collect('heart'); onSolved(); ctx.game.solved++;
+      ctx.ui.toast('Has recuperado el recuerdo de Lover.', 5000);
+    },
+  });
+
+  function completePart(kind) {
+    done[kind] = true;
+    if (done.rainbow && done.chest) { reveal(); return; }
+    if (kind === 'rainbow') ctx.ui.toast('El arcoíris se ilumina... pero el cofre sigue cerrado. Falta abrirlo con los colores de tu progreso.', 5500);
+    else ctx.ui.toast('El cofre se abre y una luz espera... pero el arcoíris aún está incompleto.', 5500);
+  }
+  function reveal() {
+    ctx.fx.bloom = true; ctx.audio.success();
+    pedRing.material.color.copy(neon(pinkDark, 1.8));
+    finalHeart.visible = true; descend = 0;
+    ctx.ui.toast('El arcoíris y los recuerdos se unen... algo baja desde el cielo.', 5500);
+  }
+
+  // ================= ACERTIJO 1: el arcoíris de corazones =================
+  let held = null, wrongUntil = 0, waveT = -1, now = 0, hinted = false;
+  const sayHeld = () => ctx.ui.setHeld(held ? `Corazón ${COLOR_NAMES[held.c]}` : '');
+
+  // Altar con 7 ranuras
+  const altar = new THREE.Mesh(new THREE.BoxGeometry(3.8, 0.9, 0.6), mat(0xfff5fa, { roughness: 0.3, emissive: 0x403038 })); altar.position.set(ALT.x, 0.45, ALT.z); g.add(altar);
+  const altarTop = new THREE.Mesh(new THREE.BoxGeometry(3.9, 0.05, 0.66), mat(0xffc2dc, { roughness: 0.3, emissive: 0x6a2a48 })); altarTop.position.set(ALT.x, 0.925, ALT.z); g.add(altarTop);
+  colBox(ALT.x - 1.95, ALT.x + 1.95, -half, ALT.z + 0.35);
+  plate(['Cada color tiene', 'su lugar en el cielo.'], 2.4, 0.7, ALT.x, 1.75, -half + 0.22);
+
+  const slots = Array.from({ length: 7 }, (_, i) => {
+    const x = ALT.x + (i - 3) * 0.5, y = 0.95, z = ALT.z;
+    const grp = new THREE.Group(); grp.position.set(x, y, z); g.add(grp);
+    const dish = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.17, 0.03, 20), mat(0xe6dce2, { roughness: 0.2, emissive: 0x302a2e }));
+    grp.add(dish, hitBox(0.44, 0.5, 0.44, 0, 0.2, 0));
+    const slot = { i, x, y, z, grp, heart: null };
+    ctx.interaction.add(grp, {
+      prompt: () => (held ? (slot.heart ? 'Presiona E para cambiar los corazones.' : 'Presiona E para colocar el corazón.') : slot.heart ? 'Presiona E para retirar el corazón.' : 'Una ranura vacía.'),
+      enabled: () => !done.rainbow,
+      onInteract: () => onSlot(slot),
+    });
+    return slot;
+  });
+
+  function onSlot(slot) {
+    if (!held && !slot.heart) { ctx.ui.toast('Necesitas un corazón de cristal para esta ranura.', 2500); return; }
+    const incoming = held, outgoing = slot.heart;
+    if (outgoing) { outgoing.state = 'held'; outgoing.slot = null; slot.heart = null; }
+    if (incoming) {                                                              // colocar el que llevaba en la mano
+      slot.heart = incoming; incoming.state = 'slot'; incoming.slot = slot;
+      incoming.group.visible = true; incoming.group.position.set(slot.x, slot.y + 0.2, slot.z);
+      ctx.audio.note(NOTES[incoming.c]);
+    } else ctx.audio.chime();
+    held = outgoing || null;
+    if (held) held.group.visible = false;
+    sayHeld();
+    checkRainbow();
+  }
+
+  function checkRainbow() {
+    const ids = slots.map((s) => (s.heart ? s.heart.c : -1));
+    if (ids.includes(-1)) return;
+    const ok = ids.every((c, i) => c === i) || ids.every((c, i) => c === 6 - i);
+    if (!ok) {
+      wrongUntil = now + 1.3; ctx.audio.error();
+      ctx.ui.toast('Los colores no están en su lugar... mira los arcoíris de las paredes.', 4500);
+      return;
+    }
+    waveT = 0;
+    ctx.audio.chord();
+    NOTES.forEach((f, i) => setTimeout(() => ctx.audio.note(f), 250 + i * 160));
+    completePart('rainbow');
+  }
+
+  // Corazones de cristal y sus escondites
+  const hearts = HIDING.map((h) => {
+    const [x, y, z] = h.p;
+    const group = new THREE.Group(); group.position.set(x, y, z); g.add(group);
+    const mesh = new THREE.Mesh(heartGeo, heartMat(rainbowCols[h.c])); mesh.scale.setScalar(0.3);
+    const glow = makeGlow(rainbowCols[h.c], 0.9); glow.material.opacity = 0.7;
+    group.add(mesh, glow);
+    buildProp(h.prop, x, y, z);
+    const heart = { c: h.c, group, mesh, glow, base: [x, y, z], state: 'home', slot: null };
+    ctx.interaction.add(group, {
+      prompt: () => (held ? 'Ya llevas un corazón.' : 'Presiona E para recoger el corazón.'),
+      enabled: () => heart.state === 'home',
+      onInteract: () => {
+        if (held) { ctx.ui.toast('Ya llevas un corazón. Déjalo primero en el altar del arcoíris.', 3000); return; }
+        held = heart; heart.state = 'held'; group.visible = false;
+        ctx.audio.note(NOTES[heart.c]); sayHeld();
+        ctx.ui.toast(`Corazón ${COLOR_NAMES[heart.c]}. Llévalo al altar del arcoíris.`, 3500);
+      },
+    });
+    return heart;
+  });
+
+  function buildProp(kind, x, y, z) {
+    if (kind === 'table') {                                                      // mesita redonda
+      const top = new THREE.Mesh(new THREE.CylinderGeometry(0.38, 0.38, 0.04, 24), mat(0xfff5fa, { roughness: 0.3, emissive: 0x403038 })); top.position.set(x, 0.64, z);
+      const stem = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.07, 0.62, 12), mat(0xffc2dc, { emissive: 0x4a2a38 })); stem.position.set(x, 0.31, z);
+      const foot = new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.24, 0.03, 20), mat(0xffc2dc, { emissive: 0x4a2a38 })); foot.position.set(x, 0.015, z);
+      g.add(top, stem, foot); colBox(x - 0.4, x + 0.4, z - 0.4, z + 0.4);
+    } else if (kind === 'stand') {                                               // peana bajo, al pie del arcoíris
+      const s = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.18, 0.12, 16), mat(0xfff5fa, { roughness: 0.3, emissive: 0x403038 })); s.position.set(x, 0.06, z); g.add(s);
+    } else if (kind === 'shelf') {                                               // estante en la pared oeste
+      const s = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.06, 1.2), mat(0xfff5fa, { roughness: 0.3, emissive: 0x403038 })); s.position.set(-half + 0.46, y - 0.2, z); g.add(s);
+      colBox(-half, -half + 0.75, z - 0.6, z + 0.6);
+    } else if (kind === 'pouf') {                                                // puf redondo
+      const p = new THREE.Mesh(new THREE.CylinderGeometry(0.42, 0.45, 0.4, 24), mat(0xffb3d9, { roughness: 0.9, emissive: 0x5a2a42 })); p.position.set(x, 0.2, z);
+      const t = new THREE.Mesh(new THREE.TorusGeometry(0.36, 0.07, 10, 28), mat(0xffc2dc, { roughness: 0.9, emissive: 0x5a2a42 })); t.rotation.x = Math.PI / 2; t.position.set(x, 0.42, z);
+      g.add(p, t); colBox(x - 0.45, x + 0.45, z - 0.45, z + 0.45);
+    } else if (kind === 'hang') {                                                // hilo que sube hasta la nube
+      const len = 0.5, s = new THREE.Mesh(new THREE.CylinderGeometry(0.008, 0.008, len, 6), new THREE.MeshBasicMaterial({ color: 0xffd0e4 })); s.position.set(x, y + 0.15 + len / 2, z); g.add(s);
+    }
+  }
+
+  // ================= ACERTIJO 2: el cofre de las eras =================
+  const body = new THREE.Mesh(new THREE.BoxGeometry(1.9, 0.8, 0.8), mat(0xffd9e8, { roughness: 0.4, emissive: 0x5a2a42 })); body.position.set(CHEST.x, 0.4, CHEST.z); g.add(body);
+  const panel = new THREE.Mesh(new THREE.BoxGeometry(1.78, 0.5, 0.03), mat(0x6a2a48, { roughness: 0.6, emissive: 0x2a1020 })); panel.position.set(CHEST.x, 0.4, CHEST.z + 0.41); g.add(panel);
+  const hinge = new THREE.Group(); hinge.position.set(CHEST.x, 0.8, CHEST.z - 0.4); g.add(hinge);
+  const lid = new THREE.Mesh(new THREE.BoxGeometry(1.94, 0.14, 0.84), mat(0xffc2dc, { roughness: 0.35, emissive: 0x6a2a48 })); lid.position.set(0, 0.07, 0.42); hinge.add(lid);
+  const chestGlow = makeGlow(0xffd0e4, 2.2); chestGlow.position.set(CHEST.x, 1.0, CHEST.z); chestGlow.material.opacity = 0; chestGlow.visible = false; noRay(chestGlow); g.add(chestGlow);
+  colBox(CHEST.x - 1.0, CHEST.x + 1.0, -half, CHEST.z + 0.45);
+  plate(['Deja que el color de tu progreso', 'abra el cofre.'], 3.2, 0.7, CHEST.x, 1.75, -half + 0.22);
+
+  const buttons = Array.from({ length: 4 }, (_, i) => {
+    const x = CHEST.x + (i - 1.5) * 0.42, y = 0.5, z = CHEST.z + 0.45;
+    const lbl = new THREE.Mesh(new THREE.PlaneGeometry(0.4, 0.1), new THREE.MeshBasicMaterial({     // nombre de la era bajo cada botón
+      transparent: true, map: canvasTex(256, 64, (c) => { c.fillStyle = '#ffe9f3'; c.font = '30px Georgia'; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText(CHEST_LABELS[i], 128, 32); }) }));
+    lbl.position.set(x, 0.23, CHEST.z + 0.43); g.add(lbl);
+    const m = new THREE.MeshStandardMaterial({ color: 0x3a2a33, roughness: 0.3, emissive: 0x000000 });
+    const grp = new THREE.Group(); grp.position.set(x, y, z); g.add(grp);
+    const mesh = new THREE.Mesh(heartGeo, m); mesh.scale.setScalar(0.27); grp.add(mesh, hitBox(0.36, 0.36, 0.2, 0, 0, 0.05));
+    const btn = { i, idx: -1, m };
+    ctx.interaction.add(grp, {
+      prompt: () => 'Presiona E para cambiar el color.',
+      enabled: () => !done.chest,
+      onInteract: () => pressButton(btn),
+    });
+    return btn;
+  });
+
+  function pressButton(btn) {
+    btn.idx = btn.idx < 0 ? 0 : (btn.idx + 1) % ERA_CYCLE.length;
+    const col = new THREE.Color(ERA_CYCLE[btn.idx]);
+    btn.m.color.copy(col); btn.m.emissive.copy(col).multiplyScalar(0.5);
+    ctx.audio.note(BTN_NOTES[btn.idx]);
+    if (buttons.some((b) => b.idx < 0)) return;
+    if (buttons.every((b, i) => b.idx === CHEST_SOLUTION[i])) { openChest(); return; }
+    ctx.audio.error(); ctx.ui.toast('Esos no son los colores de tu progreso. Mira tu inventario.', 3500);
+  }
+
+  let lidTarget = 0;
+  function openChest() {
+    lidTarget = -1.15; chestGlow.visible = true;
+    ctx.audio.reward();
+    ctx.particles.burst(g.localToWorld(new THREE.Vector3(CHEST.x, 1.0, CHEST.z)), 40, { speed: 1.0, up: 1.6 });
+    completePart('chest');
+  }
+
+  // ================= Animación =================
+  ctx.updaters.push((dt, t) => {
+    now = t;
+    // aviso al entrar a la sala por primera vez
+    if (!hinted) {
+      const p = ctx.camera.position;
+      if (Math.abs(p.x) < 5.3 && Math.abs(p.z - g.position.z) < 5.3) {
+        hinted = true;
+        ctx.ui.toast('Siete corazones de cristal se esconden por la sala... y el cofre se abre con los colores de tu progreso.', 6500);
+      }
+    }
+    // corazones: flotan donde están escondidos; los colocados en el altar brillan y giran despacio
+    const flicker = now < wrongUntil && Math.sin(now * 45) > 0;
+    const wave = waveT >= 0 ? (waveT += dt) : 0;
+    hearts.forEach((h) => {
+      if (h.state === 'home') {
+        h.mesh.rotation.y += dt * 0.9;
+        h.group.position.y = h.base[1] + Math.sin(t * 2 + h.c) * 0.025;
+        h.glow.material.opacity = 0.45 + 0.25 * Math.sin(t * 2.5 + h.c * 1.3);
+      } else if (h.state === 'slot') {
+        h.mesh.rotation.y += dt * 0.5;
+        let k = 1, s = 0.3;
+        if (waveT >= 0) { const p = clamp(wave * 1.8 - h.c * 0.28, 0, 1), pulse = Math.sin(p * Math.PI); k = 1.6 + 1.6 * pulse; s = 0.3 * (1 + 0.35 * pulse); }
+        else if (flicker) k = 0.15;
+        h.mesh.material.emissiveIntensity = k; h.mesh.scale.setScalar(s);
+        h.glow.material.opacity = waveT >= 0 ? 0.8 : 0.35;
+      }
+    });
+    if (waveT >= 0) {                                                            // el arcoíris de las paredes se ilumina
+      const k = 1 + 1.1 * Math.min(1, waveT / 1.5) + 0.2 * Math.sin(t * 2);
+      rainbowMeshes.forEach((m) => { m.material.emissiveIntensity = k; });
+    }
+    // tapa del cofre y su luz
+    hinge.rotation.x += (lidTarget - hinge.rotation.x) * Math.min(1, dt * 3);
+    if (chestGlow.visible) chestGlow.material.opacity = Math.min(0.8, chestGlow.material.opacity + dt * 0.5) * (0.85 + 0.15 * Math.sin(t * 3));
+    // corazón final: baja del techo hasta el pedestal
+    if (descend >= 0) {
+      descend += dt;
+      const k = clamp(descend / 3, 0, 1);
+      finalHeart.position.y = 4.4 + (1.6 - 4.4) * ease(k) + (k >= 1 ? Math.sin(t * 2) * 0.06 : 0);
+      finalHeart.rotation.y += dt * 1.2;
+      if (k >= 1 && !ready) { ready = true; ctx.audio.chime(); }
+    }
+  });
+
+  return { done, hearts, slots, buttons };
 }

@@ -2,12 +2,12 @@
 
 // Los 6 objetos del juego. El "id" se usa en el código; el "label" se muestra al jugador.
 export const ITEMS = [
-  { id: 'guitar',   label: 'Guitarra Dorada' },
-  { id: 'polaroid', label: 'Polaroid' },
-  { id: 'snake',    label: 'Serpiente' },
-  { id: 'heart',    label: 'Corazón' },
-  { id: 'oldkey',   label: 'Llave antigua' },
-  { id: 'finalkey', label: 'Llave final' },
+  { id: 'guitar',   label: 'Guitarra Dorada', color: '#ffc83d' },   // Fearless
+  { id: 'polaroid', label: 'Polaroid',        color: '#2de2ff' },   // 1989
+  { id: 'snake',    label: 'Serpiente',       color: '#ffc83d' },   // Reputation
+  { id: 'heart',    label: 'Corazón',         color: '#ff8fc8' },   // Lover
+  { id: 'oldkey',   label: 'Llave antigua',   color: '#b8c8a0' },   // Folklore
+  { id: 'finalkey', label: 'Llave final',     color: '#8a96ff' },   // Midnights
 ];
 
 export class UI {
@@ -70,7 +70,8 @@ export class UI {
     this.countEl.textContent = collected.size;
     this.listEl.innerHTML = ITEMS.map((i) => {
       const got = collected.has(i.id);
-      return `<li class="${got ? 'got' : ''}">${got ? '✓' : '□'} ${i.label}</li>`;
+      const dot = `<i style="display:inline-block;width:.7em;height:.7em;border-radius:50%;margin:0 .45em 0 .15em;background:${i.color};box-shadow:0 0 6px ${i.color}"></i>`;   // color de la era
+      return `<li class="${got ? 'got' : ''}">${got ? '✓' : '□'}${dot}${i.label}</li>`;
     }).join('');
   }
 }
