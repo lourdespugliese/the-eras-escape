@@ -5,6 +5,7 @@
 import * as THREE from 'three';
 import { canvasTex, makeTextTexture, addCollider } from './rooms.js';
 import { createIntroSound } from './introsound.js';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 
 // ================= Medidas del mundo =================
 const GROUND = -1.2;                 // nivel del suelo exterior (el interior del museo está en y = 0)
@@ -359,13 +360,43 @@ export function buildIntro(ctx, room1, { player, skip = false } = {}) {
   const chain = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, 1.6, 6), goldM); chain.position.y = 0.9; chand.add(chain);
 
   // Estatua central con placa
-  slab(8.5, 11.5, 0, 1.3, 13.5, 16.5, stoneDark, true);
-  const statueM = M(0xc4c6cc, { roughness: 0.6 });
-  const robe = new THREE.Mesh(new THREE.ConeGeometry(0.85, 2.8, 16), statueM); robe.position.set(HCX, 2.7, 15); root.add(robe);
-  const head = new THREE.Mesh(new THREE.SphereGeometry(0.24, 14, 12), statueM); head.position.set(HCX, 4.3, 15); root.add(head);
-  const arm = new THREE.Mesh(new THREE.CylinderGeometry(0.09, 0.09, 1.2, 8), statueM); arm.position.set(HCX + 0.35, 4.35, 15); arm.rotation.z = -0.35; root.add(arm);
-  const statueLamp = new THREE.Mesh(new THREE.SphereGeometry(0.15, 14, 12), new THREE.MeshBasicMaterial({ color: 0xffe9a8 })); statueLamp.position.set(HCX + 0.62, 4.98, 15); root.add(statueLamp);
-  const plaqueMesh = new THREE.Mesh(new THREE.PlaneGeometry(2.2, 0.8), new THREE.MeshBasicMaterial({ map: makeTextTexture('Los recuerdos permanecen dormidos', { w: 640, h: 220, bg: '#2a2018', color: '#f3d38a', font: '38px Georgia' }) }));
+  // Base inferior (más ancha)
+  slab(8.1, 11.9, 0.0, 0.28, 13.1, 16.9, marble, true);
+
+  // Cuerpo principal
+  slab(8.45, 11.55, 0.28, 1.55, 13.45, 16.55, stoneDark, true);
+
+  // Tapa superior
+  slab(8.25, 11.75, 1.55, 1.72, 13.25, 16.75, marble);
+  const STATUE = { url: 'assets/models/estatua-taylor.glb', height: 3.9, rotY: 0 };   // height = alto final en metros · rotY = giro en radianes
+  const statueLamp = new THREE.Object3D();                                      // (la luz guía usa este objeto; ya no es una esfera visible)
+  const holder = new THREE.Group(); holder.position.set(HCX, 1.72, 15); holder.rotation.y = STATUE.rotY; root.add(holder);
+  new GLTFLoader().load(STATUE.url, (gltf) => {
+    const model = gltf.scene;
+    const box = new THREE.Box3().setFromObject(model), size = box.getSize(new THREE.Vector3());
+    model.scale.setScalar(STATUE.height / size.y);                              // se ajusta al alto deseado
+    box.setFromObject(model);
+    const c = box.getCenter(new THREE.Vector3());
+    model.position.set(-c.x, -box.min.y, -c.z);                                 // centrada sobre el pedestal y apoyada en él
+    holder.add(model);
+  }, undefined, (e) => console.warn('[intro] no se pudo cargar la estatua:', e));
+const plaqueMesh = new THREE.Mesh(new THREE.PlaneGeometry(2.2, 0.8), new THREE.MeshBasicMaterial({map: makeTextTexture(
+      `Taylor Swift
+      La música también
+      es una forma de memoria`,
+      {
+        w: 1024,
+        h: 400,
+        bg: "#2a2018",
+        color: "#f3d38a",
+        titleFont: "bold 62px Georgia",
+        bodyFont: "italic 36px Georgia",
+        align: "center",
+        padding: 40
+      }
+    )
+  })
+);
   plaqueMesh.position.set(HCX, 0.78, 16.53); root.add(plaqueMesh);
   ctx.interaction.add(plaqueMesh, { prompt: () => 'Presiona E para leer.', onInteract: () => ctx.ui.toast(PLAQUE, 8000) });
 
