@@ -166,10 +166,11 @@ export function buildTrophyHall(ctx) {
     });
   }
 
-  function markCollected(id) {
+  function markCollected(id, silent = false) {
     const v = byId[id];
     if (!v || v.state !== 'empty') return;
     v.state = 'pending';
+    if (silent) return;                                // ?room=N: sin aviso
     setTimeout(() => ctx.ui.toast(`✨ ${labelOf(id)} ahora se exhibe en el Hall principal`, 4500), 3200);   // después del mensaje propio de la sala
   }
 
@@ -184,8 +185,8 @@ export function buildTrophyHall(ctx) {
 
   // Engancha ctx.collect: las salas siguen llamándolo igual que siempre.
   const prevCollect = ctx.collect.bind(ctx);
-  ctx.collect = (id) => { prevCollect(id); markCollected(id); };
-  ctx.game.items.forEach(markCollected);              // por si algo ya estaba recogido al construir
+  ctx.collect = (id, opts) => { prevCollect(id); markCollected(id, opts && opts.silent); };
+  ctx.game.items.forEach((id) => markCollected(id));              // por si algo ya estaba recogido al construir
 
   ctx.updaters.push((dt, t) => {
     const p = ctx.camera.position;
