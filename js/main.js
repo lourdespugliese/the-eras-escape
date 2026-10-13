@@ -17,6 +17,8 @@ import { buildRoomReputation } from './roomreputation.js';
 import { buildIntro } from './intro.js';
 import { buildRoomLover } from './roomlover.js';
 import { buildTrophyHall } from './trophies.js';
+import { createSecrets } from './secrets.js';
+import { buildSongShelf } from './songshelf.js';
 
 const canvas = document.getElementById('game');
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
@@ -49,6 +51,10 @@ const ctx = {
   rooms: [], updaters: [],
   collect(id) { game.items.add(id); ui.updateInventory(game.items); },
 };
+
+// Misión secundaria: canciones secretas (panel lateral izquierdo + vitrina del hall). Debe crearse ANTES que las salas.
+// Cada easter egg musical llama a ctx.secrets.add(...). Si agregas más canciones, sube "total".
+ctx.secrets = createSecrets(ctx, { total: 3 });
 
 const room1 = buildFearlessRoom(ctx);
 ctx.glitter = createGlitter(ctx);   // glitter por toda la sala
@@ -87,6 +93,8 @@ function jumpToRoom(n, list) {
 
 // Vitrinas del hall: cada trofeo recuperado (ctx.collect) aparece en su vitrina.
 buildTrophyHall(ctx);
+// Vitrina de canciones secretas del hall: cada canción hallada (ctx.secrets.add) aparece aquí con su objeto y su placa.
+buildSongShelf(ctx);
 
 ui.onStart(() => { audio.start(); player.lock(); });   // el audio necesita un click del usuario
 let devJumped = false;

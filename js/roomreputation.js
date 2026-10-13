@@ -7,6 +7,9 @@
 // (la T se pisa dos veces). Cada acierto ilumina el espejo y escribe la letra en el titular de la pared;
 // si pisas uno equivocado, el espejo parpadea en rojo, se agrieta y la palabra se deshace.
 // Al completarla aparece una serpiente plateada sobre el trono y se desbloquea la puerta.
+//
+// EASTER EGG: con el bate en la mano, el espejo de pared a la derecha de la entrada se rompe de un golpe
+// y deja ver un toca discos secreto que reproduce una canción de assets/audio.
 import * as THREE from 'three';
 import { createRoom, createDoor, addWall, canvasTex, makeTextTexture, DOOR_H, WALL_H } from './rooms.js';
 import { addBox, addTube, neon } from './room1989.js';
@@ -24,6 +27,9 @@ const HITS_PER_SNAKE = 2;       // golpes que aguanta cada serpiente
 const REACH = 3.2;              // alcance del bate (m)
 const AIM = 0.45;               // tolerancia de puntería: distancia máxima (m) entre la mira y el cuerpo de la serpiente
 const SWING_DUR = 0.4;          // duración del golpe (s)
+// Easter egg: espejo de pared (sur) que se rompe con el bate y revela un toca discos. x = +3.75 es el de la derecha al entrar; -3.75 el de la izquierda.
+const EGG_MIRROR_X = 3.75;
+const RECORD = { url: 'assets/audio/OnlyMP3.to - Dont Blame Me.mp3', title: "Don't Blame Me", fallbackTitle: 'Neon Skyline (pista original)' };
 
 // Espejos del suelo (x, z locales; el centro de la sala es 0,0 y el norte es -Z). Hay 10: 9 letras + la H de engaño.
 // Recorrido correcto: R(-1.2,-2.6) E P U T A T I O N, un zigzag que da la vuelta a la sala.
@@ -308,11 +314,17 @@ export function buildRoomReputation(ctx, room2) {
     np.position.set(-5.72, 2.1, z); np.rotation.y = Math.PI / 2; g.add(np);
   });
   const glassTex = makeGlassTexture();
+  let mirrorBroken = false, eggGlass = null;               // easter egg: el espejo de la derecha se puede romper con el bate
   [-3.75, 3.75].forEach((x) => {
     const m = new THREE.Group(); m.position.set(x, 2.0, 5.74); m.rotation.y = Math.PI; g.add(m);
     box(1.5, 2.3, 0.06, gold, 0, 0, 0, m);
     const gl = new THREE.Mesh(new THREE.PlaneGeometry(1.25, 2.05), new THREE.MeshStandardMaterial({ map: glassTex, roughness: 0.08, metalness: 0.6, emissive: new THREE.Color(0.06, 0.06, 0.08) })); gl.position.z = 0.04; m.add(gl);
-    ctx.interaction.add(m, { prompt: () => 'Presiona E para mirar el espejo.', onInteract: () => ctx.ui.toast('Solo devuelve tu mirada... el camino está en el suelo.', 4000) });
+    if (x === EGG_MIRROR_X) eggGlass = gl;
+    ctx.interaction.add(m, {
+      prompt: () => 'Presiona E para mirar el espejo.',
+      enabled: () => !(x === EGG_MIRROR_X && mirrorBroken),
+      onInteract: () => ctx.ui.toast('Solo devuelve tu mirada... el camino está en el suelo.', 4000),
+    });
   });
 
   const targets = [];                                     // serpientes golpeables
@@ -447,7 +459,7 @@ export function buildRoomReputation(ctx, room2) {
         if (d < AIM && d < bestD) { best = tg; bestD = d; hitP = p; }
       });
     });
-    if (!best) return;                                    // golpe al aire
+    if (!best) { hitMirror(); return; }                   // sin serpiente: quizá le diste al espejo secreto
     best.hp--; best.hitAt = nowRef; ctx.audio.thud();
     ctx.particles.burst(hitP, 18, { speed: 0.9, up: 1 });
     if (best.hp > 0) return;
@@ -461,6 +473,53 @@ export function buildRoomReputation(ctx, room2) {
     snake.visible = true; snake.position.set(5.0, 0.8, 0);
     ctx.particles.burst(wp(5.0, 1.2, 0), 70, { speed: 1.4, up: 1.8 });
     ctx.ui.toast('Las serpientes se desvanecen... algo plateado se mueve sobre el trono.', 5500);
+  }
+
+  // --- EASTER EGG: el espejo de pared de la derecha se rompe con el bate y deja ver un toca discos secreto ---
+  const eggBack = box(1.25, 2.05, 0.02, mat(0x050508), EGG_MIRROR_X, 2.0, 5.7); eggBack.visible = false;
+  const eggCrack = new THREE.Mesh(new THREE.PlaneGeometry(1.25, 2.05), new THREE.MeshBasicMaterial({ map: makeCrackTexture(), transparent: true, color: neon(0xffffff, 1.6), depthWrite: false }));
+  eggCrack.position.set(EGG_MIRROR_X, 2.0, 5.685); eggCrack.rotation.y = Math.PI; eggCrack.visible = false; g.add(eggCrack);
+
+  const RPX = EGG_MIRROR_X, RPY = 1.3, RPZ = 5.5;
+  const recordPlayer = new THREE.Group(); recordPlayer.position.set(RPX, RPY, RPZ); recordPlayer.visible = false; g.add(recordPlayer);
+  box(0.6, 0.05, 0.4, gold, 0, -0.03, 0, recordPlayer);                                    // repisa dorada
+  box(0.3, 0.07, 0.3, mat(0x1a1010, { roughness: 0.4, metalness: 0.5, emissive: 0x1a0a04 }), 0, 0.035, 0, recordPlayer);
+  const platter = new THREE.Group(); platter.position.y = 0.085; recordPlayer.add(platter);
+  platter.add(
+    new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.12, 0.012, 28), mat(0x050508, { roughness: 0.25, metalness: 0.6 })),
+    new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 0.014, 18), mat(RED, { emissive: 0x440008 })),
+    new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.014, 0.008), mat(0x2a2a44)),               // marca para ver que gira
+  );
+  const arm = new THREE.Group(); arm.position.set(0.12, 0.1, -0.1); recordPlayer.add(arm);
+  box(0.012, 0.012, 0.16, mat(0xcfd2e0, { metalness: 0.7 }), 0, 0, 0.07, arm);
+  const rpGlow = new THREE.Sprite(new THREE.SpriteMaterial({ map: glowTex, color: 0xffb0d0, blending: THREE.AdditiveBlending, transparent: true, depthWrite: false }));
+  rpGlow.scale.setScalar(0.7); rpGlow.position.y = 0.15; rpGlow.visible = false; recordPlayer.add(rpGlow);
+  let fileMissing = false;
+  ctx.interaction.add(recordPlayer, {
+    prompt: () => (ctx.audio.trackPlaying() ? 'Presiona E para detener el disco.' : 'Presiona E para poner el disco.'),
+    enabled: () => mirrorBroken,
+    onInteract: async () => {
+      if (ctx.audio.trackPlaying()) { ctx.audio.stopTrack(); return; }
+      const ok = !fileMissing && await ctx.audio.playTrack(RECORD.url);
+      if (ok) { ctx.ui.toast(`♪ ${RECORD.title}`, 4000); ctx.secrets?.add('reputation-record', { icon: 'vinyl', era: 'Reputation', title: RECORD.title }); return; }
+      fileMissing = true;                                 // no insistir con un archivo que no existe
+      ctx.audio.playSynth(); ctx.ui.toast(`♪ ${RECORD.fallbackTitle}`, 4000);
+      ctx.secrets?.add('reputation-record', { icon: 'vinyl', era: 'Reputation', title: RECORD.fallbackTitle });
+    },
+  });
+  function breakMirror() {
+    mirrorBroken = true; ctx.audio.thud(); ctx.audio.crack();
+    eggGlass.visible = false; eggBack.visible = true; eggCrack.visible = true; recordPlayer.visible = true;
+    ctx.particles.burst(wp(EGG_MIRROR_X, 2.0, 5.3), 50, { speed: 1.2, up: 0.6 });
+    ctx.ui.toast('El espejo se hace añicos... detrás había un toca discos escondido.', 5000);
+  }
+  function hitMirror() {                                  // ¿el golpe cayó sobre el espejo del easter egg?
+    if (mirrorBroken) return;
+    aimV.set(EGG_MIRROR_X, 2.0, CZ + 5.74).sub(cam);
+    const along = aimV.dot(aimDir);
+    if (along < 0.2 || along > REACH) return;
+    if (aimV.addScaledVector(aimDir, -along).length() > 0.9) return;
+    breakMirror();
   }
 
   // --- Polvo dorado y brasas rojas flotando ---
@@ -589,6 +648,13 @@ export function buildRoomReputation(ctx, room2) {
         else if (h < 0.6) { e.copy(tg.baseEm); tg.pivot.position.copy(tg.base); }
       }
     });
+    // Easter egg: el disco gira y el brillo late mientras suena la canción
+    const playing = ctx.audio.trackPlaying();
+    platter.rotation.y += playing ? dt * 3.5 : 0;
+    arm.rotation.y += ((playing ? 0.5 : 0) - arm.rotation.y) * Math.min(1, dt * 4);
+    rpGlow.visible = mirrorBroken && playing; rpGlow.material.opacity = 0.6 + 0.4 * Math.sin(t * 8);
+    if (mirrorBroken && playing && Math.random() < 0.05) ctx.particles.burst(wp(RPX, 1.5, RPZ), 2, { speed: 0.3, up: 0.8 });
+
     if (door.opening) hallBase = Math.min(10, hallBase + dt * 4);
     hallLight.intensity = hallBase * lights.mute;
     if (k3 > 0.9 && t > nextHiss) { nextHiss = t + 25 + Math.random() * 20; ctx.audio.hiss(); }   // siseo lejano ocasional

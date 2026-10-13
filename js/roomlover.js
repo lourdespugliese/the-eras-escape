@@ -5,6 +5,8 @@
 // unas nervaduras luminosas pulsan hacia la sala 4 mientras el jugador camina.
 //
 // Acertijos (al final de este archivo): arcoíris de corazones + cofre de las eras. Al resolver ambos baja el corazón final.
+// EASTER EGG: cuando el corazón premio sale del cofre y se posa en el pedestal, dentro del cofre abierto aparece un
+// toca discos secreto que reproduce una canción de assets/audio.
 import * as THREE from 'three';
 import { createRoom, createDoor, addWall, canvasTex, makeTextTexture, makeButterfly, flap, DOOR_H, WALL_H } from './rooms.js';
 import { addBox, addTube, neon, makeSign } from './room1989.js';
@@ -16,6 +18,13 @@ const TUNNEL = 7;                      // largo del túnel (entre el centro de l
 const HALL_OUT = 4;                    // pasillo (provisional) hacia la sala 5
 const PINK = 0xff7ab8, PINK_D = 0xff4fa3, BLUE = 0x8fd3ff, LILAC = 0xc9a8ff;
 const clamp = THREE.MathUtils.clamp;
+// Canción del toca discos secreto del cofre. Copia tu archivo de audio en esa ruta (relativa a index.html).
+// Si el archivo no existe, el disco toca un tema synthwave original generado por el propio juego (audio.js).
+// Se prueban en orden: lo más simple es renombrar tu archivo a "Lover.mp3" y dejarlo en assets/audio.
+const RECORD = {
+  urls: ['assets/audio/Lover.mp3', 'assets/audio/OnlyMP3.to - Taylor Swift - Lover Official Music Video.mp3', encodeURI('assets/audio/OnlyMP3.to - Taylor Swift - Lover Official Music Video.mp3')],
+  title: 'Lover', fallbackTitle: 'Neon Skyline (pista original)',
+};
 
 // ================= Corazón =================
 // Curva clásica del corazón (con la muesca arriba y la punta abajo). t: 0..2π.
@@ -318,6 +327,7 @@ export function buildRoomLover(ctx, room3) {
 //   en el inventario del HUD (ui.js), en los medallones del hall y en las placas de las vitrinas.
 // Al abrirse el cofre sale de él el corazón premio y, cuando el arcoíris también está completo, vuela hasta el pedestal central.
 // El corazón amarillo está bajo un cojín del sofá: hay que "buscar" con E y aparece sobre el sofá (el otro cojín está vacío).
+// EASTER EGG: cuando el corazón premio se posa en el pedestal, dentro del cofre abierto aparece un toca discos secreto (E para poner el disco).
 // ============================================================================================================
 const NOTES = [523.25, 587.33, 659.25, 698.46, 783.99, 880, 987.77];               // una nota por color del arcoíris
 const COLOR_NAMES = ['rojo pastel', 'naranja', 'amarillo', 'verde', 'celeste', 'añil', 'violeta'];
@@ -561,6 +571,44 @@ function createLoverPuzzle(ctx, env) {
     completePart('chest');
   }
 
+  // ================= EASTER EGG: toca discos escondido dentro del cofre =================
+  // Aparece cuando el corazón premio ya voló al pedestal (prize === 'landed'): el cofre queda abierto y vacío... salvo por el disco.
+  const rpGroup = new THREE.Group(); rpGroup.position.set(CHEST.x, 0.81, CHEST.z + 0.02); rpGroup.visible = false; rpGroup.scale.setScalar(0.01); g.add(rpGroup);
+  const lining = new THREE.Mesh(new THREE.BoxGeometry(1.7, 0.02, 0.62), mat(0xc23a7a, { roughness: 1, emissive: 0x4a1030 })); lining.position.y = -0.005;   // forro de terciopelo
+  const rpBase = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.08, 0.4), mat(0xfff5fa, { roughness: 0.3, emissive: 0x403038 })); rpBase.position.y = 0.045;
+  addTube(rpGroup, 0.51, 0.015, 0.015, pinkDark, 0, 0.088, 0.2, 2); addTube(rpGroup, 0.51, 0.015, 0.015, pinkDark, 0, 0.088, -0.2, 2);   // filetes luminosos
+  rpGroup.add(lining, rpBase);
+  const platter = new THREE.Group(); platter.position.y = 0.1; rpGroup.add(platter);
+  platter.add(
+    new THREE.Mesh(new THREE.CylinderGeometry(0.17, 0.17, 0.012, 32), mat(0x050508, { roughness: 0.25, metalness: 0.6 })),
+    new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.06, 0.014, 20), mat(0xff4f9a, { emissive: 0x6a1a44 })),
+    new THREE.Mesh(new THREE.BoxGeometry(0.28, 0.014, 0.01), mat(0x2a2a44)),               // marca para ver que gira
+  );
+  const rpArm = new THREE.Group(); rpArm.position.set(0.19, 0.11, -0.14); rpGroup.add(rpArm);
+  const armBar = new THREE.Mesh(new THREE.BoxGeometry(0.014, 0.014, 0.22), mat(0xcfd2e0, { metalness: 0.7 })); armBar.position.z = 0.1; rpArm.add(armBar);
+  const rpGlow = makeGlow(0xffb3d9, 0.9); rpGlow.position.y = 0.2; rpGlow.visible = false; noRay(rpGlow); rpGroup.add(rpGlow);
+  rpGroup.add(hitBox(0.7, 0.4, 0.55, 0, 0.18, 0));
+  let rpShown = false, rpT = 0, fileMissing = false;
+  ctx.interaction.add(rpGroup, {
+    prompt: () => (ctx.audio.trackPlaying() ? 'Presiona E para detener el disco.' : 'Presiona E para poner el disco.'),
+    enabled: () => rpShown && rpT > 0.9,
+    onInteract: async () => {
+      if (ctx.audio.trackPlaying()) { ctx.audio.stopTrack(); return; }
+      let ok = false;
+      if (!fileMissing) for (const u of RECORD.urls) { ok = await ctx.audio.playTrack(u); if (ok) break; }
+      if (ok) { ctx.ui.toast(`♪ ${RECORD.title}`, 4000); ctx.secrets?.add('lover-record', { icon: 'vinyl', era: 'Lover', title: RECORD.title }); return; }
+      console.warn('[Lover] no se pudo cargar el audio. Rutas probadas:', RECORD.urls, '— revisa el nombre exacto del archivo en assets/audio.');
+      fileMissing = true;                                 // no insistir con un archivo que no existe
+      ctx.audio.playSynth(); ctx.ui.toast(`♪ ${RECORD.fallbackTitle}`, 4000);
+      ctx.secrets?.add('lover-record', { icon: 'vinyl', era: 'Lover', title: RECORD.fallbackTitle });
+    },
+  });
+  function showRecord() {
+    rpShown = true; rpGroup.visible = true; rpT = 0;
+    ctx.particles.burst(g.localToWorld(new THREE.Vector3(CHEST.x, 1.0, CHEST.z)), 30, { speed: 0.8, up: 1.2 });
+    setTimeout(() => ctx.ui.toast('Dentro del cofre abierto aún queda algo...', 4500), 4700);   // después del aviso del corazón
+  }
+
   // ================= Animación =================
   ctx.updaters.push((dt, t) => {
     now = t;
@@ -620,9 +668,19 @@ function createLoverPuzzle(ctx, env) {
         pedRing.material.color.copy(neon(pinkDark, 1.8));
         ctx.audio.chime(); ctx.particles.burst(g.localToWorld(flyTo.clone()), 40, { speed: 1.0, up: 1.2 });
         ctx.ui.toast('El corazón se posa en el altar. Presiona E para recogerlo.', 4500);
+        showRecord();                                                            // easter egg: aparece el toca discos dentro del cofre
       }
     } else if (prize === 'landed') {
       finalHeart.position.y = 1.6 + Math.sin(t * 2) * 0.06; finalHeart.rotation.y += dt * 1.2;
+    }
+    // easter egg: el toca discos "sale" del cofre; el disco gira y brilla mientras suena la canción
+    if (rpShown) {
+      if (rpT < 1) { rpT = Math.min(1, rpT + dt / 1.0); rpGroup.scale.setScalar(Math.max(0.01, ease(rpT))); }
+      const playing = ctx.audio.trackPlaying();
+      platter.rotation.y += playing ? dt * 3.5 : 0;
+      rpArm.rotation.y += ((playing ? 0.5 : 0) - rpArm.rotation.y) * Math.min(1, dt * 4);
+      rpGlow.visible = playing; rpGlow.material.opacity = 0.6 + 0.4 * Math.sin(t * 8);
+      if (playing && Math.random() < 0.05) ctx.particles.burst(g.localToWorld(new THREE.Vector3(CHEST.x, 1.15, CHEST.z)), 2, { speed: 0.3, up: 0.8 });
     }
   });
 

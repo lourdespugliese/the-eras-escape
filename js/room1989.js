@@ -17,7 +17,8 @@ const CZ = -9 - SIZE / 2;                                // centro de la sala en
 const PINK = 0xff2d95, BLUE = 0x2de2ff;
 // Canción del toca discos secreto (el quiosco). Copia tu archivo de audio en esa ruta (relativa a index.html).
 // Si el archivo no existe, el disco toca un tema synthwave original generado por el propio juego (audio.js).
-const RECORD = { url: 'assets/audio/Blank Space Taylors Version.mp3', title: "Blank Space (Taylor's Version)", fallbackTitle: 'Neon Skyline (pista original)' };const clamp = THREE.MathUtils.clamp;
+const RECORD = { url: 'assets/audio/Blank Space Taylors Version.mp3', title: "Blank Space (Taylor's Version)", fallbackTitle: 'Neon Skyline (pista original)' };
+const clamp = THREE.MathUtils.clamp;
 // Color "más brillante que blanco": con el Bloom activo hace que el material brille como un neón.
 export const neon = (hex, k = 2.5) => new THREE.Color(hex).multiplyScalar(k);
 
@@ -227,7 +228,7 @@ export function buildRoom1989(ctx, room1) {
 
   // --- Atrezzo + escondites de las piezas ---
   // Taxi (oeste, mira al norte). Cabina de vidrio: se ve el interior, pero hay que abrir la puerta.
-    const taxi = new THREE.Group(); taxi.position.set(-3.2 * K, 0, 2.6 * K); g.add(taxi);
+  const taxi = new THREE.Group(); taxi.position.set(-3.2 * K, 0, 2.6 * K); g.add(taxi);
   const yellow = mat(0xffc400, { roughness: 0.4, metalness: 0.3, emissive: 0x3a2a00 });
   const glassMat = mat(0x6688cc, { emissive: 0x0a1a33, roughness: 0.2, transparent: true, opacity: 0.3 });
   box(1.0, 0.45, 2.1, yellow, 0, 0.45, 0, taxi);                                  // carrocería
@@ -555,9 +556,10 @@ export function buildRoom1989(ctx, room1) {
     onInteract: async () => {
       if (ctx.audio.trackPlaying()) { ctx.audio.stopTrack(); return; }
       const ok = !fileMissing && await ctx.audio.playTrack(RECORD.url);
-      if (ok) { ctx.ui.toast(`♪ ${RECORD.title}`, 4000); return; }
+      if (ok) { ctx.ui.toast(`♪ ${RECORD.title}`, 4000); ctx.secrets?.add('1989-cassette', { icon: 'cassette', era: '1989', title: RECORD.title }); return; }
       fileMissing = true;                                  // no insistir con un archivo que no existe
       ctx.audio.playSynth(); ctx.ui.toast(`♪ ${RECORD.fallbackTitle}`, 4000);
+      ctx.secrets?.add('1989-cassette', { icon: 'cassette', era: '1989', title: RECORD.fallbackTitle });
     },
   });
 
