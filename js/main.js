@@ -18,6 +18,7 @@ import { buildIntro } from './intro.js';
 import { buildRoomLover } from './roomlover.js';
 import { buildTrophyHall } from './trophies.js';
 import { buildRoomForest } from './roomforest.js';
+import { buildRoomMidnights } from './roommidnights.js';
 import { createSecrets } from './secrets.js';
 import { buildSongShelf } from './songshelf.js';
 
@@ -63,13 +64,14 @@ createFearlessPuzzle(ctx, room1);
 const room2 = buildRoom1989(ctx, room1);      // Habitación 2 (sala + acertijo)
 const room3 = buildRoomReputation(ctx, room2);             // Habitación 3 (sala + acertijo)
 const room4 = buildRoomLover(ctx, room3);    // Habitación 4 (+ túnel de corazón)
-const room5 = buildRoomForest(ctx, room4);   // Habitación 5: bosque Folklore / Evermore (3 caminos, 3 acertijos)
+const room5 = buildRoomForest(ctx, room4);   // Habitación 5: bosque Folklore / Evermore (4 cruces, 3 acertijos)
+const room6 = buildRoomMidnights(ctx, room5); // Habitación 6: Midnights (solo la sala; todavía sin acertijos)
 
 // Introducción inmersiva (exterior, hall y luz guía). Debe crearse DESPUÉS de las salas.
 // Para saltarla mientras desarrollas, abre el juego con  http://localhost:8000/?skip
 // ---- Atajos de desarrollo (por la URL) ----
 //   ?skip       salta la intro y empieza en la sala 1
-//   ?room=N     salta la intro y empieza dentro de la sala N (1-5): inventario con los objetos de las salas anteriores
+//   ?room=N     salta la intro y empieza dentro de la sala N (1-6): inventario con los objetos de las salas anteriores
 //               y puertas anteriores abiertas. La puerta de salida de la sala N sigue cerrada (se abre al resolverla).
 const params = new URLSearchParams(location.search);
 const START_ROOM = parseInt(params.get('room'), 10) || 0;
@@ -102,7 +104,7 @@ ui.onStart(() => { audio.start(); player.lock(); });   // el audio necesita un c
 let devJumped = false;
 player.controls.addEventListener('lock', () => {
   audio.start(); ui.showGame(true); intro.onLock();
-  if (START_ROOM > 0 && !devJumped) { devJumped = true; jumpToRoom(START_ROOM, [room1, room2, room3, room4, room5]); }   // después de intro.onLock(), que coloca la cámara en la sala 1
+  if (START_ROOM > 0 && !devJumped) { devJumped = true; jumpToRoom(START_ROOM, [room1, room2, room3, room4, room5, room6]); }   // después de intro.onLock(), que coloca la cámara en la sala 1
 });
 player.controls.addEventListener('unlock', () => { audio.pause(); ui.showGame(false); });
 
