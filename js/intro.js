@@ -317,8 +317,8 @@ export function buildIntro(ctx, room1, { player, skip = false } = {}) {
     [[0.45, 2.3], [0.45, 1.5], [0.45, 3.1]].forEach(([dx, y]) => { const s = new THREE.Mesh(new THREE.SphereGeometry(0.06, 8, 6), bronze); s.position.set(dir + (dir > 0 ? dx : -dx) * 0.9, y, 0.13); pivot.add(s); });
   };
   mkLeaf(leafL, 1); mkLeaf(leafR, -1);
-  const handle = new THREE.Mesh(new THREE.TorusGeometry(0.26, 0.055, 10, 24), bronze); handle.position.set(-0.28, 2.1, 0.2); leafR.add(handle);   // enorme picaporte de bronce
-  const plate = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.7, 0.05), bronze); plate.position.set(-0.28, 2.1, 0.14); leafR.add(plate);
+  const handle = new THREE.Mesh(new THREE.TorusGeometry(0.26, 0.055, 10, 24), bronze); handle.position.set(-2, 2.1, 0.2); leafR.add(handle);   // enorme picaporte de bronce
+  const plate = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.7, 0.05), bronze); plate.position.set(-2, 2.1, 0.14); leafR.add(plate);
   frontDoor.add(leafL, leafR);
   const frontCol = { minX: DOOR_X - 2, maxX: DOOR_X + 2, minZ: FZ - 0.3, maxZ: FZ + 0.3 };
   ctx.colliders.push(frontCol);
