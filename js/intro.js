@@ -297,7 +297,7 @@ export function buildIntro(ctx, room1, { player, skip = false } = {}) {
   const spGeo = new THREE.BufferGeometry(); spGeo.setAttribute('position', new THREE.BufferAttribute(spPos, 3));
   const sparkles = new THREE.Points(spGeo, new THREE.PointsMaterial({ color: 0xffd36a, size: 0.05, transparent: true, opacity: 0.9, blending: THREE.AdditiveBlending, depthWrite: false }));
   sparkles.frustumCulled = false; env.add(sparkles);
-  ctx.interaction.add(env, {
+  addItem(env, {
     prompt: () => 'Presiona E para recoger.',
     enabled: () => phase === 'envelope',
     onInteract: () => startTaking(),
@@ -317,8 +317,8 @@ export function buildIntro(ctx, room1, { player, skip = false } = {}) {
     [[0.45, 2.3], [0.45, 1.5], [0.45, 3.1]].forEach(([dx, y]) => { const s = new THREE.Mesh(new THREE.SphereGeometry(0.06, 8, 6), bronze); s.position.set(dir + (dir > 0 ? dx : -dx) * 0.9, y, 0.13); pivot.add(s); });
   };
   mkLeaf(leafL, 1); mkLeaf(leafR, -1);
-  const handle = new THREE.Mesh(new THREE.TorusGeometry(0.26, 0.055, 10, 24), bronze); handle.position.set(-0.28, 2.1, 0.2); leafR.add(handle);   // enorme picaporte de bronce
-  const plate = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.7, 0.05), bronze); plate.position.set(-0.28, 2.1, 0.14); leafR.add(plate);
+  const handle = new THREE.Mesh(new THREE.TorusGeometry(0.26, 0.055, 10, 24), bronze); handle.position.set(-2, 2.1, 0.2); leafR.add(handle);   // enorme picaporte de bronce
+  const plate = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.7, 0.05), bronze); plate.position.set(-2, 2.1, 0.14); leafR.add(plate);
   frontDoor.add(leafL, leafR);
   const frontCol = { minX: DOOR_X - 2, maxX: DOOR_X + 2, minZ: FZ - 0.3, maxZ: FZ + 0.3 };
   ctx.colliders.push(frontCol);
@@ -380,25 +380,17 @@ export function buildIntro(ctx, room1, { player, skip = false } = {}) {
     model.position.set(-c.x, -box.min.y, -c.z);                                 // centrada sobre el pedestal y apoyada en él
     holder.add(model);
   }, undefined, (e) => console.warn('[intro] no se pudo cargar la estatua:', e));
-const plaqueMesh = new THREE.Mesh(new THREE.PlaneGeometry(2.2, 0.8), new THREE.MeshBasicMaterial({map: makeTextTexture(
-      `Taylor Swift
-      La música también
-      es una forma de memoria`,
-      {
-        w: 1024,
-        h: 400,
-        bg: "#2a2018",
-        color: "#f3d38a",
-        titleFont: "bold 62px Georgia",
-        bodyFont: "italic 36px Georgia",
-        align: "center",
-        padding: 40
-      }
-    )
-  })
-);
-  plaqueMesh.position.set(HCX, 0.78, 16.53); root.add(plaqueMesh);
-  ctx.interaction.add(plaqueMesh, { prompt: () => 'Presiona E para leer.', onInteract: () => ctx.ui.toast(PLAQUE, 8000) });
+  const plaqueTex = canvasTex(768, 288, (g, w, h) => {
+    g.fillStyle = '#2a2018'; g.fillRect(0, 0, w, h);
+    g.strokeStyle = '#d4a640'; g.lineWidth = 6; g.strokeRect(10, 10, w - 20, h - 20);                 // marco dorado
+    g.textAlign = 'center'; g.textBaseline = 'middle';
+    g.fillStyle = '#ffd36a'; g.font = 'bold 74px Georgia'; g.fillText('Taylor Swift', w / 2, 82);
+    g.fillStyle = '#f3d38a'; g.font = 'italic 44px Georgia';
+    g.fillText('La música también', w / 2, 170); g.fillText('es una forma de memoria', w / 2, 224);
+  });
+  const plaqueMesh = new THREE.Mesh(new THREE.PlaneGeometry(2.6, 0.975), new THREE.MeshBasicMaterial({ map: plaqueTex }));
+  plaqueMesh.position.set(HCX, 0.9, 16.58); root.add(plaqueMesh);
+  addItem(plaqueMesh, { prompt: () => 'Presiona E para leer.', onInteract: () => ctx.ui.toast(PLAQUE, 8000) });
 
   // Seis puertas, una por era. Solo la de Fearless (la primera) se abre.
   ERAS.forEach((era, i) => {
@@ -410,7 +402,7 @@ const plaqueMesh = new THREE.Mesh(new THREE.PlaneGeometry(2.2, 0.8), new THREE.M
     if (i === 0) return;                                                    // la de Fearless tiene su propia puerta (abajo)
     const d = new THREE.Mesh(new THREE.BoxGeometry(3, 3.6, 0.14), woodDoor); d.position.set(x, 1.8, 5.3); root.add(d);
     const knob = new THREE.Mesh(new THREE.SphereGeometry(0.07, 8, 6), bronze); knob.position.set(x + 1.1, 1.7, 5.42); root.add(knob);
-    ctx.interaction.add(d, { prompt: () => 'Objeto bloqueado.', onInteract: () => ctx.ui.toast('Esta puerta aún duerme...', 2500) });
+    addItem(d, { prompt: () => 'Objeto bloqueado.', onInteract: () => ctx.ui.toast('Esta puerta aún duerme...', 2500) });
   });
   // Puerta dorada de Fearless (entrada de la sala 1). Se abre hacia la sala 1.
   const fDoor = new THREE.Group(); root.add(fDoor);
@@ -425,7 +417,7 @@ const plaqueMesh = new THREE.Mesh(new THREE.PlaneGeometry(2.2, 0.8), new THREE.M
   const inscr = new THREE.Mesh(new THREE.PlaneGeometry(2.6, 0.7), new THREE.MeshBasicMaterial({ map: makeTextTexture('Fearless', { w: 512, h: 140, bg: '#1b140c', color: '#ffd36a', font: 'italic 84px Georgia' }) }));
   inscr.position.set(FDOOR_X, 3.55, 5.26); root.add(inscr);
   const fCol = { minX: 0.5, maxX: 3.5, minZ: 4.85, maxZ: 5.15 }; ctx.colliders.push(fCol);
-  ctx.interaction.add(fDoor, {
+  addItem(fDoor, {
     prompt: () => 'Objeto bloqueado.', enabled: () => !fOpen && fTarget === 0,
     onInteract: () => {
       if (orbPhase === 'hidden' && (phase === 'hall' || phase === 'guide')) { spawnGuide(); ctx.ui.toast('Algo despierta en la estatua...', 3000); }   // no hace falta esperar
@@ -468,7 +460,7 @@ const plaqueMesh = new THREE.Mesh(new THREE.PlaneGeometry(2.2, 0.8), new THREE.M
   const opGeo = new THREE.BufferGeometry(); opGeo.setAttribute('position', new THREE.BufferAttribute(opPos, 3));
   const orbDust = new THREE.Points(opGeo, new THREE.PointsMaterial({ color: 0xffd36a, size: 0.05, transparent: true, opacity: 0.9, blending: THREE.AdditiveBlending, depthWrite: false }));
   orbDust.frustumCulled = false; orbVis.add(orbDust);
-  const ROUTE = [[10, 4.9, 15], [14.5, 2.8, 18.5], [19.5, 2.6, 15], [19.5, 2.5, 9.5], [13, 2.5, 8], [7, 2.4, 8.2], [2, 2.2, 7.6]].map((p) => new THREE.Vector3(...p));
+  const ROUTE = [[10, 6.1, 15], [14.5, 2.8, 18.5], [19.5, 2.6, 15], [19.5, 2.5, 9.5], [13, 2.5, 8], [7, 2.4, 8.2], [2, 2.2, 7.6]].map((p) => new THREE.Vector3(...p));
 
   // ================= Secuencia =================
   function startTaking() {
