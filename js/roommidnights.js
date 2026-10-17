@@ -387,7 +387,7 @@ const T_NOTE = { title: 'Nota junto al teléfono', text: 'Marca lo que ves.\nDes
 const T_CALL = { title: 'Al otro lado de la línea', text: 'Suena una vez. Dos. Tres.\n\nContestan sin decir nada, y de pronto una voz muy lejana, casi un susurro:\n\n«Te espero cuando el reloj de abajo marque las tres y trece. Ni un minuto antes... ni uno después.»\n\nClic.' };
 const T_CHESS = { title: 'Reglas para la jugada', text: 'Solo queda un rey negro y es el turno de las blancas.\n\nCómo se mueve cada pieza:\n· Rey: una casilla en cualquier dirección.\n· Dama: cualquier número de casillas en línea recta o diagonal.\n· Torre: en línea recta (filas y columnas).\n· Alfil: en diagonal.\nNinguna pieza salta sobre otras.\n\nJAQUE MATE: el rey está atacado y no tiene ninguna casilla segura a la que escapar.\n\nEncuentra la única jugada de las blancas que da jaque mate.' };
 
-const T_NIGHT = { title: 'Nota sobre la mesa', text: 'Cinco relojes, todos detenidos. Cuatro se equivocan.\n\nSolo uno marca la hora en que una noche termina y otra empieza: aquella en que las dos manecillas se funden en una sola, apuntando al cielo.\n\nPresiona E sobre el reloj que dice la verdad.' };
+const T_NIGHT = { title: 'Nota sobre la mesa', text: 'Cinco relojes, todos detenidos. Cuatro se equivocan.\n\nSolo uno marca la hora en que una noche termina y otra empieza: aquella en que las dos manecillas se funden en una sola, apuntando al cielo.\n\nPresiona E sobre el reloj que dice la verdad.\n\nSi te equivocas, los relojes se desordenan.' };
 // Esfera de un reloj de mesa detenido a las hh:mm
 const deskClockTex = (hh, mm) => canvasTex(256, 256, (c) => {
   c.fillStyle = '#120b34'; c.fillRect(0, 0, 256, 256); c.translate(128, 128); c.lineCap = 'round';
@@ -616,7 +616,7 @@ function createMidnightsPuzzle(ctx, env) {
   // tarjeta con las reglas, junto al tablero
   { const card = new THREE.Group(); card.position.set(BD.x - 4.9, 0, BD.z + 2.4); g.add(card);
     cyl(0.05, 0.06, 0.9, mat(0x2a1a5a), 0, 0.45, 0, 8, card);
-    const pl = new THREE.Mesh(new THREE.PlaneGeometry(0.7, 0.5), new THREE.MeshBasicMaterial({ map: labelTex('Reglas', 224, 160, { bg: '#e6defa', fg: '#4a2a8a', font: 'italic 40px Georgia' }) })); pl.position.set(0, 1.05, 0); pl.rotation.y = Math.PI / 2; card.add(pl, hit(0.5, 0.9, 1.0, 0, 1.0, 0)); colRound(BD.x - 4.9, BD.z + 2.4, 0.2);
+    const pl = new THREE.Mesh(new THREE.PlaneGeometry(0.7, 0.5), new THREE.MeshBasicMaterial({ map: labelTex('Reglas', 224, 160, { bg: '#e6defa', fg: '#4a2a8a', font: 'italic 40px Georgia' }) })); pl.position.set(-0.02, 1.05, 0); pl.rotation.y = -Math.PI / 2; const pl2 = pl.clone(); pl2.position.x = 0.02; pl2.rotation.y = Math.PI / 2; card.add(pl, pl2, hit(0.5, 0.9, 1.0, 0, 1.0, 0)); colRound(BD.x - 4.9, BD.z + 2.4, 0.2);
     ctx.interaction.add(card, { prompt: () => 'Presiona E para leer las reglas.', onInteract: () => reader.toggle('chess', T_CHESS.title, T_CHESS.text) }); }
 
   // =============================== 4) LA MESA DE LOS RELOJES (sureste) ===============================
@@ -635,9 +635,24 @@ function createMidnightsPuzzle(ctx, env) {
   const gearC = makeGear(0xc4803a, 0x5a3010); gearC.rotation.y = -Math.PI / 2; gearC.position.set(TB.x - 0.45, 1.2, TB.z + 1.05); gearC.visible = false; g.add(gearC);
   gearC.add(makeGlow(0xffb060, 1.6), hit(0.9, 0.9, 0.5, 0, 0, 0));
   ctx.interaction.add(gearC, { prompt: () => 'Presiona E para tomar el engranaje de bronce.', enabled: () => gearC.visible && gearCUp && !gearCTaken, onInteract: () => takeGear('C') });
+  const deskClocks = [];
+  const setClock = (clk, hh, mm) => { clk.hh = hh; clk.mm = mm; const old = clk.face.material.map; clk.face.material.map = deskClockTex(hh, mm); clk.face.material.needsUpdate = true; if (old && old.dispose) old.dispose(); };
+  const WRONG = [];                                                                       // horas posibles de los relojes que mienten (nunca las 12:xx ni las que dejan las manecillas casi juntas)
+  for (let h = 1; h <= 11; h++) for (let m = 0; m < 60; m += 5) if (m !== h * 5) WRONG.push([h, m]);
+  let lastRight = 3;
+  function shuffleClocks() {                                                              // al fallar: los 5 relojes cambian de hora y el de las 12:00 pasa a otro lugar
+    let right; do { right = Math.floor(Math.random() * deskClocks.length); } while (right === lastRight);
+    lastRight = right;
+    const pool = WRONG.slice();
+    deskClocks.forEach((clk, i) => {
+      if (i === right) { setClock(clk, 12, 0); return; }
+      const [h, m] = pool.splice(Math.floor(Math.random() * pool.length), 1)[0]; setClock(clk, h, m);
+    });
+  }
   STOPPED.forEach(([hh, mm], i) => {
+    const clk = { hh, mm, face: null };
     const grp = new THREE.Group(); grp.position.set(TB.x - 0.1, 1.5, TB.z + (i - 2) * 1.05); grp.rotation.y = -Math.PI / 2; g.add(grp);     // miran hacia el oeste (hacia la sala)
-    grp.add(new THREE.Mesh(new THREE.CircleGeometry(0.42, 40), new THREE.MeshBasicMaterial({ map: deskClockTex(hh, mm) })));
+    clk.face = new THREE.Mesh(new THREE.CircleGeometry(0.42, 40), new THREE.MeshBasicMaterial({ map: deskClockTex(hh, mm) })); grp.add(clk.face); deskClocks.push(clk);
     const back = new THREE.Mesh(new THREE.CircleGeometry(0.42, 24), new THREE.MeshBasicMaterial({ color: 0x120b34 })); back.rotation.y = Math.PI; back.position.z = -0.02; grp.add(back);
     const rim = new THREE.Mesh(new THREE.TorusGeometry(0.44, 0.045, 10, 40), goldM()); rim.position.z = 0.01; grp.add(rim);
     cyl(0.06, 0.1, 0.22, goldM(), 0, -0.45, -0.04, 10, grp);
@@ -646,11 +661,11 @@ function createMidnightsPuzzle(ctx, env) {
       prompt: () => 'Presiona E para examinar el reloj.',
       enabled: () => !state.night,
       onInteract: () => {
-        if (hh % 12 === 0 && mm === 0) {
-          state.night = true; nightT = 0; ctx.audio.reward();
+        if (clk.hh % 12 === 0 && clk.mm === 0) {
+          state.night = true; nightT = 0; ctx.audio.reward(); gearC.position.set(TB.x - 0.45, 1.2, grp.position.z);
           const gl = makeGlow(0xffd36a, 2.6, 0.75); gl.position.z = 0.3; grp.add(gl);
           ctx.ui.toast('Las dos manecillas se funden en una, apuntando al cielo. Suenan doce campanadas lejanas... y de la mesa sube un engranaje de bronce.', 7000);
-        } else { ctx.audio.error(); ctx.ui.toast(`Este reloj marca las ${hhmm(hh, mm)}. Sus manecillas no se funden en una.`, 4000); }
+        } else { const was = hhmm(clk.hh, clk.mm); ctx.audio.error(); shuffleClocks(); ctx.ui.toast(`Este reloj marca las ${was}. Sus manecillas no se funden en una... y de pronto todos los relojes cambian de hora.`, 4500); }
       },
     });
   });
@@ -718,7 +733,7 @@ function createMidnightsPuzzle(ctx, env) {
     }
     if (gearB.visible) { gearB.rotation.z += dt * 0.8; gearB.position.y = 1.5 + Math.sin(t * 2 + 1) * 0.06; }
     // mesa de los relojes: sube el engranaje de bronce
-    if (nightT >= 0 && nightT < 1) { nightT = Math.min(1, nightT + dt / 1.4); gearC.visible = true; gearC.position.y = 1.2 + 1.3 * ease(nightT); if (nightT >= 1) { gearCUp = true; burst(TB.x - 0.45, 2.5, TB.z + 1.05, 30, { speed: 1.0, up: 1.2 }); } }
+    if (nightT >= 0 && nightT < 1) { nightT = Math.min(1, nightT + dt / 1.4); gearC.visible = true; gearC.position.y = 1.2 + 1.3 * ease(nightT); if (nightT >= 1) { gearCUp = true; burst(TB.x - 0.45, 2.5, gearC.position.z, 30, { speed: 1.0, up: 1.2 }); } }
     if (gearC.visible) { gearC.rotation.z += dt * 0.8; if (gearCUp) gearC.position.y = 2.5 + Math.sin(t * 2 + 2) * 0.06; }
     // el final: 12:00, doce campanadas, el orbe 13, la bola de espejos baja y suelta la llave
     if (finale.on) {
