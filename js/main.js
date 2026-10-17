@@ -65,7 +65,7 @@ const room2 = buildRoom1989(ctx, room1);      // Habitación 2 (sala + acertijo)
 const room3 = buildRoomReputation(ctx, room2);             // Habitación 3 (sala + acertijo)
 const room4 = buildRoomLover(ctx, room3);    // Habitación 4 (+ túnel de corazón)
 const room5 = buildRoomForest(ctx, room4);   // Habitación 5: bosque Folklore / Evermore (4 cruces, 3 acertijos)
-const room6 = buildRoomMidnights(ctx, room5); // Habitación 6: Midnights (solo la sala; todavía sin acertijos)
+const room6 = buildRoomMidnights(ctx, room5); // Habitación 6: Midnights (4 acertijos + portal de regreso al museo)
 
 // Introducción inmersiva (exterior, hall y luz guía). Debe crearse DESPUÉS de las salas.
 // Para saltarla mientras desarrollas, abre el juego con  http://localhost:8000/?skip
@@ -76,6 +76,7 @@ const room6 = buildRoomMidnights(ctx, room5); // Habitación 6: Midnights (solo 
 const params = new URLSearchParams(location.search);
 const START_ROOM = parseInt(params.get('room'), 10) || 0;
 const intro = buildIntro(ctx, room1, { player, skip: params.has('skip') || START_ROOM > 0 });
+ctx.returnToMuseum = () => intro.returnToHall();   // portal de la sala 6 -> Hall principal
 
 // >>> atajo ?room=N
 function jumpToRoom(n, list) {
