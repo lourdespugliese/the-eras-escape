@@ -7,6 +7,7 @@
 //  - La primera vez que el jugador vuelve a pisar el hall, el trofeo se revela con animación, destello y sonido.
 //  - Las salas NO necesitan cambios: siguen llamando a ctx.collect(id) como siempre.
 import * as THREE from 'three';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { canvasTex } from './rooms.js';
 import { ITEMS } from './ui.js';
 
@@ -25,6 +26,53 @@ const SPOTS = [
   { id: 'oldkey',   era: 'Folklore',   hex: '#b8c8a0', x: 4.5,  z: 10.5, desc: 'Una llave antigua. Abre algo que lleva mucho cerrado.' },
   { id: 'finalkey', era: 'Midnights',  hex: '#8a96ff', x: 15.5, z: 10.5, desc: 'La llave final. Solo falta usarla.' },
 ];
+
+// ---------- Estatuas de Taylor (una por era, al lado de su vitrina) ----------
+// Cada trofeo tiene a su lado un pedestal con la estatua de su era. La estatua aparece junto con el trofeo
+// (misma revelación al volver al hall). Para agregar/cambiar una: edita su línea aquí. Las claves son los ids de SPOTS.
+//   url    -> archivo .glb dentro de assets/models/
+//   height -> (opcional) alto final en metros       rotY -> (opcional) giro en radianes si el modelo no mira al frente
+const STATUE_ERAS = {
+  guitar:   { url: 'assets/models/taylor-fearless.glb' },
+  polaroid: { url: 'assets/models/taylor-1989.glb' },
+  snake:    { url: 'assets/models/taylor-reputation.glb' },
+  heart:    { url: 'assets/models/taylor-lover.glb' },
+  // oldkey / finalkey (Folklore, Midnights): aún sin estatua. Cuando existan, agrega aquí su línea.
+};
+const STATUE = {
+  height: 1.9,          // alto por defecto de cada estatua (la vitrina mide 2.4 en total)
+  side: 1.9,            // separación en z respecto al centro de su vitrina (hacia el fondo del hall)
+  pedestalH: 0.5,       // alto del pedestal
+  rotY: 0,              // giro por defecto (0 = el modelo mira hacia +Z, como la estatua central)
+  // Si un .glb no existe o falla al cargar, se usa éste como reemplazo temporal (null = no mostrar nada).
+  fallback: 'assets/models/estatua-taylor.glb',
+};
+
+// Los .glb son pesados: se cargan una sola vez (caché por url) y solo cuando el trofeo de esa era se recupera.
+const gltfLoader = new GLTFLoader();
+const modelCache = new Map();
+function loadModel(url) {
+  if (!modelCache.has(url)) modelCache.set(url, new Promise((res, rej) => gltfLoader.load(url, (g) => res(g.scene), undefined, rej)));
+  return modelCache.get(url);
+}
+async function loadStatueModel(cfg) {
+  try { return await loadModel(cfg.url); } catch (e) {
+    if (!STATUE.fallback) throw e;
+    console.warn(`[trophies] No se pudo cargar ${cfg.url}; se usa ${STATUE.fallback} como reemplazo temporal.`);
+    return loadModel(STATUE.fallback);
+  }
+}
+// Copia del modelo, ajustada a la altura deseada, centrada y apoyada en y = 0. Sin raycast (son ~430k triángulos).
+function fitModel(src, height) {
+  const model = src.clone(true);
+  model.traverse((o) => { if (o.isMesh) o.raycast = () => {}; });
+  const box = new THREE.Box3().setFromObject(model), size = box.getSize(new THREE.Vector3());
+  model.scale.setScalar(height / size.y);
+  box.setFromObject(model);
+  const c = box.getCenter(new THREE.Vector3());
+  model.position.set(-c.x, -box.min.y, -c.z);
+  return model;
+}
 
 // ---------- Materiales compartidos ----------
 const M = (color, o = {}) => new THREE.MeshStandardMaterial({ color, roughness: 0.4, metalness: 0.6, ...o });
@@ -120,6 +168,61 @@ export function buildTrophyHall(ctx) {
   const labelOf = (id) => (ITEMS.find((i) => i.id === id) || { label: id }).label;
   const byId = {};
 
+  // Pedestal + estatua de la era, al lado de la vitrina (mismo lado del hall, mirando hacia la alfombra).
+  function buildStatueStand(spot) {
+    const cfg = STATUE_ERAS[spot.id]; if (!cfg) return null;
+    const color = new THREE.Color(spot.hex), H = STATUE.pedestalH, TOP = H + 0.04, z = spot.z + STATUE.side;
+    const stand = new THREE.Group();
+    stand.position.set(spot.x, 0, z); stand.rotation.y = spot.x < 10 ? Math.PI / 2 : -Math.PI / 2;
+    root.add(stand);
+
+    const base = new THREE.Group(); stand.add(base);                 // solo esto es "apuntable" (E); el modelo no participa del raycast
+    const ped = new THREE.Mesh(new THREE.BoxGeometry(1, H, 1), marble); ped.position.y = H / 2;
+    const trim = new THREE.Mesh(new THREE.BoxGeometry(1.1, 0.06, 1.1), gold); trim.position.y = H + 0.01;
+    const plaque = new THREE.Mesh(new THREE.PlaneGeometry(0.8, 0.31), new THREE.MeshBasicMaterial({ map: plaqueTex(spot.era, '', spot.hex, false) }));
+    plaque.position.set(0, H / 2, 0.506);
+    base.add(ped, trim, plaque);
+
+    const halo = noRay(new THREE.Sprite(new THREE.SpriteMaterial({ map: GLOW, color, transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false })));
+    halo.scale.setScalar(3); halo.position.y = TOP + (cfg.height || STATUE.height) * 0.5; stand.add(halo);
+    const holder = new THREE.Group(); holder.position.y = TOP; holder.rotation.y = cfg.rotY ?? STATUE.rotY; holder.visible = false; stand.add(holder);
+
+    const s = { cfg, stand, holder, halo, plaque, spot, loading: false, ready: false, started: false, done: false, t: 0 };
+    s.load = () => {
+      if (s.loading) return; s.loading = true;
+      loadStatueModel(cfg).then((src) => { holder.add(fitModel(src, cfg.height || STATUE.height)); s.ready = true; })
+        .catch((e) => console.error(`[trophies] No se pudo cargar la estatua de ${spot.era}:`, e));
+    };
+
+    ctx.colliders.push({ minX: spot.x - 0.62, maxX: spot.x + 0.62, minZ: z - 0.62, maxZ: z + 0.62 });
+    ctx.interaction.add(base, {
+      prompt: () => 'Presiona E para examinar.',
+      onInteract: () => ctx.ui.toast(s.started
+        ? `Taylor Swift — era ${spot.era}.`
+        : `Pedestal vacío (${spot.era}). Su estatua aparecerá cuando recuperes ${labelOf(spot.id)}.`, 4500),
+    });
+    return s;
+  }
+
+  // Revelación de la estatua: entra con rebote y destello, un instante después del trofeo.
+  function animateStatue(v, dt, t) {
+    const s = v.statue; if (!s) return;
+    if (!s.started && s.ready && (v.state === 'revealing' || v.state === 'shown')) {
+      s.started = true; s.t = 0; s.holder.visible = true; s.holder.scale.setScalar(0.01);
+      s.plaque.material.map = plaqueTex(s.spot.era, 'Taylor Swift', s.spot.hex, true); s.plaque.material.needsUpdate = true;
+      const p = new THREE.Vector3(); s.stand.getWorldPosition(p); p.y += 1;
+      ctx.particles.burst(p, 60, { speed: 1.2, up: 1.4 });
+    }
+    if (!s.started) return;
+    s.t += dt;
+    if (!s.done) {
+      const k = clamp((s.t - 0.4) / 1.8, 0, 1);
+      s.holder.scale.setScalar(Math.max(0.01, easeOutBack(k)));
+      if (k >= 1) { s.done = true; s.holder.scale.setScalar(1); }
+    }
+    s.halo.material.opacity = (0.22 + 0.08 * Math.sin(t * 2 + v.i)) * Math.min(1, s.t / 1.2);
+  }
+
   SPOTS.forEach((spot, i) => {
     const color = new THREE.Color(spot.hex);
     const g = new THREE.Group();
@@ -155,6 +258,7 @@ export function buildTrophyHall(ctx) {
       onInteract: () => ctx.ui.toast(
         v.state === 'shown' || v.state === 'revealing' ? `${labelOf(spot.id)} — ${spot.desc}` : `Vitrina vacía (${spot.era}). Aquí descansará un objeto cuando lo recuperes.`, 4500),
     });
+    v.statue = buildStatueStand(spot);
     byId[spot.id] = v;
   });
 
@@ -170,6 +274,7 @@ export function buildTrophyHall(ctx) {
     const v = byId[id];
     if (!v || v.state !== 'empty') return;
     v.state = 'pending';
+    if (v.statue) v.statue.load();                    // empieza a descargar la estatua de esta era
     if (silent) return;                                // ?room=N: sin aviso
     setTimeout(() => ctx.ui.toast(`✨ ${labelOf(id)} ahora se exhibe en el Hall principal`, 4500), 3200);   // después del mensaje propio de la sala
   }
@@ -207,8 +312,9 @@ export function buildTrophyHall(ctx) {
       } else {
         v.model.rotation.y = 0;
       }
+      animateStatue(v, dt, t);
     }
   });
 
-  return { vitrines: byId, reveal: (id) => { markCollected(id); } };
+  return { vitrines: byId, statues: Object.fromEntries(Object.values(byId).filter((v) => v.statue).map((v) => [v.spot.id, v.statue])), reveal: (id) => { markCollected(id); } };
 }
