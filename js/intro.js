@@ -10,12 +10,13 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 // ================= Medidas del mundo =================
 const GROUND = -1.2;                 // nivel del suelo exterior (el interior del museo está en y = 0)
 const FZ = 25;                       // z de la fachada (pared sur del hall)
-const HX0 = -5, HX1 = 25, HCX = 10;  // hall: de x = -5 a 25 (centro 10)
+const HCX = 2, HX0 = HCX - 15, HX1 = HCX + 15;   // hall: de x = -13 a 17 (centro 2 = centro de la sala 1, así la puerta queda justo enfrente)
 const HZ0 = 5;                       // el hall empieza donde termina la sala 1 (z = 5)
 const HALL_H = 9;
-const START = { x: 10, z: 55 };      // dónde aparece el jugador (mirando al norte, hacia el museo)
-const DOOR_X = 10, DOOR_HT = 4.6;    // puerta principal: centro y alto
-const FDOOR_X = 2;                   // puerta dorada de Fearless: es la entrada de la sala 1
+const START = { x: HCX, z: 55 };      // dónde aparece el jugador (mirando al norte, hacia el museo)
+const DOOR_X = HCX, DOOR_HT = 4.6;    // puerta principal: centro y alto
+const FDOOR_X = HCX, FD_W = 5, FD_H = 3.7;   // puerta dorada de Fearless (entrada de la sala 1): centrada en la pared norte del hall; ancho y alto
+const FD_L = FDOOR_X - FD_W / 2, FD_R = FDOOR_X + FD_W / 2;
 
 const LETTER = [
   'Bienvenido.',
@@ -44,7 +45,7 @@ const ease = (t) => (t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2);
 // Altura del suelo en (x, z): escalera de 6 peldaños entre z = 35 (abajo) y z = 29 (arriba).
 export function groundHeight(x, z) {
   if (z <= 29) return 0;
-  if (z <= 35 && x >= 3 && x <= 17) return GROUND + 0.2 * (Math.min(5, Math.floor(35 - z)) + 1);
+  if (z <= 35 && x >= HCX - 7 && x <= HCX + 7) return GROUND + 0.2 * (Math.min(5, Math.floor(35 - z)) + 1);
   return GROUND;
 }
 
@@ -190,27 +191,27 @@ export function buildIntro(ctx, room1, { player, skip = false } = {}) {
   path.rotation.x = -Math.PI / 2; path.position.set(HCX, GROUND + 0.02, 48); root.add(path);
 
   // Plataforma del pórtico + escalera
-  slab(-8, 28, GROUND, 0, FZ + 0.2, 29, stone);
+  slab(HCX - 18, HCX + 18, GROUND, 0, FZ + 0.2, 29, stone);
   const top = new THREE.Mesh(new THREE.PlaneGeometry(36, 3.8), marble); top.rotation.x = -Math.PI / 2; top.position.set(HCX, 0.005, 27.1); root.add(top);
-  for (let i = 0; i < 6; i++) slab(3, 17, GROUND, GROUND + 0.2 * (i + 1), 29 + (5 - i), 30 + (5 - i), i % 2 ? marble : M(0xcfc9bd, { roughness: 0.4 }));
-  slab(2.4, 3, GROUND, 0.6, 29, 35.2, stone, true); slab(17, 17.6, GROUND, 0.6, 29, 35.2, stone, true);   // barandas
-  ctx.colliders.push({ minX: -8.4, maxX: 3, minZ: 29, maxZ: 29.4 }, { minX: 17, maxX: 28.4, minZ: 29, maxZ: 29.4 });   // borde frontal
-  ctx.colliders.push({ minX: -8.4, maxX: -8, minZ: 25, maxZ: 29.4 }, { minX: 28, maxX: 28.4, minZ: 25, maxZ: 29.4 });  // bordes laterales
+  for (let i = 0; i < 6; i++) slab(HCX - 7, HCX + 7, GROUND, GROUND + 0.2 * (i + 1), 29 + (5 - i), 30 + (5 - i), i % 2 ? marble : M(0xcfc9bd, { roughness: 0.4 }));
+  slab(HCX - 7.6, HCX - 7, GROUND, 0.6, 29, 35.2, stone, true); slab(HCX + 7, HCX + 7.6, GROUND, 0.6, 29, 35.2, stone, true);   // barandas
+  ctx.colliders.push({ minX: HCX - 18.4, maxX: HCX - 7, minZ: 29, maxZ: 29.4 }, { minX: HCX + 7, maxX: HCX + 18.4, minZ: 29, maxZ: 29.4 });   // borde frontal
+  ctx.colliders.push({ minX: HCX - 18.4, maxX: HCX - 18, minZ: 25, maxZ: 29.4 }, { minX: HCX + 18, maxX: HCX + 18.4, minZ: 25, maxZ: 29.4 });  // bordes laterales
 
   // Fachada: pared del hall + alas laterales
-  slab(-5.2, DOOR_X - 2, 0, HALL_H, FZ - 0.2, FZ + 0.2, wall, true);
-  slab(DOOR_X + 2, 25.2, 0, HALL_H, FZ - 0.2, FZ + 0.2, wall, true);
+  slab(HX0 - 0.2, DOOR_X - 2, 0, HALL_H, FZ - 0.2, FZ + 0.2, wall, true);
+  slab(DOOR_X + 2, HX1 + 0.2, 0, HALL_H, FZ - 0.2, FZ + 0.2, wall, true);
   slab(DOOR_X - 2, DOOR_X + 2, DOOR_HT, HALL_H, FZ - 0.2, FZ + 0.2, wall);
-  slab(-14, -5.2, GROUND, 10, 20, FZ + 0.2, wall); slab(25.2, 34, GROUND, 10, 20, FZ + 0.2, wall);
-  slab(-14, 34, 9.8, 10.4, 19.6, FZ + 0.8, roof);                                                            // cornisa/techo
-  slab(-8.4, 28.4, 8.6, 9.8, FZ + 0.2, 28.9, stone);                                                          // arquitrabe
+  slab(HCX - 24, HX0 - 0.2, GROUND, 10, 20, FZ + 0.2, wall); slab(HX1 + 0.2, HCX + 24, GROUND, 10, 20, FZ + 0.2, wall);
+  slab(HCX - 24, HCX + 24, 9.8, 10.4, 19.6, FZ + 0.8, roof);                                                            // cornisa/techo
+  slab(HCX - 18.4, HCX + 18.4, 8.6, 9.8, FZ + 0.2, 28.9, stone);                                                          // arquitrabe
   const pedShape = new THREE.Shape(); pedShape.moveTo(-18, 0); pedShape.lineTo(18, 0); pedShape.lineTo(0, 3.8); pedShape.closePath();
   const pediment = new THREE.Mesh(new THREE.ExtrudeGeometry(pedShape, { depth: 3.4, bevelEnabled: false }), stone);
   pediment.position.set(HCX, 9.8, FZ + 0.3); root.add(pediment);
   const clock = new THREE.Mesh(new THREE.CircleGeometry(1.3, 48), new THREE.MeshBasicMaterial({ map: clockTexture() }));
   clock.position.set(HCX, 11.1, FZ + 3.75); root.add(clock);
   const clockRing = new THREE.Mesh(new THREE.TorusGeometry(1.34, 0.1, 10, 48), goldM); clockRing.position.copy(clock.position); root.add(clockRing);
-  [-6, -2, 2, 6, 14, 18, 22, 26].forEach((x) => {                                                              // columnas gigantes
+  [-16, -12, -8, -4, 4, 8, 12, 16].map((o) => HCX + o).forEach((x) => {                                                              // columnas gigantes
     const col = new THREE.Mesh(new THREE.CylinderGeometry(0.55, 0.65, 8.6, 20), stone); col.position.set(x, 4.3, 27.6); root.add(col);
     slab(x - 0.85, x + 0.85, 8.2, 8.6, 26.75, 28.45, stone); slab(x - 0.85, x + 0.85, 0, 0.4, 26.75, 28.45, stone);
     ctx.colliders.push({ minX: x - 0.6, maxX: x + 0.6, minZ: 27, maxZ: 28.2 });
@@ -224,9 +225,9 @@ export function buildIntro(ctx, room1, { player, skip = false } = {}) {
     const p = new THREE.Mesh(new THREE.PlaneGeometry(w, h), m); p.position.set(x, y, FZ + 0.29); root.add(p);
     if (lit) windows.push({ m, seed: Math.random() * 20 });
   };
-  [-3, 0, 3, 6, 14, 17, 20, 23].forEach((x, i) => addWindow(x, 3.4, 1.4, 3.6, [1, 0, 1, 1, 1, 1, 0, 1][i]));
-  [-12.5, -9.5, -6.8, 27.5, 30.5, 33].forEach((x, i) => { addWindow(x, 3.4, 1.4, 3.6, i % 3 !== 1); addWindow(x, 7.6, 1.2, 1.4, i % 2 === 0); });
-  [-3, 3, 14, 20].forEach((x, i) => addWindow(x, 7.4, 1.2, 1.4, i % 2 === 0));
+  [-13, -10, -7, -4, 4, 7, 10, 13].forEach((o, i) => addWindow(HCX + o, 3.4, 1.4, 3.6, [1, 0, 1, 1, 1, 1, 0, 1][i]));
+  [-22.5, -19.5, -16.8, 17.5, 20.5, 23].forEach((o, i) => { addWindow(HCX + o, 3.4, 1.4, 3.6, i % 3 !== 1); addWindow(HCX + o, 7.6, 1.2, 1.4, i % 2 === 0); });
+  [-13, -7, 4, 10].forEach((o, i) => addWindow(HCX + o, 7.4, 1.2, 1.4, i % 2 === 0));
 
   // Faroles junto a la puerta (el de la izquierda lo apaga el viento más adelante)
   const lanterns = [DOOR_X - 3, DOOR_X + 3].map((x) => {
@@ -239,7 +240,7 @@ export function buildIntro(ctx, room1, { player, skip = false } = {}) {
   });
 
   // Banderas que ondean
-  const flags = [-11.5, 31.5].map((x, i) => {
+  const flags = [HCX - 21.5, HCX + 21.5].map((x, i) => {
     const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.06, 7, 8), bronze); pole.position.set(x, 13.4, 22); root.add(pole);
     const geo = new THREE.PlaneGeometry(3.2, 1.9, 14, 6);
     const f = new THREE.Mesh(geo, M(i ? 0xa8842f : 0x8c1f2b, { side: THREE.DoubleSide, roughness: 0.8 }));
@@ -249,8 +250,8 @@ export function buildIntro(ctx, room1, { player, skip = false } = {}) {
 
   // Setos y árboles oscuros alrededor de la plaza
   const hedgeM = M(0x0e1a14);
-  slab(-9.4, -9, GROUND, GROUND + 1.8, 25, 62, hedgeM, true); slab(29, 29.4, GROUND, GROUND + 1.8, 25, 62, hedgeM, true);
-  slab(-9.4, 29.4, GROUND, GROUND + 1.8, 62, 62.4, hedgeM, true);
+  slab(HCX - 19.4, HCX - 19, GROUND, GROUND + 1.8, 25, 62, hedgeM, true); slab(HCX + 19, HCX + 19.4, GROUND, GROUND + 1.8, 25, 62, hedgeM, true);
+  slab(HCX - 19.4, HCX + 19.4, GROUND, GROUND + 1.8, 62, 62.4, hedgeM, true);
   const treeTrunk = M(0x1a120c), treeLeaf = M(0x0c1a12);
   for (let i = 0; i < 16; i++) {
     const side = i % 2 ? 1 : -1, x = HCX + side * (24 + Math.random() * 8), z = 30 + Math.floor(i / 2) * 5 + Math.random() * 2, h = 4 + Math.random() * 2;
@@ -281,7 +282,7 @@ export function buildIntro(ctx, room1, { player, skip = false } = {}) {
   const leafM = new THREE.MeshStandardMaterial({ color: 0x8a5120, emissive: 0x2a1608, side: THREE.DoubleSide });
   const leaves = Array.from({ length: 14 }, () => {
     const m = new THREE.Mesh(new THREE.PlaneGeometry(0.14, 0.09), leafM); m.rotation.x = -Math.PI / 2; root.add(m);
-    return { m, x: -8 + Math.random() * 38, z: 38 + Math.random() * 22, v: 1.6 + Math.random() * 1.6, ph: Math.random() * 6 };
+    return { m, x: HCX - 18 + Math.random() * 38, z: 38 + Math.random() * 22, v: 1.6 + Math.random() * 1.6, ph: Math.random() * 6 };
   });
 
   // ---------- Sobre dorado en el suelo ----------
@@ -341,18 +342,19 @@ export function buildIntro(ctx, room1, { player, skip = false } = {}) {
   floorTex.wrapS = floorTex.wrapT = THREE.RepeatWrapping; floorTex.repeat.set(10, 7);
   const hallFloor = new THREE.Mesh(new THREE.PlaneGeometry(HX1 - HX0, FZ - HZ0), M(0xffffff, { map: floorTex, roughness: 0.3 }));
   hallFloor.rotation.x = -Math.PI / 2; hallFloor.position.set(HCX, 0, (FZ + HZ0) / 2); root.add(hallFloor);
-  slab(0.5, 3.5, -0.02, 0.004, 4.8, 5.4, marble);                                                                   // umbral de la puerta de Fearless
+  slab(FD_L, FD_R, -0.02, 0.004, 4.8, 5.4, marble);                                                                 // umbral de la puerta de Fearless
   const hallCeil = new THREE.Mesh(new THREE.PlaneGeometry(HX1 - HX0, FZ - HZ0), M(0x2a241f)); hallCeil.rotation.x = Math.PI / 2; hallCeil.position.set(HCX, HALL_H, (FZ + HZ0) / 2); root.add(hallCeil);
   for (let x = HX0 + 3; x < HX1; x += 5) slab(x - 0.25, x + 0.25, HALL_H - 0.6, HALL_H, HZ0, FZ, stoneDark);   // vigas
   slab(HX0 - 0.2, HX0 + 0.2, 0, HALL_H, 5.2, FZ + 0.2, wall, true);                                            // pared oeste
   slab(HX1 - 0.2, HX1 + 0.2, 0, HALL_H, 4.8, FZ + 0.2, wall, true);                                            // pared este
+  slab(HX0 - 0.2, -5.2, 0, HALL_H, 4.8, 5.2, wall, true);                                                       // pared norte (izquierda, junto a la sala 1)
   slab(9.2, HX1 + 0.2, 0, HALL_H, 4.8, 5.2, wall, true);                                                        // pared norte (derecha)
-  slab(HX0 - 0.2, 9.2, 4, HALL_H, 4.8, 5.2, wall);                                                              // pared norte sobre la sala 1
+  slab(-5.2, 9.2, 4, HALL_H, 4.8, 5.2, wall);                                                                   // pared norte sobre la sala 1
   for (const x of [HX0 + 1, HX1 - 1]) for (const z of [9, 13, 17, 21]) {                                        // columnas
     const c = new THREE.Mesh(new THREE.CylinderGeometry(0.45, 0.5, HALL_H, 16), marble); c.position.set(x, HALL_H / 2, z); root.add(c);
     ctx.colliders.push({ minX: x - 0.5, maxX: x + 0.5, minZ: z - 0.5, maxZ: z + 0.5 });
   }
-  const carpet = new THREE.Mesh(new THREE.PlaneGeometry(4, 9), M(0x5a1a22, { roughness: 1 })); carpet.rotation.x = -Math.PI / 2; carpet.position.set(HCX, 0.012, 20.2); root.add(carpet);
+  const carpet = new THREE.Mesh(new THREE.PlaneGeometry(4, 19.2), M(0x5a1a22, { roughness: 1 })); carpet.rotation.x = -Math.PI / 2; carpet.position.set(HCX, 0.012, 15);   // alfombra: de la puerta principal a la puerta de Fearless root.add(carpet);
   // Lámpara de araña (solo decorativa: la luz real es hallLight)
   const chand = new THREE.Group(); chand.position.set(HCX, 7.4, 15); root.add(chand);
   chand.add(new THREE.Mesh(new THREE.TorusGeometry(2.2, 0.08, 8, 40), goldM)); chand.children[0].rotation.x = Math.PI / 2;
@@ -361,13 +363,13 @@ export function buildIntro(ctx, room1, { player, skip = false } = {}) {
 
   // Estatua central con placa
   // Base inferior (más ancha)
-  slab(8.1, 11.9, 0.0, 0.28, 13.1, 16.9, marble, true);
+  slab(HCX - 1.9, HCX + 1.9, 0.0, 0.28, 13.1, 16.9, marble, true);
 
   // Cuerpo principal
-  slab(8.45, 11.55, 0.28, 1.55, 13.45, 16.55, stoneDark, true);
+  slab(HCX - 1.55, HCX + 1.55, 0.28, 1.55, 13.45, 16.55, stoneDark, true);
 
   // Tapa superior
-  slab(8.25, 11.75, 1.55, 1.72, 13.25, 16.75, marble);
+  slab(HCX - 1.75, HCX + 1.75, 1.55, 1.72, 13.25, 16.75, marble);
   const STATUE = { url: 'assets/models/estatua-taylor.glb', height: 3.9, rotY: 0 };   // height = alto final en metros · rotY = giro en radianes
   const statueLamp = new THREE.Object3D();                                      // (la luz guía usa este objeto; ya no es una esfera visible)
   const holder = new THREE.Group(); holder.position.set(HCX, 1.72, 15); holder.rotation.y = STATUE.rotY; root.add(holder);
@@ -392,31 +394,32 @@ export function buildIntro(ctx, room1, { player, skip = false } = {}) {
   plaqueMesh.position.set(HCX, 0.9, 16.58); root.add(plaqueMesh);
   addItem(plaqueMesh, { prompt: () => 'Presiona E para leer.', onInteract: () => ctx.ui.toast(PLAQUE, 8000) });
 
-  // Seis puertas, una por era. Solo la de Fearless (la primera) se abre.
+  // Ya no hay seis puertas: solo la de Fearless, grande y centrada en la pared norte. Las seis eras quedan como friso decorativo encima.
   ERAS.forEach((era, i) => {
-    const x = FDOOR_X + 4 * i, accent = new THREE.Color(era.hex);
+    const x = HCX + (i - 2.5) * 3, accent = new THREE.Color(era.hex);
     const frameM = M(accent.getHex(), { emissive: accent.clone().multiplyScalar(0.25), roughness: 0.5, metalness: 0.5 });
-    slab(x - 1.8, x - 1.6, 0, 3.9, 5.2, 5.45, frameM); slab(x + 1.6, x + 1.8, 0, 3.9, 5.2, 5.45, frameM); slab(x - 1.8, x + 1.8, 3.7, 3.9, 5.2, 5.45, frameM);
-    const med = new THREE.Mesh(new THREE.CircleGeometry(0.55, 32), new THREE.MeshBasicMaterial({ map: eraTexture(era.kind, era.hex) })); med.position.set(x, 4.65, 5.25); root.add(med);
+    const med = new THREE.Mesh(new THREE.CircleGeometry(0.55, 32), new THREE.MeshBasicMaterial({ map: eraTexture(era.kind, era.hex) })); med.position.set(x, 6.6, 5.25); root.add(med);
     const ring = new THREE.Mesh(new THREE.TorusGeometry(0.58, 0.04, 8, 32), frameM); ring.position.copy(med.position); ring.position.z += 0.01; root.add(ring);
-    if (i === 0) return;                                                    // la de Fearless tiene su propia puerta (abajo)
-    const d = new THREE.Mesh(new THREE.BoxGeometry(3, 3.6, 0.14), woodDoor); d.position.set(x, 1.8, 5.3); root.add(d);
-    const knob = new THREE.Mesh(new THREE.SphereGeometry(0.07, 8, 6), bronze); knob.position.set(x + 1.1, 1.7, 5.42); root.add(knob);
-    addItem(d, { prompt: () => 'Objeto bloqueado.', onInteract: () => ctx.ui.toast('Esta puerta aún duerme...', 2500) });
   });
+  // Marco dorado de la puerta de Fearless
+  const fAccent = new THREE.Color(ERAS[0].hex);
+  const fFrameM = M(fAccent.getHex(), { emissive: fAccent.clone().multiplyScalar(0.25), roughness: 0.5, metalness: 0.5 });
+  slab(FD_L - 0.25, FD_L - 0.05, 0, FD_H + 0.25, 5.2, 5.45, fFrameM); slab(FD_R + 0.05, FD_R + 0.25, 0, FD_H + 0.25, 5.2, 5.45, fFrameM);
+  slab(FD_L - 0.25, FD_R + 0.25, FD_H + 0.05, FD_H + 0.25, 5.2, 5.45, fFrameM);
   // Puerta dorada de Fearless (entrada de la sala 1). Se abre hacia la sala 1.
   const fDoor = new THREE.Group(); root.add(fDoor);
-  const fL = new THREE.Group(), fR = new THREE.Group(); fL.position.set(0.5, 0, 5); fR.position.set(3.5, 0, 5);
-  [[fL, 0.75], [fR, -0.75]].forEach(([p, dir]) => {
-    const m = new THREE.Mesh(new THREE.BoxGeometry(1.5, 3.2, 0.12), goldM); m.position.set(dir, 1.6, 0); p.add(m);
-    [[0.55, 1.7], [0.55, 0.9]].forEach(([w, y]) => { const pn = new THREE.Mesh(new THREE.BoxGeometry(1.1, 1.1, 0.14), M(0xb88a2a, { metalness: 0.9, roughness: 0.4 })); pn.position.set(dir, y + 0.4, 0.01); p.add(pn); });
+  const fL = new THREE.Group(), fR = new THREE.Group(); fL.position.set(FD_L, 0, 5); fR.position.set(FD_R, 0, 5);
+  const LW = FD_W / 2;                                                                                              // ancho de cada hoja
+  [[fL, LW / 2], [fR, -LW / 2]].forEach(([p, dir]) => {
+    const m = new THREE.Mesh(new THREE.BoxGeometry(LW, FD_H, 0.12), goldM); m.position.set(dir, FD_H / 2, 0); p.add(m);
+    [1.05, 2.55].forEach((y) => { const pn = new THREE.Mesh(new THREE.BoxGeometry(LW * 0.72, 1.2, 0.14), M(0xb88a2a, { metalness: 0.9, roughness: 0.4 })); pn.position.set(dir, y, 0.01); p.add(pn); });
   });
   fDoor.add(fL, fR);
   const lockM = new THREE.MeshStandardMaterial({ color: 0xffd36a, emissive: 0x6a4a10, roughness: 0.3 });
   const lockMesh = new THREE.Mesh(new THREE.SphereGeometry(0.1, 14, 12), lockM); lockMesh.position.set(FDOOR_X, 1.6, 5.1); root.add(lockMesh);
-  const inscr = new THREE.Mesh(new THREE.PlaneGeometry(2.6, 0.7), new THREE.MeshBasicMaterial({ map: makeTextTexture('Fearless', { w: 512, h: 140, bg: '#1b140c', color: '#ffd36a', font: 'italic 84px Georgia' }) }));
-  inscr.position.set(FDOOR_X, 3.55, 5.26); root.add(inscr);
-  const fCol = { minX: 0.5, maxX: 3.5, minZ: 4.85, maxZ: 5.15 }; ctx.colliders.push(fCol);
+  const inscr = new THREE.Mesh(new THREE.PlaneGeometry(3.4, 0.93), new THREE.MeshBasicMaterial({ map: makeTextTexture('Fearless', { w: 512, h: 140, bg: '#1b140c', color: '#ffd36a', font: 'italic 84px Georgia' }) }));
+  inscr.position.set(FDOOR_X, 4.75, 5.26); root.add(inscr);
+  const fCol = { minX: FD_L, maxX: FD_R, minZ: 4.85, maxZ: 5.15 }; ctx.colliders.push(fCol);
   addItem(fDoor, {
     prompt: () => 'Objeto bloqueado.', enabled: () => !fOpen && fTarget === 0,
     onInteract: () => {
@@ -426,7 +429,7 @@ export function buildIntro(ctx, room1, { player, skip = false } = {}) {
   });
 
   const mine = new Set(ctx.colliders.slice(introColliderStart));                      // colisionadores propios de la intro (exterior + lobby)
-  let photoMid = null, trimPieces = [], trimMat = null;                              // lo que se movió para abrir la entrada y hay que devolver
+  let photoMid = null, trimPieces = [], trimMat = null, entrancePieces = [], entranceMat = null;                              // lo que se movió para abrir la entrada y hay que devolver
 
   // ---------- La sala 1 necesita una abertura en su pared sur (donde está la puerta dorada) ----------
   // Normalmente la crea rooms.js con "southOpening: 3". Si tu rooms.js todavía no la tiene, se abre aquí automáticamente:
@@ -439,14 +442,14 @@ export function buildIntro(ctx, room1, { player, skip = false } = {}) {
       const old = g1.children.find((o) => o.isMesh && o.geometry.parameters && near(o.geometry.parameters.width, 14, 0.05) && near(o.geometry.parameters.depth, 0.4) && near(o.position.z, 5));
       const mat = old ? old.material : wall;
       if (old) { g1.remove(old); old.geometry.dispose(); }
-      slab(-5, 0.5, 0, 4, 4.8, 5.2, mat, true, g1); slab(3.5, 9, 0, 4, 4.8, 5.2, mat, true, g1); slab(0.5, 3.5, 3.2, 4, 4.8, 5.2, mat, false, g1);
+      entranceMat = mat;
+      entrancePieces.push(slab(-5, FD_L, 0, 4, 4.8, 5.2, mat, true, g1), slab(FD_R, 9, 0, 4, 4.8, 5.2, mat, true, g1), slab(FD_L, FD_R, FD_H, 4, 4.8, 5.2, mat, false, g1));
     }
     [...g1.children].forEach((o) => {
-      if (o.isGroup && near(o.position.x, 2, 0.05) && near(o.position.z, 4.77, 0.05) && o.position.y > 1) { o.position.x = -1.2; photoMid = o; }   // foto que tapaba la entrada
-      else if (o.isGroup && near(o.position.x, -1.2, 0.05) && near(o.position.z, 4.77, 0.05) && o.position.y > 1) photoMid = o;            // (ya estaba movida en rooms.js)
+      if (o.isGroup && (near(o.position.x, 2, 0.05) || near(o.position.x, -1.2, 0.05)) && near(o.position.z, 4.77, 0.05) && o.position.y > 1) { o.position.x = -1.8; photoMid = o; }   // foto que tapaba la entrada (se corre para dejar espacio a la puerta ancha)
       const gp = o.isMesh && o.geometry.parameters;
       if (gp && near(gp.width, 13.6, 0.05) && near(gp.height, 0.08, 0.01) && near(o.position.z, 4.77, 0.05)) {                   // moldura dorada: no debe cruzar la puerta
-        g1.remove(o); trimMat = o.material; trimPieces.push(slab(-4.8, 0.5, 0.96, 1.04, 4.75, 4.79, o.material, false, g1), slab(3.5, 8.8, 0.96, 1.04, 4.75, 4.79, o.material, false, g1));
+        g1.remove(o); trimMat = o.material; trimPieces.push(slab(-4.8, FD_L, 0.96, 1.04, 4.75, 4.79, o.material, false, g1), slab(FD_R, 8.8, 0.96, 1.04, 4.75, 4.79, o.material, false, g1));
       }
     });
   })();
@@ -460,7 +463,7 @@ export function buildIntro(ctx, room1, { player, skip = false } = {}) {
   const opGeo = new THREE.BufferGeometry(); opGeo.setAttribute('position', new THREE.BufferAttribute(opPos, 3));
   const orbDust = new THREE.Points(opGeo, new THREE.PointsMaterial({ color: 0xffd36a, size: 0.05, transparent: true, opacity: 0.9, blending: THREE.AdditiveBlending, depthWrite: false }));
   orbDust.frustumCulled = false; orbVis.add(orbDust);
-  const ROUTE = [[10, 6.1, 15], [14.5, 2.8, 18.5], [19.5, 2.6, 15], [19.5, 2.5, 9.5], [13, 2.5, 8], [7, 2.4, 8.2], [2, 2.2, 7.6]].map((p) => new THREE.Vector3(...p));
+  const ROUTE = [[0, 6.1, 15], [4.5, 2.8, 18.5], [9.5, 2.6, 15], [9.5, 2.5, 9.5], [5, 2.5, 8], [2, 2.3, 7.8], [0, 2.2, 7.6]].map(([dx, y, z]) => new THREE.Vector3(HCX + dx, y, z));
 
   // ================= Secuencia =================
   function startTaking() {
@@ -488,12 +491,9 @@ export function buildIntro(ctx, room1, { player, skip = false } = {}) {
     if (sealed) return; sealed = true;
     const g1 = room1.group, near = (a, b, e = 0.02) => Math.abs(a - b) < e;
     // 1) la pared sur vuelve a ser UNA sola pared, como era antes de existir la entrada
-    const parts = g1.children.filter((o) => {
-      const gp = o.isMesh && o.geometry && o.geometry.parameters;
-      return gp && o.geometry.type === 'BoxGeometry' && near(gp.depth, 0.4) && near(o.position.z, 5) && ((near(gp.height, 4) && gp.width < 7) || (near(gp.height, 0.8) && near(gp.width, 3)));
-    });
-    const mat = parts.length ? parts[0].material : wall;
-    parts.forEach((o) => { g1.remove(o); o.geometry.dispose(); });
+    const mat = entranceMat || wall;
+    entrancePieces.forEach((o) => { g1.remove(o); o.geometry.dispose(); });
+    entrancePieces = [];
     removeColliders((c) => near(c.minZ, 4.8) && near(c.maxZ, 5.2) && c.maxX - c.minX < 7 && c.minX > -5.05 && c.maxX < 9.05);
     const full = new THREE.Mesh(new THREE.BoxGeometry(14, 4, 0.4), mat); full.position.set(2, 2, 5); g1.add(full);
     ctx.colliders.push({ minX: -5, maxX: 9, minZ: 4.8, maxZ: 5.2 });
@@ -537,7 +537,7 @@ export function buildIntro(ctx, room1, { player, skip = false } = {}) {
     }
     rainGeo.attributes.position.needsUpdate = true;
     leaves.forEach((l, i) => {                                                    // hojas secas
-      l.x += l.v * dt; if (l.x > 32) l.x = -9; l.ph += dt * 3;
+      l.x += l.v * dt; if (l.x > HCX + 22) l.x = HCX - 19; l.ph += dt * 3;
       l.m.position.set(l.x, GROUND + 0.04 + Math.abs(Math.sin(l.ph)) * 0.12, l.z + Math.sin(t * 0.7 + i) * 0.8); l.m.rotation.z = l.ph;
     });
     flags.forEach((f) => {                                                        // banderas
