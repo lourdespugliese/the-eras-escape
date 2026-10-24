@@ -44,6 +44,7 @@ createVolume();                      // volumen general: barra en la pausa (ESC)
 const audio = new AudioManager();
 const colliders = [];
 const player = new Player(camera, canvas, colliders);
+player.speed *= 1.25;   // +25% de velocidad (intro.js toma este valor como base y sigue aplicando sus propios frenos en escaleras y hall)
 const interaction = new Interaction(camera, ui);
 const game = { items: new Set(), solved: 0 };
 
