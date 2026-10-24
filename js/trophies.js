@@ -11,20 +11,21 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { canvasTex } from './rooms.js';
 import { ITEMS } from './ui.js';
 
-const HALL = { minX: -5, maxX: 25, minZ: 5.4, maxZ: 24.6 };   // zona del hall donde se dispara la revelación
+const HCX = 2;                                                  // centro del hall en x (el hall va de x = -13 a 17; debe coincidir con HCX de intro.js)
+const HALL = { minX: -13, maxX: 17, minZ: 5.4, maxZ: 24.6 };   // zona del hall donde se dispara la revelación
 const TAU = Math.PI * 2;
 const clamp = THREE.MathUtils.clamp;
 const easeOutBack = (k) => 1 + 2.70158 * Math.pow(k - 1, 3) + 1.70158 * Math.pow(k - 1, 2);
 
-// Una vitrina por trofeo. Orden: desde la entrada del hall hacia las puertas del fondo.
-// (x < 10 = lado oeste, mira hacia el este; x > 10 = lado este, mira hacia el oeste)
+// Una vitrina por trofeo. Orden: desde la entrada del hall hacia la puerta del fondo.
+// (x < HCX = lado oeste, mira hacia el este; x > HCX = lado este, mira hacia el oeste). Quedan a ±5.5 del centro, a cada lado de la alfombra.
 const SPOTS = [
-  { id: 'guitar',   era: 'Fearless',   hex: '#ffc83d', x: 4.5,  z: 20.5, desc: 'La guitarra dorada de Fearless. Vuelve a sonar.' },
-  { id: 'polaroid', era: '1989',       hex: '#2de2ff', x: 15.5, z: 20.5, desc: 'Una polaroid de 1989: un instante congelado en el tiempo.' },
-  { id: 'snake',    era: 'Reputation', hex: '#ffc83d', x: 4.5,  z: 15.5, desc: 'La serpiente de Reputation, ahora en silencio.' },
-  { id: 'heart',    era: 'Lover',      hex: '#ff8fc8', x: 15.5, z: 15.5, desc: 'El corazón de Lover, cálido de nuevo.' },
-  { id: 'oldkey',   era: 'Folklore',   hex: '#b8c8a0', x: 4.5,  z: 10.5, desc: 'Una llave antigua. Abre algo que lleva mucho cerrado.' },
-  { id: 'finalkey', era: 'Midnights',  hex: '#8a96ff', x: 15.5, z: 10.5, desc: 'La llave final. Solo falta usarla.' },
+  { id: 'guitar',   era: 'Fearless',   hex: '#ffc83d', x: -3.5, z: 20.5, desc: 'La guitarra dorada de Fearless. Vuelve a sonar.' },
+  { id: 'polaroid', era: '1989',       hex: '#2de2ff', x: 7.5,  z: 20.5, desc: 'Una polaroid de 1989: un instante congelado en el tiempo.' },
+  { id: 'snake',    era: 'Reputation', hex: '#ffc83d', x: -3.5, z: 15.5, desc: 'La serpiente de Reputation, ahora en silencio.' },
+  { id: 'heart',    era: 'Lover',      hex: '#ff8fc8', x: 7.5,  z: 15.5, desc: 'El corazón de Lover, cálido de nuevo.' },
+  { id: 'oldkey',   era: 'Folklore',   hex: '#b8c8a0', x: -3.5, z: 10.5, desc: 'Una llave antigua. Abre algo que lleva mucho cerrado.' },
+  { id: 'finalkey', era: 'Midnights',  hex: '#8a96ff', x: 7.5,  z: 10.5, desc: 'La llave final. Solo falta usarla.' },
 ];
 
 // ---------- Estatuas de Taylor (una por era, al lado de su vitrina) ----------
@@ -173,7 +174,7 @@ export function buildTrophyHall(ctx) {
     const cfg = STATUE_ERAS[spot.id]; if (!cfg) return null;
     const color = new THREE.Color(spot.hex), H = STATUE.pedestalH, TOP = H + 0.04, z = spot.z + STATUE.side;
     const stand = new THREE.Group();
-    stand.position.set(spot.x, 0, z); stand.rotation.y = spot.x < 10 ? Math.PI / 2 : -Math.PI / 2;
+    stand.position.set(spot.x, 0, z); stand.rotation.y = spot.x < HCX ? Math.PI / 2 : -Math.PI / 2;
     root.add(stand);
 
     const base = new THREE.Group(); stand.add(base);                 // solo esto es "apuntable" (E); el modelo no participa del raycast
@@ -226,7 +227,7 @@ export function buildTrophyHall(ctx) {
   SPOTS.forEach((spot, i) => {
     const color = new THREE.Color(spot.hex);
     const g = new THREE.Group();
-    g.position.set(spot.x, 0, spot.z); g.rotation.y = spot.x < 10 ? Math.PI / 2 : -Math.PI / 2;   // mira hacia la alfombra
+    g.position.set(spot.x, 0, spot.z); g.rotation.y = spot.x < HCX ? Math.PI / 2 : -Math.PI / 2;   // mira hacia la alfombra
 
     const base = new THREE.Mesh(new THREE.BoxGeometry(1.1, 1, 1.1), marble); base.position.y = 0.5; g.add(base);
     const trim = new THREE.Mesh(new THREE.BoxGeometry(1.2, 0.08, 1.2), gold); trim.position.y = 1.04; g.add(trim);

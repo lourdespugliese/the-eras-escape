@@ -21,6 +21,7 @@ import { buildRoomForest } from './roomforest.js';
 import { buildRoomMidnights } from './roommidnights.js';
 import { createSecrets } from './secrets.js';
 import { buildSongShelf } from './songshelf.js';
+import { createVolume } from './volume.js';
 
 const canvas = document.getElementById('game');
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
@@ -39,6 +40,7 @@ composer.addPass(new UnrealBloomPass(new THREE.Vector2(innerWidth, innerHeight),
 composer.addPass(new OutputPass());
 
 const ui = new UI();
+createVolume();                      // volumen general: barra en la pausa (ESC). Debe ir ANTES de crear el AudioManager.
 const audio = new AudioManager();
 const colliders = [];
 const player = new Player(camera, canvas, colliders);

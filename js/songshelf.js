@@ -6,8 +6,8 @@
 import * as THREE from 'three';
 import { canvasTex, makeTextTexture } from './rooms.js';
 
-// Posición: pared este del hall (interior en x = 24.8), entre las columnas de z = 17 y z = 21. Cámbiala si choca con otra vitrina.
-const SHELF = { x: 24.78, z: 19 };
+// Posición: pared este del hall (interior en x = 16.8; el hall va de x = -13 a 17), entre las columnas de z = 17 y z = 21. Cámbiala si choca con otra vitrina.
+const SHELF = { x: 16.78, z: 19 };
 const GAP = 1.15;                                         // separación entre huecos
 const SLOTS = [
   { id: '1989-cassette', kind: 'cassette', era: '1989', hex: 0x2de2ff, hint: 'En la ciudad de neón, bajo el toldo de un quiosco, algo espera para girar...' },
