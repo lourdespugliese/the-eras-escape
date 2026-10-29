@@ -13,6 +13,7 @@ import { ITEMS } from './ui.js';
 
 const HCX = 2;                                                  // centro del hall en x (el hall va de x = -13 a 17; debe coincidir con HCX de intro.js)
 const HALL = { minX: -13, maxX: 17, minZ: 5.4, maxZ: 24.6 };   // zona del hall donde se dispara la revelación
+const MAIN = { x: HCX, y: 3.6, z: 15 };                        // centro de la estatua principal (intro.js: base en (HCX, 1.72, 15), alto 3.9)
 const TAU = Math.PI * 2;
 const clamp = THREE.MathUtils.clamp;
 const easeOutBack = (k) => 1 + 2.70158 * Math.pow(k - 1, 3) + 1.70158 * Math.pow(k - 1, 2);
@@ -38,7 +39,8 @@ const STATUE_ERAS = {
   polaroid: { url: 'assets/models/taylor-1989.glb' },
   snake:    { url: 'assets/models/taylor-reputation.glb' },
   heart:    { url: 'assets/models/taylor-lover.glb' },
-  // oldkey / finalkey (Folklore, Midnights): aún sin estatua. Cuando existan, agrega aquí su línea.
+  // oldkey / finalkey (Folklore, Midnights): aún sin su estatua propia. Mientras tanto muestran una figura simple y liviana sobre su
+  // pedestal para que el final tenga sus 6 Taylors. Cuando existan sus .glb, agrega aquí su línea (oldkey / finalkey).
 };
 const STATUE = {
   height: 1.9,          // alto por defecto de cada estatua (la vitrina mide 2.4 en total)
@@ -62,6 +64,19 @@ async function loadStatueModel(cfg) {
     console.warn(`[trophies] No se pudo cargar ${cfg.url}; se usa ${STATUE.fallback} como reemplazo temporal.`);
     return loadModel(STATUE.fallback);
   }
+}
+// Figura simple y liviana (unos cientos de triángulos) para las eras que aún no tienen su .glb. Evita dibujar 6 veces la estatua
+// completa (~430k triángulos cada una), que es lo que más cuesta en el hall.
+function buildPlaceholderStatue(hex, height) {
+  const g = new THREE.Group(), c = new THREE.Color(hex);
+  const mat = new THREE.MeshStandardMaterial({ color: 0xe8e2d4, roughness: 0.5, metalness: 0.1, emissive: c.clone().multiplyScalar(0.18) });
+  const add = (geo, y) => { const m = new THREE.Mesh(geo, mat); m.position.y = y; m.raycast = () => {}; g.add(m); return m; };
+  add(new THREE.CylinderGeometry(0.1, 0.34, height * 0.55, 20), height * 0.275);             // vestido
+  add(new THREE.CylinderGeometry(0.15, 0.1, height * 0.2, 16), height * 0.65);               // torso
+  add(new THREE.CylinderGeometry(0.04, 0.05, height * 0.05, 10), height * 0.78);             // cuello
+  add(new THREE.SphereGeometry(height * 0.065, 16, 12), height * 0.84);                      // cabeza
+  const hair = add(new THREE.SphereGeometry(height * 0.07, 14, 10), height * 0.85); hair.position.z = -0.025; hair.scale.set(1, 1.05, 1);
+  return g;
 }
 // Copia del modelo, ajustada a la altura deseada, centrada y apoyada en y = 0. Sin raycast (son ~430k triángulos).
 function fitModel(src, height) {
@@ -171,7 +186,7 @@ export function buildTrophyHall(ctx) {
 
   // Pedestal + estatua de la era, al lado de la vitrina (mismo lado del hall, mirando hacia la alfombra).
   function buildStatueStand(spot) {
-    const cfg = STATUE_ERAS[spot.id]; if (!cfg) return null;
+    const cfg = STATUE_ERAS[spot.id] || { placeholder: true }; if (!cfg) return null;
     const color = new THREE.Color(spot.hex), H = STATUE.pedestalH, TOP = H + 0.04, z = spot.z + STATUE.side;
     const stand = new THREE.Group();
     stand.position.set(spot.x, 0, z); stand.rotation.y = spot.x < HCX ? Math.PI / 2 : -Math.PI / 2;
@@ -191,6 +206,7 @@ export function buildTrophyHall(ctx) {
     const s = { cfg, stand, holder, halo, plaque, spot, loading: false, ready: false, started: false, done: false, t: 0 };
     s.load = () => {
       if (s.loading) return; s.loading = true;
+      if (cfg.placeholder) { holder.add(buildPlaceholderStatue(spot.hex, cfg.height || STATUE.height)); s.ready = true; return; }
       loadStatueModel(cfg).then((src) => { holder.add(fitModel(src, cfg.height || STATUE.height)); s.ready = true; })
         .catch((e) => console.error(`[trophies] No se pudo cargar la estatua de ${spot.era}:`, e));
     };
@@ -255,9 +271,16 @@ export function buildTrophyHall(ctx) {
     root.add(g);
     ctx.colliders.push({ minX: spot.x - 0.62, maxX: spot.x + 0.62, minZ: spot.z - 0.62, maxZ: spot.z + 0.62 });
     ctx.interaction.add(g, {
-      prompt: () => (v.state === 'shown' || v.state === 'revealing' ? 'Presiona E para examinar.' : 'Presiona E para examinar la vitrina.'),
-      onInteract: () => ctx.ui.toast(
-        v.state === 'shown' || v.state === 'revealing' ? `${labelOf(spot.id)} — ${spot.desc}` : `Vitrina vacía (${spot.era}). Aquí descansará un objeto cuando lo recuperes.`, 4500),
+      prompt: () => (!ctx.ending && allReady() && !v.lit ? 'Presiona E para despertar el recuerdo.'
+        : v.state === 'shown' || v.state === 'revealing' ? 'Presiona E para examinar.' : 'Presiona E para examinar la vitrina.'),
+      onInteract: () => {
+        if (!ctx.ending && allReady()) {                                  // con los 6 trofeos exhibidos, E despierta el recuerdo
+          if (!v.lit) return activate(v);
+          return ctx.ui.toast(`${spot.era}: este recuerdo ya despertó.`, 2500);
+        }
+        ctx.ui.toast(
+          v.state === 'shown' || v.state === 'revealing' ? `${labelOf(spot.id)} — ${spot.desc}` : `Vitrina vacía (${spot.era}). Aquí descansará un objeto cuando lo recuperes.`, 4500);
+      },
     });
     v.statue = buildStatueStand(spot);
     byId[spot.id] = v;
@@ -289,6 +312,114 @@ export function buildTrophyHall(ctx) {
     ctx.audio.chime(); setTimeout(() => ctx.audio.reward(), 250);
   }
 
+
+  // ================= CEREMONIA FINAL =================
+  // Con los 6 trofeos exhibidos en el hall, cada vitrina se "despierta" con E: suena una confirmación, el trofeo se ilumina y de su
+  // Taylor sale un rayo hacia la estatua principal. Al despertar las 6, la estatua principal se enciende hasta dejar la pantalla
+  // en blanco y aparece el mensaje final. ctx.ending = true congela el movimiento y la interacción (main.js).
+  const MAIN_POS = new THREE.Vector3(MAIN.x, MAIN.y, MAIN.z);
+  const cer = { lit: 0, hinted: false, finale: false, t: 0, step: 0, veil: null, lines: [] };
+  const beams = [];
+  const allReady = () => SPOTS.every((sp) => { const st = byId[sp.id].state; return st === 'revealing' || st === 'shown'; });
+
+  // Destello de la estatua principal (sin luces dinámicas extra: cada luz encarece todo el hall).
+  const mainHalo = noRay(new THREE.Sprite(new THREE.SpriteMaterial({ map: GLOW, color: 0xfff2cc, transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false, depthTest: false })));
+  mainHalo.renderOrder = 20; mainHalo.position.copy(MAIN_POS); mainHalo.scale.setScalar(4); root.add(mainHalo);
+
+  // Punto de donde sale el rayo: el pecho de la Taylor de esa era (o, sin estatua, el trofeo).
+  function srcPoint(v) {
+    const s = v.statue;
+    if (s) return new THREE.Vector3(s.stand.position.x, STATUE.pedestalH + 0.04 + (s.cfg.height || STATUE.height) * 0.6, s.stand.position.z);
+    return new THREE.Vector3(v.spot.x, 1.75, v.spot.z);
+  }
+  function makeBeam(from, hex) {
+    const dir = new THREE.Vector3().subVectors(MAIN_POS, from), len = dir.length(); dir.normalize();
+    const grp = new THREE.Group(); grp.position.copy(from); grp.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), dir); grp.scale.set(1, 0.001, 1);
+    const core = noRay(new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.035, 1, 8, 1, true),
+      new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.95, blending: THREE.AdditiveBlending, depthWrite: false })));
+    const glow = noRay(new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.15, 1, 12, 1, true),
+      new THREE.MeshBasicMaterial({ color: new THREE.Color(hex), transparent: true, opacity: 0.35, side: THREE.DoubleSide, blending: THREE.AdditiveBlending, depthWrite: false })));
+    core.position.y = glow.position.y = 0.5; grp.add(core, glow); root.add(grp);
+    const b = { grp, core, glow, len, k: 0, arrived: false, phase: Math.random() * TAU };
+    beams.push(b); return b;
+  }
+
+  function activate(v) {
+    v.lit = true; v.litT = 0;
+    ctx.audio.chime();                                                        // ruido de confirmación
+    const from = srcPoint(v);
+    ctx.particles.burst(from, 40, { speed: 1.2, up: 1 });
+    makeBeam(from, v.spot.hex);
+    cer.lit++;
+    if (cer.lit < SPOTS.length) ctx.ui.toast(`${v.spot.era} despierta (${cer.lit}/${SPOTS.length})`, 3000);
+    else startFinale();
+  }
+
+  // Trofeo y Taylor encendidos de forma permanente
+  function litFx(v, dt, t) {
+    v.litT += dt; const k = Math.min(1, v.litT / 0.7);
+    v.halo.scale.setScalar(1.5 + 1.1 * k); v.halo.material.opacity = 0.35 + 0.55 * k + 0.08 * Math.sin(t * 3 + v.i);
+    v.beam.material.opacity = 0.2 * k * (0.85 + 0.15 * Math.sin(t * 4 + v.i));
+    if (!v.litMats) { v.litMats = []; v.model.traverse((o) => { if (o.isMesh && o.material && o.material.isMeshStandardMaterial && o.material !== GHOST) v.litMats.push(o.material); }); }
+    v.litMats.forEach((m) => { m.emissiveIntensity = 1 + 2.5 * k; });
+    const s = v.statue;
+    if (s && s.started) { s.halo.scale.setScalar(2.6); s.halo.material.opacity = 0.4 + 0.1 * Math.sin(t * 2.5 + v.i); }
+  }
+
+  // Swell musical (Web Audio, pasa por el volumen "Sonido"): acorde que sube durante el encendido
+  function swell(secs) {
+    const c = ctx.audio && ctx.audio.ctx; if (!c) return;
+    try {
+      const t0 = c.currentTime, g = c.createGain();
+      g.gain.setValueAtTime(0.0001, t0); g.gain.exponentialRampToValueAtTime(0.2, t0 + secs * 0.9); g.gain.exponentialRampToValueAtTime(0.0001, t0 + secs + 3);
+      g.connect(c.destination);
+      [261.6, 329.6, 392, 523.3, 784].forEach((f, i) => {
+        const o = c.createOscillator(), og = c.createGain();
+        o.type = i % 2 ? 'triangle' : 'sine'; o.frequency.setValueAtTime(f * 0.5, t0); o.frequency.exponentialRampToValueAtTime(f, t0 + secs);
+        og.gain.value = 0.5 / (i + 1); o.connect(og); og.connect(g); o.start(t0); o.stop(t0 + secs + 3.1);
+      });
+    } catch (e) { /* sin audio: la ceremonia sigue igual */ }
+  }
+
+  function makeVeil() {
+    const el = document.createElement('div');
+    Object.assign(el.style, { position: 'fixed', inset: '0', background: '#fff', opacity: '0', zIndex: '9999', display: 'flex', flexDirection: 'column',
+      alignItems: 'center', justifyContent: 'center', gap: '1.4rem', padding: '0 8vw', textAlign: 'center', pointerEvents: 'none',
+      fontFamily: 'Georgia, serif', fontStyle: 'italic', color: '#5a3d10' });
+    const lines = ['Felicidades, has logrado liberar los recuerdos.', 'Ahora tú también eres libre...'].map((txt, i) => {
+      const p = document.createElement('p'); p.textContent = txt;
+      Object.assign(p.style, { margin: '0', opacity: '0', transition: 'opacity 2.6s ease', fontSize: i ? 'clamp(1.2rem,2.6vw,2.1rem)' : 'clamp(1.5rem,3.4vw,2.7rem)' });
+      el.appendChild(p); return p;
+    });
+    document.body.appendChild(el); cer.veil = el; cer.lines = lines;
+  }
+
+  function startFinale() {
+    cer.finale = true; cer.t = 0; ctx.ending = true;   // (sin bloom: activarlo cambia el render a un composer con varios pasos a pantalla completa y provoca un tirón fuerte)
+    makeVeil(); swell(8);
+    setTimeout(() => ctx.audio.reward(), 900);                                  // cuando el último rayo llega a la estatua
+  }
+
+  const _q = new THREE.Quaternion(), _m = new THREE.Matrix4(), _up = new THREE.Vector3(0, 1, 0);
+  function updateCeremony(dt, t) {
+    beams.forEach((b) => {
+      b.k = Math.min(1, b.k + dt / 0.9);
+      b.grp.scale.y = Math.max(0.001, b.len * (1 - Math.pow(1 - b.k, 3)));
+      if (b.k >= 1 && !b.arrived) { b.arrived = true; ctx.particles.burst(MAIN_POS, 25, { speed: 1, up: 0.6 }); }
+      const thick = cer.finale ? 1 + 3 * Math.min(1, cer.t / 6) : 1;
+      b.grp.scale.x = b.grp.scale.z = (1 + 0.25 * Math.sin(t * 9 + b.phase)) * thick;
+      b.glow.material.opacity = 0.3 + 0.1 * Math.sin(t * 6 + b.phase);
+    });
+    if (!cer.finale) return;
+    cer.t += dt; const T = cer.t, g = Math.min(1, T / 8), ge = g * g;
+    _m.lookAt(ctx.camera.position, MAIN_POS, _up); _q.setFromRotationMatrix(_m);       // la cámara se gira suavemente hacia la estatua
+    ctx.camera.quaternion.slerp(_q, 1 - Math.exp(-2 * dt));
+    mainHalo.material.opacity = Math.min(1, T / 1.2) * (0.5 + 0.5 * ge); mainHalo.scale.setScalar(4 + 46 * ge);
+    cer.veil.style.opacity = T < 2.5 ? '0' : String(Math.min(1, Math.pow((T - 2.5) / 5.5, 2)));   // pantalla en blanco
+    if (T > 9 && cer.step === 0) { cer.step = 1; cer.veil.style.pointerEvents = 'auto'; cer.lines[0].style.opacity = '1'; }
+    if (T > 12.5 && cer.step === 1) { cer.step = 2; cer.lines[1].style.opacity = '1'; }
+  }
+
   // Engancha ctx.collect: las salas siguen llamándolo igual que siempre.
   const prevCollect = ctx.collect.bind(ctx);
   ctx.collect = (id, opts) => { prevCollect(id); markCollected(id, opts && opts.silent); };
@@ -314,7 +445,13 @@ export function buildTrophyHall(ctx) {
         v.model.rotation.y = 0;
       }
       animateStatue(v, dt, t);
+      if (v.lit) litFx(v, dt, t);
     }
+    if (!cer.hinted && !ctx.ending && inHall && allReady()) {
+      cer.hinted = true;
+      setTimeout(() => ctx.ui.toast('Los seis recuerdos están reunidos. Apunta a cada trofeo y presiona E para despertar a su Taylor.', 8000), 5000);
+    }
+    updateCeremony(dt, t);
   });
 
   return { vitrines: byId, statues: Object.fromEntries(Object.values(byId).filter((v) => v.statue).map((v) => [v.spot.id, v.statue])), reveal: (id) => { markCollected(id); } };

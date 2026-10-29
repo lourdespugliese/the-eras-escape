@@ -23,6 +23,16 @@ import { createSecrets } from './secrets.js';
 import { buildSongShelf } from './songshelf.js';
 import { createVolume } from './volume.js';
 
+// Diagnóstico: si algo falla mientras corre el juego, el error aparece en un cartel rojo arriba (clic para cerrarlo), además de la consola.
+const errBox = document.createElement('div');
+Object.assign(errBox.style, { position: 'fixed', left: '0', right: '0', top: '0', zIndex: '10000', display: 'none', padding: '8px 14px', background: 'rgba(150,20,20,.94)',
+  color: '#fff', font: '13px/1.4 monospace', whiteSpace: 'pre-wrap', cursor: 'pointer', maxHeight: '40vh', overflow: 'auto' });
+errBox.onclick = () => { errBox.style.display = 'none'; errBox.textContent = ''; };
+document.body.appendChild(errBox);
+const showError = (msg) => { if (errBox.textContent.length < 1500) errBox.textContent += (errBox.textContent ? '\n' : '') + msg; errBox.style.display = 'block'; };
+addEventListener('error', (e) => showError(`${e.message} (${String(e.filename || '').split('/').pop()}:${e.lineno})`));
+addEventListener('unhandledrejection', (e) => showError('Promesa rechazada: ' + (e.reason && e.reason.message ? e.reason.message : e.reason)));
+
 const canvas = document.getElementById('game');
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
@@ -78,7 +88,8 @@ const room6 = buildRoomMidnights(ctx, room5); // Habitación 6: Midnights (4 ace
 //               y puertas anteriores abiertas. La puerta de salida de la sala N sigue cerrada (se abre al resolverla).
 const params = new URLSearchParams(location.search);
 const START_ROOM = parseInt(params.get('room'), 10) || 0;
-const intro = buildIntro(ctx, room1, { player, skip: params.has('skip') || START_ROOM > 0 });
+const FINALE = params.has('lobby') || params.has('finale');   // ?lobby (o ?finale): empiezas en el hall con los 6 trofeos recogidos (para probar la ceremonia final)
+const intro = buildIntro(ctx, room1, { player, skip: params.has('skip') || START_ROOM > 0 || FINALE });
 ctx.returnToMuseum = () => intro.returnToHall();   // portal de la sala 6 -> Hall principal
 
 // >>> atajo ?room=N
@@ -108,6 +119,13 @@ ui.onStart(() => { audio.start(); player.lock(); });   // el audio necesita un c
 let devJumped = false;
 player.controls.addEventListener('lock', () => {
   audio.start(); ui.showGame(true); intro.onLock();
+  if (FINALE && !devJumped) {                                                                // atajo de prueba ?lobby / ?finale
+    devJumped = true;
+    try {
+      ITEMS.forEach((it) => ctx.collect(it.id, { silent: true }));                          // los 6 trofeos recogidos (sin avisos)
+      intro.returnToHall();                                                                 // aparece en el hall
+    } catch (e) { console.error('[dev] ?lobby falló:', e); ui.toast('[dev] ?lobby falló: ' + (e && e.message ? e.message : e), 12000); }
+  }
   if (START_ROOM > 0 && !devJumped) { devJumped = true; jumpToRoom(START_ROOM, [room1, room2, room3, room4, room5, room6]); }   // después de intro.onLock(), que coloca la cámara en la sala 1
 });
 player.controls.addEventListener('unlock', () => { audio.pause(); ui.showGame(false); });
@@ -117,8 +135,8 @@ function animate() {
   requestAnimationFrame(animate);
   const dt = Math.min(clock.getDelta(), 0.1), t = clock.elapsedTime;
   if (player.controls.isLocked) {
-    if (!intro.blockMove()) player.update(dt);      // durante la intro solo se mueve la cámara hasta tomar el sobre
-    interaction.update();
+    if (!intro.blockMove() && !ctx.ending) player.update(dt);      // durante la intro solo se mueve la cámara hasta tomar el sobre
+    if (!ctx.ending) interaction.update();          // ctx.ending = final del juego (ceremonia de trophies.js): sin movimiento ni interacción
     const p = camera.position;
     const r = ctx.rooms.find((r) => p.x > r.bounds.minX && p.x < r.bounds.maxX && p.z > r.bounds.minZ && p.z < r.bounds.maxZ);
     if (r) ui.setRoom(r.name);
