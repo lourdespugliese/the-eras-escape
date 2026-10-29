@@ -39,11 +39,13 @@ const STATUE_ERAS = {
   polaroid: { url: 'assets/models/taylor-1989.glb' },
   snake:    { url: 'assets/models/taylor-reputation.glb' },
   heart:    { url: 'assets/models/taylor-lover.glb' },
+  oldkey:   { url: 'assets/models/taylor-folklore.glb' },
+  finalkey: { url: 'assets/models/taylor-midnights.glb' },
   // oldkey / finalkey (Folklore, Midnights): aún sin su estatua propia. Mientras tanto muestran una figura simple y liviana sobre su
   // pedestal para que el final tenga sus 6 Taylors. Cuando existan sus .glb, agrega aquí su línea (oldkey / finalkey).
 };
 const STATUE = {
-  height: 1.9,          // alto por defecto de cada estatua (la vitrina mide 2.4 en total)
+  height: 2.5,          // alto por defecto de cada estatua (la vitrina mide 2.4 en total)
   side: 1.9,            // separación en z respecto al centro de su vitrina (hacia el fondo del hall)
   pedestalH: 0.5,       // alto del pedestal
   rotY: 0,              // giro por defecto (0 = el modelo mira hacia +Z, como la estatua central)
