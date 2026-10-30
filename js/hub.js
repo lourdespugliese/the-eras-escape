@@ -6,6 +6,11 @@ import { HUB_SIZE, HUB_LAYERS } from './hub-layout.js';
 const BASE = 'assets/ui/hub/';
 const LOCK_OF = { '1989': 'lock-1989', forest: 'lock-folklore', lover: 'lock-lover', midnights: 'lock-midnights', reputation: 'lock-reputation' };   // dije -> su candado (Fearless no tiene)
 export const ITEM_LOCK = { polaroid: 'lock-1989', snake: 'lock-reputation', heart: 'lock-lover', oldkey: 'lock-folklore', finalkey: 'lock-midnights' };   // id del objeto (ui.js ITEMS) -> candado
+// Las capas de decoración miden lo mismo que su esquina del lienzo (tocan el borde), así que se anclan a la esquina de la pantalla.
+const CORNER = {
+  'decor-tl': { v: 'top', h: 'left', delay: 0.05 }, 'decor-tr': { v: 'top', h: 'right', delay: 0.2 },
+  'decor-bl': { v: 'bottom', h: 'left', delay: 0.35 }, 'decor-br': { v: 'bottom', h: 'right', delay: 0.5 },
+};
 const PROGRESS_BOX = { x: 151, y: 717, w: 450, h: 33 };   // donde va "0 / 6 recuerdos" (la capa de progreso original se dibuja con HTML para que cuente)
 
 const place = (el, b) => Object.assign(el.style, { left: b.x + 'px', top: b.y + 'px', width: b.w + 'px', height: b.h + 'px' });
@@ -20,8 +25,20 @@ export function buildHub(stage, { button, progress, sound, music }) {
   const locks = {};
   let n = 0;
 
+  const overlay = stage.parentElement;
   for (const l of layers) {
+    if (l.id === 'paper') continue;                                   // el papel es el fondo del #overlay (cubre toda la pantalla)
     if (lockIds.has(l.id)) continue;                                  // los candados entran dentro del grupo de su dije
+    if (CORNER[l.id]) {                                               // decoración de las esquinas: anclada a la esquina real de la pantalla y entra desde fuera
+      const c = CORNER[l.id], w = document.createElement('div'), e = document.createElement('div');
+      w.className = 'hub-corner'; e.className = 'hub-enter';
+      Object.assign(w.style, { width: l.w + 'px', height: l.h + 'px', [c.v]: 0, [c.h]: 0, transformOrigin: `${c.h} ${c.v}` });
+      e.style.setProperty('--fx', c.h === 'left' ? '-110%' : '110%'); e.style.setProperty('--fy', c.v === 'top' ? '-35%' : '35%');
+      e.style.setProperty('--fr', (c.h === 'left' ? -7 : 7) + 'deg'); e.style.setProperty('--dl', c.delay + 's');
+      const i = img({ ...l, x: 0, y: 0 }); i.style.cssText += 'width:100%;height:100%;left:0;top:0;';
+      e.appendChild(i); w.appendChild(e); overlay.insertBefore(w, stage); continue;   // antes del lienzo: queda debajo del contenido
+    }
+    if (l.id === 'confetti') { const i = img(l); i.style.zIndex = l.z; i.classList.add('hub-pop'); stage.appendChild(i); continue; }   // las estrellas aparecen después de la decoración
     if (holders[l.id]) {                                              // fondo del botón y rótulos Sonido/Música: la imagen va dentro de su botón (hover y clic juntos)
       const el = holders[l.id]; place(el, l); el.style.zIndex = l.z;
       const bg = img({ ...l, x: 0, y: 0 }); bg.style.cssText += 'width:100%;height:100%;left:0;top:0;';
@@ -39,7 +56,7 @@ export function buildHub(stage, { button, progress, sound, music }) {
 
   place(progress, PROGRESS_BOX); progress.style.zIndex = 74;
 
-  const fit = () => stage.style.setProperty('--s', Math.min(innerWidth / HUB_SIZE.w, innerHeight / HUB_SIZE.h));
+  const fit = () => overlay.style.setProperty('--s', Math.min(innerWidth / HUB_SIZE.w, innerHeight / HUB_SIZE.h));   // en el overlay: lo usan el lienzo y las esquinas
   addEventListener('resize', fit); fit();
   return { locks };
 }
