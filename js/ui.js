@@ -19,6 +19,12 @@ export class UI {
     this.volEl = $('volume'); this.volVal = $('vol-val');
     this._toastTimer = null;
     this.updateInventory(new Set());
+    const sp = $('sparkles');      // destellos que suben en la pantalla inicial (posición, tamaño y ritmo al azar)
+    if (sp) for (let i = 0; i < 40; i++) {
+      const s = document.createElement('span');
+      s.style.cssText = `left:${Math.random() * 100}%;--s:${(2 + Math.random() * 4).toFixed(1)}px;--d:${(7 + Math.random() * 9).toFixed(1)}s;animation-delay:${(-Math.random() * 16).toFixed(1)}s`;
+      sp.appendChild(s);
+    }
   }
 
   // Registra qué hacer cuando se presiona el botón de la pantalla inicial.
@@ -53,7 +59,14 @@ export class UI {
     if (!playing) this.startBtn.textContent = 'CONTINUAR';
   }
 
-  setRoom(name) { if (this.roomEl.textContent !== name) this.roomEl.textContent = name; }
+  // Cambia el texto y el tema visual (colores y tipografía de style.css) según la era de la sala.
+  setRoom(name) {
+    if (this.roomEl.textContent === name) return;
+    this.roomEl.textContent = name;
+    const era = ['Fearless', '1989', 'Reputation', 'Lover', 'Folklore', 'Midnights'].find((e) => name.includes(e));
+    document.body.dataset.era = era ? era.toLowerCase() : 'hall';
+    this.roomEl.classList.remove('flash'); void this.roomEl.offsetWidth; this.roomEl.classList.add('flash');   // reinicia la animación de entrada
+  }
 
   setPrompt(text) { if (this.promptEl.textContent !== text) this.promptEl.textContent = text; }
 

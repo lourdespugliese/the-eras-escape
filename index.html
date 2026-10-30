@@ -4,6 +4,10 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>The Eras Escape</title>
+  <!-- Tipografías por era (Google Fonts; si no cargan, se usa Georgia) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600&family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400&family=Dancing+Script:wght@600&family=IM+Fell+English:ital@0;1&family=Josefin+Sans:wght@300;500&family=Old+Standard+TT:ital@0;1&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
   <!-- Import map: permite escribir "import ... from 'three'" en los módulos -->
   <script type="importmap">
@@ -33,7 +37,9 @@
 
   <!-- Pantalla inicial / pausa -->
   <div id="overlay">
+    <div id="sparkles" aria-hidden="true"></div>
     <h1>THE ERAS ESCAPE</h1>
+    <div class="eras-row" aria-hidden="true"><i style="--c:#ffc83d"></i><i style="--c:#2de2ff"></i><i style="--c:#c9b27a"></i><i style="--c:#ff8fc8"></i><i style="--c:#b8c8a0"></i><i style="--c:#8a96ff"></i></div>
     <p>Has entrado a un museo donde cada habitación conserva los recuerdos de una era diferente. Las puertas se han cerrado y solo existe una forma de salir: recuperar los objetos ocultos de cada era y completar todos los desafíos.</p>
     <button id="start-btn">COMENZAR JUEGO</button>
     <small>W A S D para moverte · Mouse para mirar · E para interactuar · Esc para pausar</small>
