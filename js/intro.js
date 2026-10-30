@@ -6,6 +6,7 @@ import * as THREE from 'three';
 import { canvasTex, makeTextTexture, addCollider } from './rooms.js';
 import { createIntroSound } from './introsound.js';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { museumMaterial, checkerMaterial, brassMaterial, mapMuseumMesh } from './museum-materials.js';
 
 // ================= Medidas del mundo =================
 const GROUND = -1.2;                 // nivel del suelo exterior (el interior del museo está en y = 0)
@@ -165,17 +166,20 @@ export function buildIntro(ctx, room1, { player, skip = false } = {}) {
   const facadeLight = new THREE.PointLight(0xffc27a, 0, 48, 2); facadeLight.position.set(DOOR_X, 5.5, 32);
   const hallLight = new THREE.PointLight(0xffd9a0, 0, 32, 2); hallLight.position.set(HCX, 7.2, 15);
   root.add(ambient, facadeLight, hallLight);
+  const statueFill = new THREE.SpotLight(0xffe1ae, 0, 25, 0.7, 0.65, 2);
+  statueFill.position.set(HCX, 6, 22); statueFill.target.position.set(HCX, 3, 15);
+  root.add(statueFill, statueFill.target);
 
   // ---------- Materiales y utilidades ----------
   const M = (color, o = {}) => new THREE.MeshStandardMaterial({ color, roughness: 0.85, ...o });
-  const stone = M(0xb4a88f), stoneDark = M(0x6f685b), wall = M(0xd2c5a8), roof = M(0x2a2e3a);
-  const marble = M(0xd9d3c7, { roughness: 0.35 });
-  const bronze = M(0xb07a3a, { roughness: 0.35, metalness: 0.9, emissive: 0x2a1808 });
-  const goldM = M(0xe0b24a, { roughness: 0.3, metalness: 0.9, emissive: 0x4a3208 });
-  const woodDoor = M(0x30221a, { roughness: 0.7 });
+  const stone = museumMaterial('limestone'), stoneDark = museumMaterial('dark-marble');
+  const wall = stone, hallWall = museumMaterial('plaster'), roof = museumMaterial('wood');
+  const marble = museumMaterial('ivory-marble');
+  const bronze = brassMaterial(), goldM = brassMaterial();
+  const woodDoor = museumMaterial('wood');
   const slab = (x0, x1, y0, y1, z0, z1, mat, collide = false, parent = root) => {
     const m = new THREE.Mesh(new THREE.BoxGeometry(x1 - x0, y1 - y0, z1 - z0), mat);
-    m.position.set((x0 + x1) / 2, (y0 + y1) / 2, (z0 + z1) / 2); parent.add(m);
+    m.position.set((x0 + x1) / 2, (y0 + y1) / 2, (z0 + z1) / 2); parent.add(m); mapMuseumMesh(m);
     if (collide) ctx.colliders.push({ minX: x0, maxX: x1, minZ: z0, maxZ: z1 });
     return m;
   };
@@ -183,17 +187,15 @@ export function buildIntro(ctx, room1, { player, skip = false } = {}) {
   // ================= EXTERIOR =================
   const ground = new THREE.Mesh(new THREE.PlaneGeometry(600, 600), M(0x131a26, { roughness: 0.45 }));
   ground.rotation.x = -Math.PI / 2; ground.position.set(HCX, GROUND, 120); root.add(ground);
-  const tiles = canvasTex(256, 256, (g) => { g.fillStyle = '#242c3a'; g.fillRect(0, 0, 256, 256); g.strokeStyle = '#161c28'; g.lineWidth = 4; g.strokeRect(0, 0, 256, 256); g.strokeRect(0, 0, 128, 128); g.strokeRect(128, 128, 128, 128); });
-  tiles.wrapS = tiles.wrapT = THREE.RepeatWrapping; tiles.repeat.set(19, 17);
-  const plaza = new THREE.Mesh(new THREE.PlaneGeometry(38, 33), M(0xffffff, { map: tiles, roughness: 0.4 }));
+  const plaza = new THREE.Mesh(new THREE.PlaneGeometry(38, 33), museumMaterial('paving'));
   plaza.rotation.x = -Math.PI / 2; plaza.position.set(HCX, GROUND + 0.01, 45.5); root.add(plaza);
-  const path = new THREE.Mesh(new THREE.PlaneGeometry(4, 28), M(0x3a4352, { roughness: 0.5 }));
+  const path = new THREE.Mesh(new THREE.PlaneGeometry(4, 28), museumMaterial('paving', { color: new THREE.Color(0xaaa18a) }));
   path.rotation.x = -Math.PI / 2; path.position.set(HCX, GROUND + 0.02, 48); root.add(path);
 
   // Plataforma del pórtico + escalera
   slab(HCX - 18, HCX + 18, GROUND, 0, FZ + 0.2, 29, stone);
   const top = new THREE.Mesh(new THREE.PlaneGeometry(36, 3.8), marble); top.rotation.x = -Math.PI / 2; top.position.set(HCX, 0.005, 27.1); root.add(top);
-  for (let i = 0; i < 6; i++) slab(HCX - 7, HCX + 7, GROUND, GROUND + 0.2 * (i + 1), 29 + (5 - i), 30 + (5 - i), i % 2 ? marble : M(0xcfc9bd, { roughness: 0.4 }));
+  for (let i = 0; i < 6; i++) slab(HCX - 7, HCX + 7, GROUND, GROUND + 0.2 * (i + 1), 29 + (5 - i), 30 + (5 - i), marble);
   slab(HCX - 7.6, HCX - 7, GROUND, 0.6, 29, 35.2, stone, true); slab(HCX + 7, HCX + 7.6, GROUND, 0.6, 29, 35.2, stone, true);   // barandas
   ctx.colliders.push({ minX: HCX - 18.4, maxX: HCX - 7, minZ: 29, maxZ: 29.4 }, { minX: HCX + 7, maxX: HCX + 18.4, minZ: 29, maxZ: 29.4 });   // borde frontal
   ctx.colliders.push({ minX: HCX - 18.4, maxX: HCX - 18, minZ: 25, maxZ: 29.4 }, { minX: HCX + 18, maxX: HCX + 18.4, minZ: 25, maxZ: 29.4 });  // bordes laterales
@@ -212,7 +214,7 @@ export function buildIntro(ctx, room1, { player, skip = false } = {}) {
   clock.position.set(HCX, 11.1, FZ + 3.75); root.add(clock);
   const clockRing = new THREE.Mesh(new THREE.TorusGeometry(1.34, 0.1, 10, 48), goldM); clockRing.position.copy(clock.position); root.add(clockRing);
   [-16, -12, -8, -4, 4, 8, 12, 16].map((o) => HCX + o).forEach((x) => {                                                              // columnas gigantes
-    const col = new THREE.Mesh(new THREE.CylinderGeometry(0.55, 0.65, 8.6, 20), stone); col.position.set(x, 4.3, 27.6); root.add(col);
+    const col = new THREE.Mesh(new THREE.CylinderGeometry(0.55, 0.65, 8.6, 20), hallWall); col.position.set(x, 4.3, 27.6); root.add(col);
     slab(x - 0.85, x + 0.85, 8.2, 8.6, 26.75, 28.45, stone); slab(x - 0.85, x + 0.85, 0, 0.4, 26.75, 28.45, stone);
     ctx.colliders.push({ minX: x - 0.6, maxX: x + 0.6, minZ: 27, maxZ: 28.2 });
   });
@@ -335,21 +337,16 @@ export function buildIntro(ctx, room1, { player, skip = false } = {}) {
   // ================= HALL PRINCIPAL =================
   const hallBounds = { minX: HX0, maxX: HX1, minZ: HZ0, maxZ: FZ - 0.2 };
   ctx.rooms.push({ name: 'Hall principal', bounds: hallBounds });
-  const floorTex = canvasTex(256, 256, (g) => {
-    g.fillStyle = '#d9d2c3'; g.fillRect(0, 0, 256, 256); g.fillStyle = '#4b5853'; g.fillRect(0, 0, 128, 128); g.fillRect(128, 128, 128, 128);
-    g.strokeStyle = 'rgba(255,255,255,.12)'; g.lineWidth = 1.2; for (let i = 0; i < 14; i++) { g.beginPath(); g.moveTo(Math.random() * 256, Math.random() * 256); g.lineTo(Math.random() * 256, Math.random() * 256); g.stroke(); }
-  });
-  floorTex.wrapS = floorTex.wrapT = THREE.RepeatWrapping; floorTex.repeat.set(10, 7);
-  const hallFloor = new THREE.Mesh(new THREE.PlaneGeometry(HX1 - HX0, FZ - HZ0), M(0xffffff, { map: floorTex, roughness: 0.3 }));
+  const hallFloor = new THREE.Mesh(new THREE.PlaneGeometry(HX1 - HX0, FZ - HZ0), checkerMaterial());
   hallFloor.rotation.x = -Math.PI / 2; hallFloor.position.set(HCX, 0, (FZ + HZ0) / 2); root.add(hallFloor);
   slab(FD_L, FD_R, -0.02, 0.004, 4.8, 5.4, marble);                                                                 // umbral de la puerta de Fearless
   const hallCeil = new THREE.Mesh(new THREE.PlaneGeometry(HX1 - HX0, FZ - HZ0), M(0x2a241f)); hallCeil.rotation.x = Math.PI / 2; hallCeil.position.set(HCX, HALL_H, (FZ + HZ0) / 2); root.add(hallCeil);
-  for (let x = HX0 + 3; x < HX1; x += 5) slab(x - 0.25, x + 0.25, HALL_H - 0.6, HALL_H, HZ0, FZ, stoneDark);   // vigas
-  slab(HX0 - 0.2, HX0 + 0.2, 0, HALL_H, 5.2, FZ + 0.2, wall, true);                                            // pared oeste
-  slab(HX1 - 0.2, HX1 + 0.2, 0, HALL_H, 4.8, FZ + 0.2, wall, true);                                            // pared este
-  slab(HX0 - 0.2, -5.2, 0, HALL_H, 4.8, 5.2, wall, true);                                                       // pared norte (izquierda, junto a la sala 1)
-  slab(9.2, HX1 + 0.2, 0, HALL_H, 4.8, 5.2, wall, true);                                                        // pared norte (derecha)
-  slab(-5.2, 9.2, 4, HALL_H, 4.8, 5.2, wall);                                                                   // pared norte sobre la sala 1
+  for (let x = HX0 + 3; x < HX1; x += 5) slab(x - 0.25, x + 0.25, HALL_H - 0.6, HALL_H, HZ0, FZ, woodDoor);   // vigas
+  slab(HX0 - 0.2, HX0 + 0.2, 0, HALL_H, 5.2, FZ + 0.2, hallWall, true);                                            // pared oeste
+  slab(HX1 - 0.2, HX1 + 0.2, 0, HALL_H, 4.8, FZ + 0.2, hallWall, true);                                            // pared este
+  slab(HX0 - 0.2, -5.2, 0, HALL_H, 4.8, 5.2, hallWall, true);                                                       // pared norte (izquierda, junto a la sala 1)
+  slab(9.2, HX1 + 0.2, 0, HALL_H, 4.8, 5.2, hallWall, true);                                                        // pared norte (derecha)
+  slab(-5.2, 9.2, 4, HALL_H, 4.8, 5.2, hallWall);                                                                   // pared norte sobre la sala 1
   for (const x of [HX0 + 1, HX1 - 1]) for (const z of [9, 13, 17, 21]) {                                        // columnas
     const c = new THREE.Mesh(new THREE.CylinderGeometry(0.45, 0.5, HALL_H, 16), marble); c.position.set(x, HALL_H / 2, z); root.add(c);
     ctx.colliders.push({ minX: x - 0.5, maxX: x + 0.5, minZ: z - 0.5, maxZ: z + 0.5 });
@@ -380,6 +377,7 @@ export function buildIntro(ctx, room1, { player, skip = false } = {}) {
     box.setFromObject(model);
     const c = box.getCenter(new THREE.Vector3());
     model.position.set(-c.x, -box.min.y, -c.z);                                 // centrada sobre el pedestal y apoyada en él
+    model.traverse(o => { if (o.isMesh && !o.isSkinnedMesh) { o.material = museumMaterial('ivory-marble'); } });
     holder.add(model);
   }, undefined, (e) => console.warn('[intro] no se pudo cargar la estatua:', e));
   const plaqueTex = canvasTex(768, 288, (g, w, h) => {
@@ -504,7 +502,7 @@ export function buildIntro(ctx, room1, { player, skip = false } = {}) {
     removeColliders((c) => mine.has(c));
     introItems.forEach((m) => (m.visible = false));
     root.visible = false; orb.visible = false;
-    ambient.intensity = facadeLight.intensity = hallLight.intensity = 0;            // (las luces siguen en la escena para no recompilar los materiales)
+    ambient.intensity = facadeLight.intensity = hallLight.intensity = statueFill.intensity = 0;            // (las luces siguen en la escena para no recompilar los materiales)
     sound.outdoor(0); sound.drone(0); player.speed = baseSpeed; hudMode('full');
     gone = true;
   }
@@ -555,8 +553,9 @@ export function buildIntro(ctx, room1, { player, skip = false } = {}) {
 
     // ----- Luces según la zona (las luces de three.js son globales) -----
     const z = cam.z, out = smooth(FZ - 1, FZ + 1.5, z), inZone = smooth(3.4, 5.6, z);
-    ambient.intensity = inZone * (0.3 * out + 0.55 * (1 - out));
-    facadeLight.intensity = 85 * out; hallLight.intensity = 58 * inZone * (1 - out);
+    ambient.intensity = inZone * (0.24 * out + 0.52 * (1 - out));
+    statueFill.intensity = 80 * inZone * (1 - out);
+    facadeLight.intensity = 135 * out; hallLight.intensity = 160 * inZone * (1 - out);
     room1.lights.mute = Math.min(room1.lights.mute, Math.max(0.04, fOpen ? Math.max(clamp((5.4 - z) / 1.8, 0, 1), 0.22) : clamp((5.4 - z) / 1.8, 0, 1)));
     room1.lights.apply();
     rainMesh.visible = out > 0.02; rainMesh.material.opacity = 0.32 * out;
@@ -696,6 +695,9 @@ export function buildIntro(ctx, room1, { player, skip = false } = {}) {
       if (errCount <= 5) console.error('[intro] error en la secuencia:', e);
     }
   });
+
+  root.traverse(mapMuseumMesh);
+  ctx.museum = { root, reflectionSurfaces: [plaza, path, hallFloor], lights: [facadeLight, hallLight] };
 
   // ================= API =================
   function finishInstant() {                                                        // ?skip: salta la intro y empieza en la sala 1

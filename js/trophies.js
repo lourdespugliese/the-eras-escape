@@ -10,6 +10,7 @@ import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { canvasTex } from './rooms.js';
 import { ITEMS } from './ui.js';
+import { museumMaterial, brassMaterial, mapMuseumMesh } from './museum-materials.js';
 
 const HCX = 2;                                                  // centro del hall en x (el hall va de x = -13 a 17; debe coincidir con HCX de intro.js)
 const HALL = { minX: -13, maxX: 17, minZ: 5.4, maxZ: 24.6 };   // zona del hall donde se dispara la revelación
@@ -94,9 +95,9 @@ function fitModel(src, height) {
 
 // ---------- Materiales compartidos ----------
 const M = (color, o = {}) => new THREE.MeshStandardMaterial({ color, roughness: 0.4, metalness: 0.6, ...o });
-const marble = new THREE.MeshStandardMaterial({ color: 0xd9d3c7, roughness: 0.35 });
-const gold = M(0xe0b24a, { roughness: 0.3, metalness: 0.9, emissive: 0x3a2806 });
-const glassM = new THREE.MeshStandardMaterial({ color: 0xbfe8ff, transparent: true, opacity: 0.16, roughness: 0.05, depthWrite: false });
+const marble = museumMaterial('ivory-marble');
+const gold = brassMaterial();
+const glassM = new THREE.MeshPhysicalMaterial({ color: 0xf4efdf, transparent: true, opacity: 0.12, roughness: 0.08, metalness: 0.12, depthWrite: false, envMapIntensity: 0.65, side: THREE.FrontSide });
 const GHOST = new THREE.MeshStandardMaterial({ color: 0x1a1a22, transparent: true, opacity: 0.4, roughness: 1, metalness: 0 });
 
 function glowTex() {
@@ -456,5 +457,6 @@ export function buildTrophyHall(ctx) {
     updateCeremony(dt, t);
   });
 
+  root.traverse(mapMuseumMesh);
   return { vitrines: byId, statues: Object.fromEntries(Object.values(byId).filter((v) => v.statue).map((v) => [v.spot.id, v.statue])), reveal: (id) => { markCollected(id); } };
 }

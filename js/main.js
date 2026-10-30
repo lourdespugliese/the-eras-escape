@@ -23,6 +23,7 @@ import { createSecrets } from './secrets.js';
 import { buildSongShelf } from './songshelf.js';
 import { createVolume } from './volume.js';
 import { setupLighting } from './lighting.js';
+import { setupMuseumReflections } from './museum-materials.js';
 
 // Diagnóstico: si algo falla mientras corre el juego, el error aparece en un cartel rojo arriba (clic para cerrarlo), además de la consola.
 const errBox = document.createElement('div');
@@ -121,6 +122,7 @@ buildTrophyHall(ctx);
 // Vitrina de canciones secretas del hall: cada canción hallada (ctx.secrets.add) aparece aquí con su objeto y su placa.
 buildSongShelf(ctx);
 const lighting = setupLighting({ renderer, scene, camera, ctx });   // tone mapping, reflejos en metales y sombras (después de crear todo)
+setupMuseumReflections(renderer, scene, camera, ctx);
 
 ui.onStart(() => { audio.start(); player.lock(); });   // el audio necesita un click del usuario
 let devJumped = false;

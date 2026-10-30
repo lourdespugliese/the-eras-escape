@@ -30,7 +30,7 @@ export function setupLighting({ renderer, scene, camera, ctx }) {
       for (const m of mats) {
         if (m.isMeshStandardMaterial) {
           lit = true;
-          if (m.metalness >= 0.3 && !m.envMap) { m.envMap = envTex; m.envMapIntensity = ENV_INTENSITY; m.needsUpdate = true; }
+          if ((m.metalness >= 0.3 || m.userData.tileSize || (m.isMeshPhysicalMaterial && m.transparent)) && !m.envMap) { m.envMap = envTex; m.envMapIntensity = m.userData.tileSize ? 0.12 : ENV_INTENSITY; m.needsUpdate = true; }
         } else if (m.isMeshLambertMaterial || m.isMeshPhongMaterial) lit = true;
         if (m.transparent || m.depthWrite === false || m.isMeshBasicMaterial) solid = false;   // brillos, neón y cristales no hacen sombra
       }
@@ -82,6 +82,13 @@ export function setupLighting({ renderer, scene, camera, ctx }) {
     entries.push({ light: o, room });
   });
 
+  const museumLights = ctx.museum?.lights || [];
+  museumLights.forEach(light => {
+    light.castShadow = true;
+    light.shadow.mapSize.set(1024, 1024);
+    light.shadow.camera.near = 0.5; light.shadow.camera.far = light.distance;
+    light.shadow.bias = -0.0003; light.shadow.normalBias = 0.04;
+  });
   let frame = 0;
   return {
     entries,
@@ -89,6 +96,9 @@ export function setupLighting({ renderer, scene, camera, ctx }) {
       const p = camera.position;
       const cur = ctx.rooms.find((r) => inside(r.bounds, p));
       const warm = frame++ < WARMUP_FRAMES;
+      museumLights.forEach((light, i) => {
+        light.shadow.autoUpdate = warm || (ctx.museum.root.visible && (i === 0 ? p.z >= 25 : p.z >= 5 && p.z < 25));
+      });
       for (const e of entries) e.light.shadow.autoUpdate = warm || e.room === cur;
     },
   };
