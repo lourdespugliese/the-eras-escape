@@ -259,9 +259,9 @@ export function buildRoomForest(ctx, room4) {
 
   // ---------------- Luces: pocas luces reales (pool) + muchos brillos falsos ----------------
   const ambient = new THREE.AmbientLight(0x8a7a66, 0), hemi = new THREE.HemisphereLight(0x9fb2c8, 0x4a3422, 0), moon = new THREE.DirectionalLight(0x9db4d4, 0);
-  moon.position.set(-4, 12, 6); scene.add(ambient, hemi, moon);
+  moon.position.set(-4, 12, 6); moon.userData.shadowRoom = 'Folklore'; scene.add(ambient, hemi, moon);   // shadowRoom: lighting.js le añade sombras a esta luz
   const POOL = 5;
-  const pool = Array.from({ length: POOL }, () => { const l = new THREE.PointLight(0xffb066, 0, 11, 2); scene.add(l); return { l, src: null, level: 0 }; });
+  const pool = Array.from({ length: POOL }, () => { const l = new THREE.PointLight(0xffb066, 0, 11, 2); l.userData.noShadow = true; scene.add(l); return { l, src: null, level: 0 }; });
   const sources = [];                                                                       // fuentes de luz posibles (farolas, lámpara de la cabaña, faroles del sauce)
 
   // ---------------- Suelo, cielo y paredes altas ----------------

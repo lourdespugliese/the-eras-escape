@@ -64,9 +64,9 @@ export function buildRoomMidnights(ctx, room5) {
 
   // ---------------- Luces: pocas luces reales (pool) + muchos brillos falsos ----------------
   const ambient = new THREE.AmbientLight(0x5a4a8a, 0), hemi = new THREE.HemisphereLight(0x8f86d8, 0x1a1030, 0), moonL = new THREE.DirectionalLight(0xb9a4ff, 0);
-  moonL.position.set(-4, 10, 6); scene.add(ambient, hemi, moonL);
+  moonL.position.set(-4, 10, 6); moonL.userData.shadowRoom = 'Midnights'; scene.add(ambient, hemi, moonL);   // shadowRoom: lighting.js le añade sombras a esta luz
   const POOL = 5;
-  const pool = Array.from({ length: POOL }, () => { const l = new THREE.PointLight(0xb9a4ff, 0, 13, 2); scene.add(l); return { l, src: null, level: 0 }; });
+  const pool = Array.from({ length: POOL }, () => { const l = new THREE.PointLight(0xb9a4ff, 0, 13, 2); l.userData.noShadow = true; scene.add(l); return { l, src: null, level: 0 }; });
   const sources = [];                                                                       // fuentes de luz posibles (lámpara de pie, apliques)
   function addSource(x, y, z, hex, power, glowSize = 2.2) {
     const glow = makeGlow(hex, glowSize); glow.position.set(x, y, z); g.add(glow);

@@ -22,6 +22,7 @@ import { buildRoomMidnights } from './roommidnights.js';
 import { createSecrets } from './secrets.js';
 import { buildSongShelf } from './songshelf.js';
 import { createVolume } from './volume.js';
+import { setupLighting } from './lighting.js';
 
 // Diagnóstico: si algo falla mientras corre el juego, el error aparece en un cartel rojo arriba (clic para cerrarlo), además de la consola.
 const errBox = document.createElement('div');
@@ -43,10 +44,15 @@ scene.background = new THREE.Color(0x120c05);
 const camera = new THREE.PerspectiveCamera(70, innerWidth / innerHeight, 0.1, 100);
 camera.position.set(0, 1.7, 3.8);
 
-// Bloom: solo se usa cuando ctx.fx.bloom = true (así no cuesta rendimiento antes de resolver el acertijo).
-const composer = new EffectComposer(renderer);
+// Post-proceso siempre activo: bloom suave de base (BLOOM_BASE) que sube a BLOOM_FULL cuando ctx.fx.bloom = true (neón, acertijos resueltos).
+// El render target lleva MSAA (samples) para no perder el antialias que da el renderer al dibujar directo.
+const BLOOM_BASE = 0.18, BLOOM_FULL = 0.6;
+const pr = Math.min(window.devicePixelRatio, 2);
+const composer = new EffectComposer(renderer, new THREE.WebGLRenderTarget(innerWidth * pr, innerHeight * pr, { type: THREE.HalfFloatType, samples: 4 }));
+composer.setPixelRatio(pr); composer.setSize(innerWidth, innerHeight);
+const bloomPass = new UnrealBloomPass(new THREE.Vector2(innerWidth, innerHeight), BLOOM_BASE, 0.5, 1.6);
 composer.addPass(new RenderPass(scene, camera));
-composer.addPass(new UnrealBloomPass(new THREE.Vector2(innerWidth, innerHeight), 0.6, 0.5, 0.9));
+composer.addPass(bloomPass);
 composer.addPass(new OutputPass());
 
 const ui = new UI();
@@ -114,6 +120,7 @@ function jumpToRoom(n, list) {
 buildTrophyHall(ctx);
 // Vitrina de canciones secretas del hall: cada canción hallada (ctx.secrets.add) aparece aquí con su objeto y su placa.
 buildSongShelf(ctx);
+const lighting = setupLighting({ renderer, scene, camera, ctx });   // tone mapping, reflejos en metales y sombras (después de crear todo)
 
 ui.onStart(() => { audio.start(); player.lock(); });   // el audio necesita un click del usuario
 let devJumped = false;
@@ -143,7 +150,11 @@ function animate() {
   }
   ctx.updaters.forEach((fn) => fn(dt, t));
   ctx.particles.update(dt);
-  if (ctx.fx.bloom) composer.render(); else renderer.render(scene, camera);
+  lighting.update();
+  const bk = Math.min(1, dt * 3), full = ctx.fx.bloom;   // transición suave; en modo base solo brillan las luces muy intensas
+  bloomPass.strength += ((full ? BLOOM_FULL : BLOOM_BASE) - bloomPass.strength) * bk;
+  bloomPass.threshold += ((full ? 0.9 : 1.6) - bloomPass.threshold) * bk;
+  composer.render();
 }
 animate();
 
