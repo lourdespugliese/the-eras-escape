@@ -8,7 +8,8 @@ export class Player {
     this.colliders = colliders;           // lista de cajas {minX,maxX,minZ,maxZ}
     this.controls = new PointerLockControls(camera, domElement); // mouse -> mirar
     this.speed = 4;                        // metros por segundo
-    this.radius = 0.35;                    // "grosor" del jugador para las colisiones
+    this.sprintMult = 1.85;                 // multiplicador al mantener Shift (se compone con speed, que otras partes ajustan)
+    this.radius = 0.35;                   // "grosor" del jugador para las colisiones
     this.keys = {};
 
     addEventListener('keydown', (e) => (this.keys[e.code] = true));
@@ -50,7 +51,7 @@ export class Player {
       .addScaledVector(this._fwd, forward)
       .addScaledVector(this._right, side)
       .normalize()
-      .multiplyScalar(this.speed * dt);
+      .multiplyScalar(this.speed * (k.ShiftLeft || k.ShiftRight ? this.sprintMult : 1) * dt);
 
     // Se prueba cada eje por separado: así el jugador "desliza" por las paredes.
     const p = this.camera.position;
