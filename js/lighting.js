@@ -30,7 +30,11 @@ export function setupLighting({ renderer, scene, camera, ctx }) {
       for (const m of mats) {
         if (m.isMeshStandardMaterial) {
           lit = true;
-          if ((m.metalness >= 0.3 || m.userData.tileSize || (m.isMeshPhysicalMaterial && m.transparent)) && !m.envMap) { m.envMap = envTex; m.envMapIntensity = m.userData.tileSize ? 0.12 : ENV_INTENSITY; m.needsUpdate = true; }
+          if ((m.metalness >= 0.3 || m.userData.tileSize || (m.isMeshPhysicalMaterial && m.transparent)) && !m.envMap) {
+            m.envMap = envTex;
+            if (!m.userData.tileSize && !m.userData.museumGlass) m.envMapIntensity = ENV_INTENSITY;
+            m.needsUpdate = true;
+          }
         } else if (m.isMeshLambertMaterial || m.isMeshPhongMaterial) lit = true;
         if (m.transparent || m.depthWrite === false || m.isMeshBasicMaterial) solid = false;   // brillos, neón y cristales no hacen sombra
       }

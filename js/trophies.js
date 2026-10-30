@@ -97,7 +97,8 @@ function fitModel(src, height) {
 const M = (color, o = {}) => new THREE.MeshStandardMaterial({ color, roughness: 0.4, metalness: 0.6, ...o });
 const marble = museumMaterial('ivory-marble');
 const gold = brassMaterial();
-const glassM = new THREE.MeshPhysicalMaterial({ color: 0xf4efdf, transparent: true, opacity: 0.12, roughness: 0.08, metalness: 0.12, depthWrite: false, envMapIntensity: 0.65, side: THREE.FrontSide });
+const glassM = new THREE.MeshPhysicalMaterial({ color: 0xf4efdf, transparent: true, opacity: 0.2, roughness: 0.04, metalness: 0.2, depthWrite: false, envMapIntensity: 0.8, side: THREE.FrontSide });
+glassM.userData.museumGlass = true;
 const GHOST = new THREE.MeshStandardMaterial({ color: 0x1a1a22, transparent: true, opacity: 0.4, roughness: 1, metalness: 0 });
 
 function glowTex() {

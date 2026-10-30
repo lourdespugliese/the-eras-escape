@@ -169,11 +169,17 @@ export function buildIntro(ctx, room1, { player, skip = false } = {}) {
   const statueFill = new THREE.SpotLight(0xffe1ae, 0, 25, 0.7, 0.65, 2);
   statueFill.position.set(HCX, 6, 22); statueFill.target.position.set(HCX, 3, 15);
   root.add(statueFill, statueFill.target);
+  const museumFill = [-10, 10].map(dx => {
+    const light = new THREE.PointLight(0xffd7a6, 0, 22, 2);
+    light.position.set(HCX + dx, 5.2, 15); root.add(light); return light;
+  });
 
   // ---------- Materiales y utilidades ----------
   const M = (color, o = {}) => new THREE.MeshStandardMaterial({ color, roughness: 0.85, ...o });
   const stone = museumMaterial('limestone'), stoneDark = museumMaterial('dark-marble');
   const wall = stone, hallWall = museumMaterial('plaster'), roof = museumMaterial('wood');
+  const columnStone = museumMaterial('plaster', { color: new THREE.Color(0xc9b58e), roughness: 0.88 });
+  const stepStone = museumMaterial('plaster', { color: new THREE.Color(0xa39378), roughness: 0.7, clearcoat: 0.15 });
   const marble = museumMaterial('ivory-marble');
   const bronze = brassMaterial(), goldM = brassMaterial();
   const woodDoor = museumMaterial('wood');
@@ -195,7 +201,7 @@ export function buildIntro(ctx, room1, { player, skip = false } = {}) {
   // Plataforma del pórtico + escalera
   slab(HCX - 18, HCX + 18, GROUND, 0, FZ + 0.2, 29, stone);
   const top = new THREE.Mesh(new THREE.PlaneGeometry(36, 3.8), marble); top.rotation.x = -Math.PI / 2; top.position.set(HCX, 0.005, 27.1); root.add(top);
-  for (let i = 0; i < 6; i++) slab(HCX - 7, HCX + 7, GROUND, GROUND + 0.2 * (i + 1), 29 + (5 - i), 30 + (5 - i), marble);
+  for (let i = 0; i < 6; i++) slab(HCX - 7, HCX + 7, GROUND, GROUND + 0.2 * (i + 1), 29 + (5 - i), 30 + (5 - i), stepStone);
   slab(HCX - 7.6, HCX - 7, GROUND, 0.6, 29, 35.2, stone, true); slab(HCX + 7, HCX + 7.6, GROUND, 0.6, 29, 35.2, stone, true);   // barandas
   ctx.colliders.push({ minX: HCX - 18.4, maxX: HCX - 7, minZ: 29, maxZ: 29.4 }, { minX: HCX + 7, maxX: HCX + 18.4, minZ: 29, maxZ: 29.4 });   // borde frontal
   ctx.colliders.push({ minX: HCX - 18.4, maxX: HCX - 18, minZ: 25, maxZ: 29.4 }, { minX: HCX + 18, maxX: HCX + 18.4, minZ: 25, maxZ: 29.4 });  // bordes laterales
@@ -214,7 +220,7 @@ export function buildIntro(ctx, room1, { player, skip = false } = {}) {
   clock.position.set(HCX, 11.1, FZ + 3.75); root.add(clock);
   const clockRing = new THREE.Mesh(new THREE.TorusGeometry(1.34, 0.1, 10, 48), goldM); clockRing.position.copy(clock.position); root.add(clockRing);
   [-16, -12, -8, -4, 4, 8, 12, 16].map((o) => HCX + o).forEach((x) => {                                                              // columnas gigantes
-    const col = new THREE.Mesh(new THREE.CylinderGeometry(0.55, 0.65, 8.6, 20), hallWall); col.position.set(x, 4.3, 27.6); root.add(col);
+    const col = new THREE.Mesh(new THREE.CylinderGeometry(0.55, 0.65, 8.6, 20), columnStone); col.position.set(x, 4.3, 27.6); root.add(col);
     slab(x - 0.85, x + 0.85, 8.2, 8.6, 26.75, 28.45, stone); slab(x - 0.85, x + 0.85, 0, 0.4, 26.75, 28.45, stone);
     ctx.colliders.push({ minX: x - 0.6, maxX: x + 0.6, minZ: 27, maxZ: 28.2 });
   });
@@ -278,6 +284,7 @@ export function buildIntro(ctx, room1, { player, skip = false } = {}) {
   for (let i = 0; i < RN; i++) rain.push({ x: START.x + (Math.random() - 0.5) * 44, z: START.z + (Math.random() - 0.5) * 44, y: GROUND + Math.random() * 16 });
   const rainGeo = new THREE.BufferGeometry(); rainGeo.setAttribute('position', new THREE.BufferAttribute(rainPos, 3));
   const rainMesh = new THREE.LineSegments(rainGeo, new THREE.LineBasicMaterial({ color: 0x9fb4d6, transparent: true, opacity: 0.32, fog: false }));
+  rainMesh.name = 'museum-rain';
   rainMesh.frustumCulled = false; root.add(rainMesh);
 
   // Hojas secas que cruzan el camino
@@ -377,7 +384,14 @@ export function buildIntro(ctx, room1, { player, skip = false } = {}) {
     box.setFromObject(model);
     const c = box.getCenter(new THREE.Vector3());
     model.position.set(-c.x, -box.min.y, -c.z);                                 // centrada sobre el pedestal y apoyada en él
-    model.traverse(o => { if (o.isMesh && !o.isSkinnedMesh) { o.material = museumMaterial('ivory-marble'); } });
+    const statueMarble = museumMaterial('ivory-marble', { roughness: 0.95, clearcoat: 0.12 });
+    // El mármol escultórico tiene vetas más suaves que las losas pulidas del piso.
+    statueMarble.onBeforeCompile = shader => {
+      shader.fragmentShader = shader.fragmentShader.replace('#include <map_fragment>',
+        '#include <map_fragment>\ndiffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.88, 0.84, 0.76), 0.72);');
+    };
+    statueMarble.customProgramCacheKey = () => 'museum-statue-marble';
+    model.traverse(o => { if (o.isMesh && !o.isSkinnedMesh) o.material = statueMarble; });
     holder.add(model);
   }, undefined, (e) => console.warn('[intro] no se pudo cargar la estatua:', e));
   const plaqueTex = canvasTex(768, 288, (g, w, h) => {
@@ -503,6 +517,7 @@ export function buildIntro(ctx, room1, { player, skip = false } = {}) {
     introItems.forEach((m) => (m.visible = false));
     root.visible = false; orb.visible = false;
     ambient.intensity = facadeLight.intensity = hallLight.intensity = statueFill.intensity = 0;            // (las luces siguen en la escena para no recompilar los materiales)
+    museumFill.forEach(light => { light.intensity = 0; });
     sound.outdoor(0); sound.drone(0); player.speed = baseSpeed; hudMode('full');
     gone = true;
   }
@@ -531,7 +546,8 @@ export function buildIntro(ctx, room1, { player, skip = false } = {}) {
     for (let i = 0; i < RN; i++) {                                                // lluvia
       const d = rain[i]; d.y -= 13 * dt; if (d.y < GROUND) d.y += 16;
       const x = cam.x + ((((d.x - cam.x) % 44) + 66) % 44) - 22, z = cam.z + ((((d.z - cam.z) % 44) + 66) % 44) - 22;
-      rainPos.set([x, d.y, z, x + 0.03, d.y + 0.38, z + 0.02], i * 6);
+      const sheltered = z > HZ0 && z < 29 && Math.abs(x - HCX) < 18.4 && d.y < HALL_H + 1;
+      rainPos.set(sheltered ? [0, -100, 0, 0, -100, 0] : [x, d.y, z, x + 0.03, d.y + 0.38, z + 0.02], i * 6);
     }
     rainGeo.attributes.position.needsUpdate = true;
     leaves.forEach((l, i) => {                                                    // hojas secas
@@ -553,12 +569,18 @@ export function buildIntro(ctx, room1, { player, skip = false } = {}) {
 
     // ----- Luces según la zona (las luces de three.js son globales) -----
     const z = cam.z, out = smooth(FZ - 1, FZ + 1.5, z), inZone = smooth(3.4, 5.6, z);
-    ambient.intensity = inZone * (0.24 * out + 0.52 * (1 - out));
-    statueFill.intensity = 80 * inZone * (1 - out);
-    facadeLight.intensity = 135 * out; hallLight.intensity = 160 * inZone * (1 - out);
+    ambient.color.setRGB(0.8 + 0.2 * (1 - out), 0.82 + 0.05 * (1 - out), 0.9 - 0.22 * (1 - out));
+    ambient.intensity = inZone * (0.22 * out + 0.18 * (1 - out));
+    statueFill.intensity = 60 * inZone * (1 - out);
+    facadeLight.intensity = 155 * out; hallLight.intensity = 185 * inZone * (1 - out);
+    museumFill.forEach(light => {
+      light.position.z = 15 + 16 * out;
+      light.intensity = inZone * (28 * out + 42 * (1 - out));
+    });
     room1.lights.mute = Math.min(room1.lights.mute, Math.max(0.04, fOpen ? Math.max(clamp((5.4 - z) / 1.8, 0, 1), 0.22) : clamp((5.4 - z) / 1.8, 0, 1)));
     room1.lights.apply();
-    rainMesh.visible = out > 0.02; rainMesh.material.opacity = 0.32 * out;
+    const rainOutside = smooth(FZ, FZ + 1.2, z);
+    rainMesh.visible = rainOutside > 0.02; rainMesh.material.opacity = 0.32 * rainOutside;
     sparkles.visible = envHalo.visible;
     if (dbgEl && ++dbgN % 6 === 0) dbgEl.textContent = debugText(cam);
     if (!locked() || !started) return;                                           // pausa o antes de empezar: se congela la secuencia
