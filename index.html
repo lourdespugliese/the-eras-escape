@@ -37,12 +37,14 @@
 
   <!-- Pantalla inicial / pausa -->
   <div id="overlay">
-    <div id="sparkles" aria-hidden="true"></div>
-    <h1>THE ERAS ESCAPE</h1>
-    <div class="eras-row" aria-hidden="true"><i style="--c:#ffc83d"></i><i style="--c:#2de2ff"></i><i style="--c:#c9b27a"></i><i style="--c:#ff8fc8"></i><i style="--c:#b8c8a0"></i><i style="--c:#8a96ff"></i></div>
-    <p>Has entrado a un museo donde cada habitación conserva los recuerdos de una era diferente. Las puertas se han cerrado y solo existe una forma de salir: recuperar los objetos ocultos de cada era y completar todos los desafíos.</p>
-    <button id="start-btn">COMENZAR JUEGO</button>
-    <small>W A S D para moverte · Mouse para mirar · E para interactuar · Esc para pausar</small>
+    <!-- Las capas se insertan desde js/hub.js (assets/ui/hub). El título, el subtítulo y las teclas son imágenes: aquí va el texto accesible. -->
+    <h1 class="sr-only">The Eras Escape</h1>
+    <div id="hub-stage">
+      <button id="start-btn"><span class="lbl">COMENZAR LA HISTORIA</span><span class="chev" aria-hidden="true">›</span></button>
+      <div id="hub-progress"><i></i><b aria-hidden="true">✦</b><span><span id="hub-count">0</span> / 6 recuerdos</span><i></i></div>
+      <button id="hub-sound" class="hub-toggle" type="button" aria-label="Silenciar sonido"></button>
+      <button id="hub-music" class="hub-toggle" type="button" aria-label="Silenciar música"></button>
+    </div>
   </div>
 
   <script type="module" src="js/main.js"></script>

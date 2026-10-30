@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="131" height="32" viewBox="1498 28 131 32" role="img" aria-labelledby="layer-title">
+<title id="layer-title">Ajuste · Música</title>
+<desc>Capa vectorial editable, reconstruida como aproximación de la imagen de referencia. Lienzo compartido de 1672 × 941.</desc>
+<defs>
+ <linearGradient id="gold" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#f5dfab"/><stop offset=".52" stop-color="#bf9049"/><stop offset="1" stop-color="#f0d89b"/></linearGradient>
+ <linearGradient id="berry" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#790b2c"/><stop offset=".55" stop-color="#650421"/><stop offset="1" stop-color="#480219"/></linearGradient>
+ <linearGradient id="paper" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#f3e4cc"/><stop offset=".5" stop-color="#e9d6b8"/><stop offset="1" stop-color="#e8d6ba"/></linearGradient>
+ <linearGradient id="lock" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#f4e6cc"/><stop offset=".5" stop-color="#d8c4a5"/><stop offset="1" stop-color="#c2aa87"/></linearGradient>
+ <filter id="softShadow" x="-20%" y="-30%" width="140%" height="170%"><feDropShadow dx="0" dy="2" stdDeviation="2" flood-color="#65432c" flood-opacity=".25"/></filter>
+</defs>
+<g fill="#5e0924" stroke="#5e0924" stroke-width="1.7" stroke-linejoin="round" stroke-linecap="round">
+ <path d="M1511 51V36L1524 33V48 M1511 40L1524 37" fill="none"/><ellipse cx="1507" cy="52" rx="4.2" ry="2.7" transform="rotate(-20 1507 52)"/><ellipse cx="1520" cy="49" rx="4.2" ry="2.7" transform="rotate(-20 1520 49)"/>
+ <text x="1547" y="51" stroke="none" font-family="Georgia, 'Times New Roman', serif" font-size="16.5" letter-spacing="2.4">MÚSICA</text>
+</g>
+</svg>

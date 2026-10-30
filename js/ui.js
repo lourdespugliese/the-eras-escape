@@ -1,5 +1,7 @@
 // ui.js — Maneja todo lo que se ve encima del canvas (HTML/CSS).
 
+import { buildHub, ITEM_LOCK } from './hub.js';
+
 // Los 6 objetos del juego. El "id" se usa en el código; el "label" se muestra al jugador.
 export const ITEMS = [
   { id: 'guitar',   label: 'Guitarra Dorada', color: '#ffc83d' },   // Fearless
@@ -18,13 +20,25 @@ export class UI {
     this.countEl = $('count'); this.listEl = $('inv-list');
     this.volEl = $('volume'); this.volVal = $('vol-val');
     this._toastTimer = null;
+    this.hubCount = $('hub-count'); this.btnLabel = this.startBtn.querySelector('.lbl');
+    this.soundBtn = $('hub-sound'); this.musicBtn = $('hub-music');
+    // Pantalla inicial: capas de design/hub-layers (js/hub.js). this.hubLocks = candados de los dijes.
+    this.hubLocks = buildHub($('hub-stage'), { button: this.startBtn, progress: $('hub-progress'), sound: this.soundBtn, music: this.musicBtn }).locks;
     this.updateInventory(new Set());
-    const sp = $('sparkles');      // destellos que suben en la pantalla inicial (posición, tamaño y ritmo al azar)
-    if (sp) for (let i = 0; i < 40; i++) {
-      const s = document.createElement('span');
-      s.style.cssText = `left:${Math.random() * 100}%;--s:${(2 + Math.random() * 4).toFixed(1)}px;--d:${(7 + Math.random() * 9).toFixed(1)}s;animation-delay:${(-Math.random() * 16).toFixed(1)}s`;
-      sp.appendChild(s);
-    }
+  }
+
+  // Los rótulos "Sonido" y "Música" de la pantalla inicial silencian / reactivan cada volumen (vol = lo que devuelve createVolume()).
+  bindVolume(vol) {
+    const panel = document.getElementById('volume');             // las barras (volume.js) se mueven al lienzo para quedar bajo los rótulos a cualquier tamaño de ventana
+    if (panel) document.getElementById('hub-stage').appendChild(panel);
+    const wire = (btn, prop) => {
+      let before = 0.5;
+      btn.addEventListener('click', () => {
+        if (vol[prop] > 0) { before = vol[prop]; vol[prop] = 0; } else vol[prop] = before || 0.5;
+        btn.classList.toggle('off', vol[prop] === 0);
+      });
+    };
+    wire(this.soundBtn, 'sound'); wire(this.musicBtn, 'songs');
   }
 
   // Registra qué hacer cuando se presiona el botón de la pantalla inicial.
@@ -56,7 +70,7 @@ export class UI {
   showGame(playing) {
     this.overlay.classList.toggle('hidden', playing);
     this.hud.classList.toggle('hidden', !playing);
-    if (!playing) this.startBtn.textContent = 'CONTINUAR';
+    if (!playing) this.btnLabel.textContent = 'CONTINUAR';
   }
 
   // Cambia el texto y el tema visual (colores y tipografía de style.css) según la era de la sala.
@@ -81,6 +95,8 @@ export class UI {
   // Redibuja el inventario según el Set de ids recogidos.
   updateInventory(collected) {
     this.countEl.textContent = collected.size;
+    this.hubCount.textContent = collected.size;
+    for (const [item, lock] of Object.entries(ITEM_LOCK)) this.hubLocks[lock].style.display = collected.has(item) ? 'none' : '';   // candado abierto = objeto recuperado
     this.listEl.innerHTML = ITEMS.map((i) => {
       const got = collected.has(i.id);
       const dot = `<i style="display:inline-block;width:.7em;height:.7em;border-radius:50%;margin:0 .45em 0 .15em;background:${i.color};box-shadow:0 0 6px ${i.color}"></i>`;   // color de la era

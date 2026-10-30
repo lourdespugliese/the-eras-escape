@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="43" height="52" viewBox="778 537 43 52" role="img" aria-labelledby="layer-title">
+<title id="layer-title">Candado · Midnights</title>
+<desc>Capa vectorial editable, reconstruida como aproximación de la imagen de referencia. Lienzo compartido de 1672 × 941.</desc>
+<defs>
+ <linearGradient id="gold" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#f5dfab"/><stop offset=".52" stop-color="#bf9049"/><stop offset="1" stop-color="#f0d89b"/></linearGradient>
+ <linearGradient id="berry" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#790b2c"/><stop offset=".55" stop-color="#650421"/><stop offset="1" stop-color="#480219"/></linearGradient>
+ <linearGradient id="paper" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#f3e4cc"/><stop offset=".5" stop-color="#e9d6b8"/><stop offset="1" stop-color="#e8d6ba"/></linearGradient>
+ <linearGradient id="lock" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#f4e6cc"/><stop offset=".5" stop-color="#d8c4a5"/><stop offset="1" stop-color="#c2aa87"/></linearGradient>
+ <filter id="softShadow" x="-20%" y="-30%" width="140%" height="170%"><feDropShadow dx="0" dy="2" stdDeviation="2" flood-color="#65432c" flood-opacity=".25"/></filter>
+</defs>
+<g transform="translate(787 542)" filter="url(#softShadow)">
+ <path d="M6 16.2V10.080000000000002C6 2.16 19 2.16 19 10.080000000000002V16.2" fill="none" stroke="#6d5740" stroke-width="3.75"/>
+ <path d="M6 16.2V10.080000000000002C6 2.16 19 2.16 19 10.080000000000002V16.2" fill="none" stroke="#e8d5b6" stroke-width="2"/>
+ <rect x="0" y="14.4" width="25" height="20.88" rx="2.2" fill="url(#lock)" stroke="#8d7459" stroke-width=".9"/>
+ <circle cx="12.5" cy="23.400000000000002" r="2.75" fill="#4b3525"/>
+ <path d="M12.5 24.48V29.52" stroke="#4b3525" stroke-width="3" stroke-linecap="round"/>
+ </g>
+</svg>

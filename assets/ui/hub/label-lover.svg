@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="155" height="72" viewBox="1311 728 155 72" role="img" aria-labelledby="layer-title">
+<title id="layer-title">Etiqueta · Lover</title>
+<desc>Capa vectorial editable, reconstruida como aproximación de la imagen de referencia. Lienzo compartido de 1672 × 941.</desc>
+<defs>
+ <linearGradient id="gold" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#f5dfab"/><stop offset=".52" stop-color="#bf9049"/><stop offset="1" stop-color="#f0d89b"/></linearGradient>
+ <linearGradient id="berry" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#790b2c"/><stop offset=".55" stop-color="#650421"/><stop offset="1" stop-color="#480219"/></linearGradient>
+ <linearGradient id="paper" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#f3e4cc"/><stop offset=".5" stop-color="#e9d6b8"/><stop offset="1" stop-color="#e8d6ba"/></linearGradient>
+ <linearGradient id="lock" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#f4e6cc"/><stop offset=".5" stop-color="#d8c4a5"/><stop offset="1" stop-color="#c2aa87"/></linearGradient>
+ <filter id="softShadow" x="-20%" y="-30%" width="140%" height="170%"><feDropShadow dx="0" dy="2" stdDeviation="2" flood-color="#65432c" flood-opacity=".25"/></filter>
+</defs>
+<g transform="translate(1320 738) rotate(-6 68.5 23.5)" filter="url(#softShadow)"><path d="M1 7L9 5L12 1L27 3L35 1L49 4L60 2L77 3L85 0L100 2L107 1L116 4L132 2L136 8L132 16L137 24L133 33L136 43L125 45L119 47L102 45L94 47L74 45L58 47L41 46L43 45L30 47L16 45L5 46L2 40L6 33L0 25L4 18Z" fill="url(#paper)"/><text x="68.5" y="31.490000000000002" text-anchor="middle" fill="#422316" font-family="Georgia, 'Times New Roman', serif" font-style="italic" font-size="26" letter-spacing="1.1">Lover</text></g>
+</svg>

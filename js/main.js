@@ -56,7 +56,7 @@ composer.addPass(bloomPass);
 composer.addPass(new OutputPass());
 
 const ui = new UI();
-createVolume();                      // volumen general: barra en la pausa (ESC). Debe ir ANTES de crear el AudioManager.
+ui.bindVolume(createVolume());       // volumen general: barra en la pausa (ESC). Debe ir ANTES de crear el AudioManager.
 const audio = new AudioManager();
 const colliders = [];
 const player = new Player(camera, canvas, colliders);

@@ -21,41 +21,35 @@ html, body { height: 100%; overflow: hidden; background: #000; color: #fff;
 #game { position: fixed; inset: 0; width: 100%; height: 100%; display: block; }
 .hidden { display: none !important; }
 
-/* Pantalla inicial */
-#overlay { position: fixed; inset: 0; z-index: 10; display: flex; flex-direction: column;
-  align-items: center; justify-content: center; gap: 1.6rem; padding: 2rem; text-align: center; overflow: hidden;
-  background: radial-gradient(circle at 50% 40%, color-mix(in srgb, var(--glow) 35%, #1a1005), #0b0805 70%); }
-#overlay > :not(#sparkles) { position: relative; z-index: 1; }
-#overlay h1 { font-family: var(--font-head); font-size: clamp(2rem, 6vw, 4.5rem); letter-spacing: .25em; font-weight: 400;
-  color: var(--accent); text-shadow: 0 0 28px var(--glow); animation: titleGlow 4s ease-in-out infinite alternate; }
-#overlay p { max-width: 38rem; line-height: 1.7; font-size: 1.3rem; color: #eadfc8; }
-#overlay button { padding: .9rem 2.4rem; font-family: var(--font-head); font-size: 1.1rem; letter-spacing: .15em;
-  color: #2a1a05; background: var(--accent); border: 0; border-radius: 2px; cursor: pointer;
-  box-shadow: 0 0 22px var(--glow); animation: btnPulse 2.4s ease-in-out infinite; transition: background .2s, transform .2s; }
-#overlay button:hover, #overlay button:focus-visible { background: var(--accent-soft); outline: 2px solid #fff; transform: scale(1.04); }
-#overlay small { color: #a8987a; font-size: 1rem; }
-
-/* Fila de puntos con el color de cada era */
-.eras-row { display: flex; gap: .9rem; }
-.eras-row i { width: .7rem; height: .7rem; border-radius: 50%; background: var(--c); box-shadow: 0 0 10px var(--c);
-  animation: dotBob 2.4s ease-in-out infinite; }
-.eras-row i:nth-child(2) { animation-delay: .2s; } .eras-row i:nth-child(3) { animation-delay: .4s; }
-.eras-row i:nth-child(4) { animation-delay: .6s; } .eras-row i:nth-child(5) { animation-delay: .8s; }
-.eras-row i:nth-child(6) { animation-delay: 1s; }
-
-/* Destellos que suben (los crea ui.js) */
-#sparkles { position: absolute; inset: 0; pointer-events: none; }
-#sparkles span { position: absolute; bottom: -10px; width: var(--s); height: var(--s); border-radius: 50%;
-  background: var(--accent-soft); box-shadow: 0 0 8px 2px var(--glow); opacity: 0;
-  animation: rise var(--d) linear infinite; }
-
-@keyframes rise { 0% { transform: translate(0, 0); opacity: 0; } 10% { opacity: .9; } 90% { opacity: .6; }
-  100% { transform: translate(24px, -105vh); opacity: 0; } }
-@keyframes titleGlow { from { text-shadow: 0 0 18px var(--glow); } to { text-shadow: 0 0 42px var(--glow), 0 0 6px var(--accent); } }
-@keyframes btnPulse { 0%, 100% { box-shadow: 0 0 14px var(--glow); } 50% { box-shadow: 0 0 34px var(--glow); } }
-@keyframes dotBob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-6px); } }
+/* Pantalla inicial / pausa: lienzo de 1672 x 941 con las capas de assets/ui/hub (ver js/hub.js); --s lo escala a la ventana */
+#overlay { position: fixed; inset: 0; z-index: 10; overflow: hidden; background: #efe2cc url(assets/ui/hub/paper.jpg) center / cover; }
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+#hub-stage { position: absolute; left: 50%; top: 50%; width: 1672px; height: 941px; margin: -470.5px 0 0 -836px;
+  transform: scale(var(--s, 1)); transform-origin: center; font-family: Georgia, "Times New Roman", serif; }
+.hub-layer { position: absolute; max-width: none; pointer-events: none; user-select: none; -webkit-user-drag: none; }
+.hub-swing { position: absolute; inset: 0; pointer-events: none; animation: hubSwing var(--d, 4s) ease-in-out var(--dl, 0s) infinite; }
+@keyframes hubSwing { 0%, 100% { transform: rotate(-1.4deg); } 50% { transform: rotate(1.4deg); } }
 @keyframes roomIn { from { opacity: 0; transform: translate(-50%, -8px); letter-spacing: .3em; } to { opacity: 1; transform: translate(-50%, 0); letter-spacing: .08em; } }
 @keyframes toastIn { from { transform: translate(-50%, 8px); } to { transform: translate(-50%, 0); } }
+
+#start-btn, .hub-toggle { position: absolute; padding: 0; border: 0; background: none; cursor: pointer; }
+#start-btn { display: flex; align-items: center; justify-content: center; gap: 22px; color: #fbeedd; border-radius: 52px;
+  transition: transform .2s, filter .2s; }
+#start-btn .lbl { position: relative; font-size: 28px; font-weight: 400; letter-spacing: .09em; }
+#start-btn .chev { position: relative; font-size: 40px; line-height: 1; margin-top: -4px; }
+#start-btn:hover, #start-btn:focus-visible { transform: scale(1.025); filter: brightness(1.12) drop-shadow(0 0 14px rgba(190, 40, 80, .45)); }
+#start-btn:focus-visible { outline: 3px solid #c9964a; outline-offset: 4px; }
+.hub-toggle { transition: opacity .2s; }
+.hub-toggle:hover { opacity: .7; }
+.hub-toggle.off .hub-layer { opacity: .4; }
+.hub-toggle:focus-visible { outline: 2px solid #650421; outline-offset: 4px; }
+
+#hub-stage #volume { position: absolute; right: 36px; top: 72px; }
+
+#hub-progress { position: absolute; display: flex; align-items: center; gap: 18px; color: #5b1328; }
+#hub-progress i { flex: 1; height: 1px; background: rgba(91, 19, 40, .45); }
+#hub-progress b { font-size: 26px; font-weight: 400; }
+#hub-progress span { font-size: 23px; letter-spacing: .07em; white-space: nowrap; }
 
 /* HUD */
 #hud { position: fixed; inset: 0; z-index: 5; pointer-events: none; font-family: var(--font-body); font-size: 1.15rem; }
@@ -87,6 +81,5 @@ html, body { height: 100%; overflow: hidden; background: #000; color: #fff;
   background: var(--panel); border: 1px solid var(--accent); color: var(--accent-soft); border-radius: 2px; }
 
 @media (prefers-reduced-motion: reduce) {
-  #sparkles { display: none; }
-  #overlay h1, #overlay button, .eras-row i, #room-name.flash, #toast.show { animation: none; }
+  .hub-swing, #room-name.flash, #toast.show { animation: none; }
 }

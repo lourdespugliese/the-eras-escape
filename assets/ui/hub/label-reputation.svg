@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="170" height="70" viewBox="1476 514 170 70" role="img" aria-labelledby="layer-title">
+<title id="layer-title">Etiqueta · reputation</title>
+<desc>Capa vectorial editable, reconstruida como aproximación de la imagen de referencia. Lienzo compartido de 1672 × 941.</desc>
+<defs>
+ <linearGradient id="gold" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#f5dfab"/><stop offset=".52" stop-color="#bf9049"/><stop offset="1" stop-color="#f0d89b"/></linearGradient>
+ <linearGradient id="berry" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#790b2c"/><stop offset=".55" stop-color="#650421"/><stop offset="1" stop-color="#480219"/></linearGradient>
+ <linearGradient id="paper" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#f3e4cc"/><stop offset=".5" stop-color="#e9d6b8"/><stop offset="1" stop-color="#e8d6ba"/></linearGradient>
+ <linearGradient id="lock" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#f4e6cc"/><stop offset=".5" stop-color="#d8c4a5"/><stop offset="1" stop-color="#c2aa87"/></linearGradient>
+ <filter id="softShadow" x="-20%" y="-30%" width="140%" height="170%"><feDropShadow dx="0" dy="2" stdDeviation="2" flood-color="#65432c" flood-opacity=".25"/></filter>
+</defs>
+<g transform="translate(1484 521) rotate(-3 76.5 25.5)" filter="url(#softShadow)"><path d="M1 7L9 5L12 1L27 3L35 1L49 4L60 2L77 3L85 0L100 2L123 1L132 4L148 2L152 8L148 16L153 24L149 33L152 47L141 49L135 51L118 49L110 51L90 49L74 51L57 50L43 49L30 51L16 49L5 50L2 44L6 37L0 29L4 18Z" fill="url(#paper)"/><text x="76.5" y="34.17" text-anchor="middle" fill="#422316" font-family="Georgia, 'Times New Roman', serif" font-style="italic" font-size="24" letter-spacing="1.1">reputation</text></g>
+</svg>

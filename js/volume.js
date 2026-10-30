@@ -63,18 +63,18 @@ export function createVolume() {
   // ---------- Barras ----------
   const style = document.createElement('style');
   style.textContent = `
-    #volume{position:fixed;left:50%;bottom:28px;transform:translateX(-50%);z-index:50;display:none;flex-direction:column;gap:10px;
-      padding:12px 20px;border-radius:10px;font-family:Georgia,serif;color:#f3d38a;background:rgba(18,12,6,.88);
-      border:1px solid rgba(243,211,138,.45);box-shadow:0 6px 24px rgba(0,0,0,.6);user-select:none}
+    #volume{position:fixed;right:20px;top:76px;z-index:50;display:none;flex-direction:column;gap:10px;
+      padding:12px 20px;border-radius:10px;font-family:Georgia,serif;color:#650421;background:rgba(247,236,216,.94);
+      border:1px solid rgba(101,4,33,.35);box-shadow:0 6px 24px rgba(60,20,20,.3);user-select:none}
     #volume.on{display:flex}
     #volume .vrow{display:flex;align-items:center;gap:14px}
     #volume label{width:5.6rem;font-size:.78rem;letter-spacing:.16em;text-transform:uppercase;opacity:.85}
     #volume svg{width:22px;height:22px;flex:none;cursor:pointer}
     #volume input{-webkit-appearance:none;appearance:none;width:200px;height:6px;border-radius:3px;outline:none;cursor:pointer;
-      background:linear-gradient(to right,#f3d38a var(--p,50%),rgba(243,211,138,.25) var(--p,50%))}
-    #volume input::-webkit-slider-thumb{-webkit-appearance:none;width:18px;height:18px;border-radius:50%;background:#fff4d6;border:2px solid #d4a640;box-shadow:0 0 8px rgba(243,211,138,.6)}
-    #volume input::-moz-range-thumb{width:14px;height:14px;border-radius:50%;background:#fff4d6;border:2px solid #d4a640}
-    #volume output{min-width:3ch;text-align:right;font-size:.9rem;color:#fff4d6}`;
+      background:linear-gradient(to right,#8a1535 var(--p,50%),rgba(101,4,33,.2) var(--p,50%))}
+    #volume input::-webkit-slider-thumb{-webkit-appearance:none;width:18px;height:18px;border-radius:50%;background:#fbeedd;border:2px solid #c9964a;box-shadow:0 0 6px rgba(101,4,33,.35)}
+    #volume input::-moz-range-thumb{width:14px;height:14px;border-radius:50%;background:#fbeedd;border:2px solid #c9964a}
+    #volume output{min-width:3ch;text-align:right;font-size:.9rem;color:#650421}`;
   document.head.appendChild(style);
 
   const box = document.createElement('div'); box.id = 'volume';

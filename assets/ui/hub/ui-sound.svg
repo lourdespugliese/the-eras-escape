@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="160" height="34" viewBox="1313 28 160 34" role="img" aria-labelledby="layer-title">
+<title id="layer-title">Ajuste · Sonido</title>
+<desc>Capa vectorial editable, reconstruida como aproximación de la imagen de referencia. Lienzo compartido de 1672 × 941.</desc>
+<defs>
+ <linearGradient id="gold" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#f5dfab"/><stop offset=".52" stop-color="#bf9049"/><stop offset="1" stop-color="#f0d89b"/></linearGradient>
+ <linearGradient id="berry" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#790b2c"/><stop offset=".55" stop-color="#650421"/><stop offset="1" stop-color="#480219"/></linearGradient>
+ <linearGradient id="paper" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#f3e4cc"/><stop offset=".5" stop-color="#e9d6b8"/><stop offset="1" stop-color="#e8d6ba"/></linearGradient>
+ <linearGradient id="lock" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#f4e6cc"/><stop offset=".5" stop-color="#d8c4a5"/><stop offset="1" stop-color="#c2aa87"/></linearGradient>
+ <filter id="softShadow" x="-20%" y="-30%" width="140%" height="170%"><feDropShadow dx="0" dy="2" stdDeviation="2" flood-color="#65432c" flood-opacity=".25"/></filter>
+</defs>
+<g fill="#5e0924" stroke="#5e0924" stroke-width="1.7" stroke-linejoin="round" stroke-linecap="round">
+ <path d="M1318 40H1322L1328 35V54L1322 49H1318Z" fill="none"/><path d="M1332 39Q1339 44.5 1332 50 M1336 35Q1347 44.5 1336 54" fill="none"/>
+ <text x="1359" y="51" stroke="none" font-family="Georgia, 'Times New Roman', serif" font-size="16.5" letter-spacing="2.4">SONIDO</text>
+ <path d="M1468 33V57" stroke-width=".9" opacity=".7"/>
+</g>
+</svg>
