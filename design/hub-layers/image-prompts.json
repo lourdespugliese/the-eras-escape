@@ -1,0 +1,272 @@
+[
+  {
+    "id": "paper",
+    "name": "Papel de fondo",
+    "group": "Fondo",
+    "file": "layers/00-paper.png",
+    "x": 0,
+    "y": 0,
+    "width": 1672,
+    "height": 941,
+    "z": 0,
+    "pivot": {
+      "x": 0.5,
+      "y": 0.5
+    },
+    "animation": "none",
+    "transparent": false,
+    "prompt": "Use case: precise-object-edit. Input image 1 is the edit target. Produce ONLY the underlying warm ivory textured watercolor paper background as a clean plate, with original full-frame 1672x941 landscape composition and soft natural daylight tonal variation. Remove the complete bracelet, every charm, beads, stars, all text, buttons, labels, locks, flowers, ribbons, books, photographs, frames and all their contact shadows. Reconstruct uninterrupted paper texture in all removed regions. Preserve original paper color and realistic fibers. No new objects, no typography, no patterns, no vignetting. The entire frame is opaque paper, edge-to-edge. This clean plate will sit under separate extracted layers. Do not add any decorations."
+  },
+  {
+    "id": "bracelet",
+    "name": "Base de la pulsera y cuentas",
+    "group": "Pulsera",
+    "file": "layers/10-bracelet.png",
+    "x": 713,
+    "y": 89,
+    "width": 802,
+    "height": 657,
+    "z": 20,
+    "pivot": {
+      "x": 0.665,
+      "y": 0.442
+    },
+    "animation": "none",
+    "transparent": true,
+    "prompt": "Use case: background-extraction. Input image 1 is the EDIT TARGET. This is layer decomposition for animation, not a redesign. Extract/reconstruct ONLY the requested existing object from the image. Match its exact material, color, shape, orientation, top-down photographic lighting from upper left, and fine jewelry details. No labels, no text, no UI, no locks or padlocks, no additional jewelry, no new designs. Output a single isolated asset on genuinely transparent alpha background, no white/black/checkerboard background. Tight framing with a little transparent breathing room. Preserve a subtle natural contact shadow only if it can live on transparent alpha; no opaque paper fragments. Do not put multiple parts in a sprite sheet. Subject: ONLY the original complete oval bracelet strand of pastel faceted glass beads, ivory pearls, tiny gold spacers, pink braided cord and white bead marked 13. Preserve the original asymmetric oval shape, correct color/order of beads and viewpoint. Remove all SIX large dangling charms (guitar, polaroid, serpent, heart, old key, moon), remove the wax-sealed envelope, remove every torn-paper label and padlock. The tiny spacer star and gold spacer geometries attached to the strand can remain. Reconstruct the few concealed sections of cord/beads behind the removed charms so the base is a complete continuous closed loop, ready to animate charms independently. Interior of bracelet loop must be fully transparent. Frame the entire oval strand tightly with a small clear margin, no other elements. Keep bead13 visible on upper left segment."
+  },
+  {
+    "id": "fearless",
+    "name": "Dije Fearless · guitarra",
+    "group": "Dijes",
+    "file": "layers/20-fearless.png",
+    "x": 933,
+    "y": 48,
+    "width": 180,
+    "height": 202,
+    "z": 40,
+    "pivot": {
+      "x": 0.6555023923444976,
+      "y": 0.06588735387885228
+    },
+    "animation": "swing",
+    "transparent": true,
+    "prompt": "Use case: background-extraction. Input image 1 is the EDIT TARGET. This is layer decomposition for animation, not a redesign. Extract/reconstruct ONLY the requested existing object from the image. Match its exact material, color, shape, orientation, top-down photographic lighting from upper left, and fine jewelry details. No labels, no text, no UI, no locks or padlocks, no additional jewelry, no new designs. Output a single isolated asset on genuinely transparent alpha background, no white/black/checkerboard background. Tight framing with a little transparent breathing room. Preserve a subtle natural contact shadow only if it can live on transparent alpha; no opaque paper fragments. Do not put multiple parts in a sprite sheet. Subject: ONLY the gold acoustic-guitar charm near the top of the bracelet, angled from lower left body to upper right headstock exactly as in the image. Preserve ornate engraved body, six strings, dark sound hole, warm gold metal, tiny attachment ring at headstock. Include complete headstock and bottom of body. Remove surrounding beads, spark glows, the paper label Fearless and every other part. Single guitar isolated on transparency, do not change orientation."
+  },
+  {
+    "id": "1989",
+    "name": "Dije 1989 · polaroid",
+    "group": "Dijes",
+    "file": "layers/21-1989.png",
+    "x": 1225,
+    "y": 151,
+    "width": 157,
+    "height": 177,
+    "z": 40,
+    "pivot": {
+      "x": 0.7727272727272727,
+      "y": 0.17215727948990436
+    },
+    "animation": "swing",
+    "transparent": true,
+    "prompt": "Use case: background-extraction. Input image 1 is the EDIT TARGET. This is layer decomposition for animation, not a redesign. Extract/reconstruct ONLY the requested existing object from the image. Match its exact material, color, shape, orientation, top-down photographic lighting from upper left, and fine jewelry details. No labels, no text, no UI, no locks or padlocks, no additional jewelry, no new designs. Output a single isolated asset on genuinely transparent alpha background, no white/black/checkerboard background. Tight framing with a little transparent breathing room. Preserve a subtle natural contact shadow only if it can live on transparent alpha; no opaque paper fragments. Do not put multiple parts in a sprite sheet. Subject: ONLY the small silver-rimmed instant-photo charm at upper right of bracelet. Preserve original clockwise tilted rectangle, off-white lower border, pale sky-blue image of clouds and tiny top attachment ring. Remove the small padlock overlay on its lower-right area, restore the original uninterrupted silver edge and cloud image beneath. No text on photo. Remove nearby beads and paper1989 label. Exactly one original photo charm, not a new photo."
+  },
+  {
+    "id": "reputation",
+    "name": "Dije reputation · serpiente",
+    "group": "Dijes",
+    "file": "layers/22-reputation.png",
+    "x": 1418,
+    "y": 345,
+    "width": 132,
+    "height": 190,
+    "z": 40,
+    "pivot": {
+      "x": 0.8863636363636364,
+      "y": 0.38257173219978746
+    },
+    "animation": "swing",
+    "transparent": true,
+    "prompt": "Use case: background-extraction. Input image 1 is the EDIT TARGET. This is layer decomposition for animation, not a redesign. Extract/reconstruct ONLY the requested existing object from the image. Match its exact material, color, shape, orientation, top-down photographic lighting from upper left, and fine jewelry details. No labels, no text, no UI, no locks or padlocks, no additional jewelry, no new designs. Output a single isolated asset on genuinely transparent alpha background, no white/black/checkerboard background. Tight framing with a little transparent breathing room. Preserve a subtle natural contact shadow only if it can live on transparent alpha; no opaque paper fragments. Do not put multiple parts in a sprite sheet. Subject: ONLY the detailed coiled S-shaped silver and charcoal serpent charm on the right side of the bracelet. Match original head near upper left of pendant, coiling curves, scales and dark gemstone inset, complete snake silhouette, attachment ring at top. Remove padlock overlay from lower-right coil and reconstruct scales beneath it. Remove black beads, paper label, neighboring stars, all other objects. Keep original orientation, one isolated snake on alpha."
+  },
+  {
+    "id": "lover",
+    "name": "Dije Lover · corazón",
+    "group": "Dijes",
+    "file": "layers/23-lover.png",
+    "x": 1264,
+    "y": 582,
+    "width": 159,
+    "height": 156,
+    "z": 40,
+    "pivot": {
+      "x": 0.7769138755980861,
+      "y": 0.638682252922423
+    },
+    "animation": "swing",
+    "transparent": true,
+    "prompt": "Use case: background-extraction. Input image 1 is the EDIT TARGET. This is layer decomposition for animation, not a redesign. Extract/reconstruct ONLY the requested existing object from the image. Match its exact material, color, shape, orientation, top-down photographic lighting from upper left, and fine jewelry details. No labels, no text, no UI, no locks or padlocks, no additional jewelry, no new designs. Output a single isolated asset on genuinely transparent alpha background, no white/black/checkerboard background. Tight framing with a little transparent breathing room. Preserve a subtle natural contact shadow only if it can live on transparent alpha; no opaque paper fragments. Do not put multiple parts in a sprite sheet. Subject: ONLY the translucent rose-pink faceted glass heart charm at lower right. Match original left-leaning orientation and beveled sculptural glass, warm pink and lavender reflections, metallic tiny attachment ring at upper left. Remove the small padlock overlay from front center and reconstruct uninterrupted glass heart beneath. Keep actual translucent glass on transparent alpha with visible bevel. Remove neighboring pink bead, label, ribbon and paper. Single heart."
+  },
+  {
+    "id": "forest",
+    "name": "Dije folklore / evermore · llave y hoja",
+    "group": "Dijes",
+    "file": "layers/24-forest.png",
+    "x": 1000,
+    "y": 584,
+    "width": 144,
+    "height": 203,
+    "z": 40,
+    "pivot": {
+      "x": 0.6381578947368421,
+      "y": 0.6397449521785334
+    },
+    "animation": "swing",
+    "transparent": true,
+    "prompt": "Use case: background-extraction. Input image 1 is the EDIT TARGET. This is layer decomposition for animation, not a redesign. Extract/reconstruct ONLY the requested existing object from the image. Match its exact material, color, shape, orientation, top-down photographic lighting from upper left, and fine jewelry details. No labels, no text, no UI, no locks or padlocks, no additional jewelry, no new designs. Output a single isolated asset on genuinely transparent alpha background, no white/black/checkerboard background. Tight framing with a little transparent breathing room. Preserve a subtle natural contact shadow only if it can live on transparent alpha; no opaque paper fragments. Do not put multiple parts in a sprite sheet. Subject: ONLY the vintage dark-gold skeleton-key charm and its attached small copper autumn leaf from bottom of bracelet. Treat key AND leaf as one single assembled pendant. Preserve ornate openwork bow at top, downward key shaft angled slightly left, teeth at bottom and textured copper leaf to its right, attachment ring. Remove the padlock over the key bow and reconstruct authentic openwork beneath. Remove beads, paper label and all other parts. Single assembled key-and-leaf charm on transparent alpha."
+  },
+  {
+    "id": "midnights",
+    "name": "Dije Midnights · luna",
+    "group": "Dijes",
+    "file": "layers/25-midnights.png",
+    "x": 738,
+    "y": 439,
+    "width": 143,
+    "height": 158,
+    "z": 40,
+    "pivot": {
+      "x": 0.48325358851674644,
+      "y": 0.4760892667375133
+    },
+    "animation": "swing",
+    "transparent": true,
+    "prompt": "Use case: background-extraction. Input image 1 is the EDIT TARGET. This is layer decomposition for animation, not a redesign. Extract/reconstruct ONLY the requested existing object from the image. Match its exact material, color, shape, orientation, top-down photographic lighting from upper left, and fine jewelry details. No labels, no text, no UI, no locks or padlocks, no additional jewelry, no new designs. Output a single isolated asset on genuinely transparent alpha background, no white/black/checkerboard background. Tight framing with a little transparent breathing room. Preserve a subtle natural contact shadow only if it can live on transparent alpha; no opaque paper fragments. Do not put multiple parts in a sprite sheet. Subject: ONLY the silver and indigo crescent-moon charm on left lower side of bracelet, including the star at its upper attachment and the detailed small compass-like eight-point star inside the moon. Preserve original inset navy enamel with starry texture, silver beaded rim and crescent orientation opening toward upper right. Remove small padlock overlay at lower edge and reconstruct silver/enamel beneath. No additional compass disk, no round clock, no clock hands. Remove nearby beads and label. Single crescent pendant with attached star on transparent alpha."
+  },
+  {
+    "id": "envelope",
+    "name": "Dije extra · sobre sellado",
+    "group": "Pulsera",
+    "file": "layers/26-envelope.png",
+    "x": 682,
+    "y": 275,
+    "width": 132,
+    "height": 103,
+    "z": 35,
+    "pivot": {
+      "x": 0.4449760765550239,
+      "y": 0.30393198724760895
+    },
+    "animation": "swing",
+    "transparent": true,
+    "prompt": "Use case: background-extraction. Input image 1 is the EDIT TARGET. This is layer decomposition for animation, not a redesign. Extract/reconstruct ONLY the requested existing object from the image. Match its exact material, color, shape, orientation, top-down photographic lighting from upper left, and fine jewelry details. No labels, no text, no UI, no locks or padlocks, no additional jewelry, no new designs. Output a single isolated asset on genuinely transparent alpha background, no white/black/checkerboard background. Tight framing with a little transparent breathing room. Preserve a subtle natural contact shadow only if it can live on transparent alpha; no opaque paper fragments. Do not put multiple parts in a sprite sheet. Subject: ONLY the little gold envelope charm with rose-burgundy wax seal embossed with a five-point star, on upper-left side of bracelet. Match rectangle envelope with original subtle clockwise tilt, folded corners and raised wax seal. No written text. Preserve tiny attachment ring. Remove beads, pink cord and every other object. Single envelope pendant on transparent alpha."
+  },
+  {
+    "id": "decor-tl",
+    "name": "Decoración superior izquierda",
+    "group": "Decoración",
+    "file": "layers/02-decor-top-left.png",
+    "x": 0,
+    "y": 0,
+    "width": 789,
+    "height": 325,
+    "z": 5,
+    "pivot": {
+      "x": 0,
+      "y": 0
+    },
+    "animation": "none",
+    "transparent": true,
+    "prompt": "Use case: background-extraction. Input image 1 is the EDIT TARGET. This is layer decomposition for animation, not a redesign. Extract/reconstruct ONLY the requested existing object from the image. Match its exact material, color, shape, orientation, top-down photographic lighting from upper left, and fine jewelry details. No labels, no text, no UI, no locks or padlocks, no additional jewelry, no new designs. Output a single isolated asset on genuinely transparent alpha background, no white/black/checkerboard background. Tight framing with a little transparent breathing room. Preserve a subtle natural contact shadow only if it can live on transparent alpha; no opaque paper fragments. Do not put multiple parts in a sprite sheet. Subject: ONLY the ORIGINAL upper-left corner still-life: blush antique stacked books, white cherry blossom branches, and overlapping muted sepia landscape photograph with deckled off-white border extending to right. Keep the full cluster in the same RELATIVE layout and original cropping at top and left image edge; preserve photo and book textures. Remove paper background, all title lettering, bracelet, star confetti and every other object. Natural cluster isolated with transparent irregular edges, no new frame or books. Landscape crop of this corner asset."
+  },
+  {
+    "id": "decor-bl",
+    "name": "Decoración inferior izquierda",
+    "group": "Decoración",
+    "file": "layers/03-decor-bottom-left.png",
+    "x": 0,
+    "y": 515,
+    "width": 636,
+    "height": 426,
+    "z": 7,
+    "pivot": {
+      "x": 0,
+      "y": 1
+    },
+    "animation": "none",
+    "transparent": true,
+    "prompt": "Use case: background-extraction. Input image 1 is the EDIT TARGET. This is layer decomposition for animation, not a redesign. Extract/reconstruct ONLY the requested existing object from the image. Match its exact material, color, shape, orientation, top-down photographic lighting from upper left, and fine jewelry details. No labels, no text, no UI, no locks or padlocks, no additional jewelry, no new designs. Output a single isolated asset on genuinely transparent alpha background, no white/black/checkerboard background. Tight framing with a little transparent breathing room. Preserve a subtle natural contact shadow only if it can live on transparent alpha; no opaque paper fragments. Do not put multiple parts in a sprite sheet. Subject: ONLY the ORIGINAL bottom-left border arrangement: soft blush fabric in lower-left foreground, a partially cropped dusk landscape photograph with cream deckled backing, lavender sprigs toward bottom center, and the thin white flowering stem rising along far left. Maintain relative positions, original partial cropping at lower and left edges. Remove paper background, all menu lettering and lines, title, button, bracelet, stars and all other objects. Single layered natural still-life cluster on transparency. No new objects."
+  },
+  {
+    "id": "decor-tr",
+    "name": "Decoración superior derecha",
+    "group": "Decoración",
+    "file": "layers/04-decor-top-right.png",
+    "x": 1169,
+    "y": 0,
+    "width": 503,
+    "height": 284,
+    "z": 6,
+    "pivot": {
+      "x": 1,
+      "y": 0
+    },
+    "animation": "none",
+    "transparent": true,
+    "prompt": "Use case: background-extraction. Input image 1 is the EDIT TARGET. This is layer decomposition for animation, not a redesign. Extract/reconstruct ONLY the requested existing object from the image. Match its exact material, color, shape, orientation, top-down photographic lighting from upper left, and fine jewelry details. No labels, no text, no UI, no locks or padlocks, no additional jewelry, no new designs. Output a single isolated asset on genuinely transparent alpha background, no white/black/checkerboard background. Tight framing with a little transparent breathing room. Preserve a subtle natural contact shadow only if it can live on transparent alpha; no opaque paper fragments. Do not put multiple parts in a sprite sheet. Subject: ONLY the top-right edge decorations in the reference: an irregular horizontal torn ivory paper strip at upper edge and the partial curved ornate antique-gold frame along the far upper-right edge. Remove all SONIDO/MÚSICA words, icons and controls from the paper strip, reconstruct blank ivory paper beneath. Keep relative placement, clipped at top/right image boundary. Remove all main background paper, stars, bracelet and everything else. Transparent space below/between strip and frame. One corner-decoration cluster on alpha."
+  },
+  {
+    "id": "decor-br",
+    "name": "Decoración inferior derecha",
+    "group": "Decoración",
+    "file": "layers/05-decor-bottom-right.png",
+    "x": 1477,
+    "y": 352,
+    "width": 195,
+    "height": 589,
+    "z": 8,
+    "pivot": {
+      "x": 1,
+      "y": 1
+    },
+    "animation": "none",
+    "transparent": true,
+    "prompt": "Use case: background-extraction. Input image 1 is the EDIT TARGET. This is layer decomposition for animation, not a redesign. Extract/reconstruct ONLY the requested existing object from the image. Match its exact material, color, shape, orientation, top-down photographic lighting from upper left, and fine jewelry details. No labels, no text, no UI, no locks or padlocks, no additional jewelry, no new designs. Output a single isolated asset on genuinely transparent alpha background, no white/black/checkerboard background. Tight framing with a little transparent breathing room. Preserve a subtle natural contact shadow only if it can live on transparent alpha; no opaque paper fragments. Do not put multiple parts in a sprite sheet. Subject: ONLY the rose-pink satin ribbon sweeping in from the lower-right border, including its stitched gleaming edges and softly folded shape, plus the small white blossoms that are already partially clipped at far right near middle height. Preserve their original positions relative to each other and edge cropping. Remove the bracelet heart, paper labels, stars, controls, all background paper and all other objects. Single right-edge decoration cluster on alpha, tall narrow composition."
+  },
+  {
+    "id": "confetti",
+    "name": "Estrellas doradas del fondo",
+    "group": "Decoración",
+    "file": "layers/06-gold-stars.png",
+    "x": 0,
+    "y": 0,
+    "width": 1672,
+    "height": 941,
+    "z": 12,
+    "pivot": {
+      "x": 0.5,
+      "y": 0.5
+    },
+    "animation": "none",
+    "transparent": true,
+    "prompt": "Use case: background-extraction. Input image 1 is the EDIT TARGET. This is layer decomposition for animation, not a redesign. Extract/reconstruct ONLY the requested existing object from the image. Match its exact material, color, shape, orientation, top-down photographic lighting from upper left, and fine jewelry details. No labels, no text, no UI, no locks or padlocks, no additional jewelry, no new designs. Output a single isolated asset on genuinely transparent alpha background, no white/black/checkerboard background. Tight framing with a little transparent breathing room. Preserve a subtle natural contact shadow only if it can live on transparent alpha; no opaque paper fragments. Do not put multiple parts in a sprite sheet. Subject: ONLY the few scattered gold five-point metal star confetti pieces on the PAPER outside the bracelet, preserving their original global positions and relative sizes in the FULL original1672x941 landscape composition: top star near(853,22), small star near(801,84), star near(820,122), left star near(149,200), stars near upper right(1528,166) and(1588,249), bottom star near(858,760). Exclude any star attached to bracelet and exclude gold sparkle rays. Retain positions exactly; the entire rest of the fullframe canvas must be transparent. Do NOT center or regroup stars. No paper, no bracelet, no text."
+  },
+  {
+    "id": "rose",
+    "name": "Rosa y adorno del título",
+    "group": "Interfaz",
+    "file": "layers/65-title-rose.png",
+    "x": 53,
+    "y": 313,
+    "width": 129,
+    "height": 203,
+    "z": 73,
+    "pivot": {
+      "x": 0.07236842105263158,
+      "y": 0.5143464399574921
+    },
+    "animation": "none",
+    "transparent": true,
+    "prompt": "Use case: background-extraction. Input image 1 is the EDIT TARGET. This is layer decomposition for animation, not a redesign. Extract/reconstruct ONLY the requested existing object from the image. Match its exact material, color, shape, orientation, top-down photographic lighting from upper left, and fine jewelry details. No labels, no text, no UI, no locks or padlocks, no additional jewelry, no new designs. Output a single isolated asset on genuinely transparent alpha background, no white/black/checkerboard background. Tight framing with a little transparent breathing room. Preserve a subtle natural contact shadow only if it can live on transparent alpha; no opaque paper fragments. Do not put multiple parts in a sprite sheet. Subject: ONLY the burgundy fine-line ink rose drawing at the left of the words THE ERAS ESCAPE, including blossom, slender stem and leaves, and the small adjacent four-point ink star. Preserve exact original line-art style and dark wine color on genuine alpha. No typography, no title letters, no rules or border, no paper background. Single rose ink illustration."
+  }
+]

@@ -1,0 +1,284 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Pulsera de recuerdos · Visor de capas</title>
+  <style>
+    :root { color-scheme: light; --paper:#f7efe5; --panel:#fffaf4; --ink:#3f2430; --muted:#7e666b; --wine:#711d3d; --line:#ddc9c7; --pink:#e9acc4; --shadow:0 12px 35px #452b2510; }
+    * { box-sizing:border-box; }
+    body { margin:0; background:var(--paper); color:var(--ink); font:14px/1.5 system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; }
+    button,input { font:inherit; }
+    button { color:inherit; cursor:pointer; }
+    button:focus-visible,input:focus-visible,a:focus-visible { outline:3px solid var(--wine); outline-offset:3px; }
+    button:disabled { cursor:default; opacity:.45; }
+    header { padding:26px 32px 22px; border-bottom:1px solid var(--line); display:flex; gap:20px; align-items:center; justify-content:space-between; }
+    .eyebrow { margin:0 0 4px; color:var(--wine); text-transform:uppercase; letter-spacing:.16em; font-size:10px; font-weight:650; }
+    h1 { margin:0; font:400 clamp(25px,3.2vw,38px)/1.15 Georgia,serif; }
+    .description { margin:8px 0 0; color:var(--muted); max-width:800px; font-size:13px; }
+    .canvas-size { white-space:nowrap; font-size:12px; color:var(--muted); font-variant-numeric:tabular-nums; }
+    .workspace { display:grid; grid-template-columns:minmax(0,1fr) 320px; align-items:start; max-width:2000px; margin:auto; }
+    .main { min-width:0; padding:22px 24px 28px; }
+    .toolbar { display:flex; flex-wrap:wrap; gap:12px; align-items:center; justify-content:space-between; margin-bottom:14px; }
+    .mode-picker { display:flex; background:#eadbd6; padding:3px; border-radius:8px; }
+    .mode { padding:7px 12px; border:0; border-radius:6px; background:transparent; color:var(--muted); }
+    .mode[aria-pressed="true"] { color:var(--wine); background:var(--panel); box-shadow:0 1px 5px #40242414; }
+    .options { display:flex; gap:14px; flex-wrap:wrap; align-items:center; font-size:12px; }
+    .check { display:inline-flex; gap:6px; align-items:center; cursor:pointer; }
+    input[type="checkbox"] { accent-color:var(--wine); width:16px; height:16px; flex:0 0 auto; }
+    .stage-wrap { overflow:hidden; box-shadow:var(--shadow); border:1px solid var(--line); background:#e4d6ce; border-radius:8px; }
+    .stage { width:100%; position:relative; aspect-ratio:1672/941; isolation:isolate; background:var(--panel); overflow:hidden; }
+    .stage.checker { background-color:#e8e4e1; background-image:linear-gradient(45deg,#c9c2c0 25%,transparent 25%),linear-gradient(-45deg,#c9c2c0 25%,transparent 25%),linear-gradient(45deg,transparent 75%,#c9c2c0 75%),linear-gradient(-45deg,transparent 75%,#c9c2c0 75%); background-size:24px 24px; background-position:0 0,0 12px,12px -12px,-12px 0; }
+    .layer-stack,.original,.selection { position:absolute; inset:0; }
+    .layer-stack { z-index:1; }
+    .layer-image { position:absolute; inset:0; width:100%; height:100%; object-fit:fill; pointer-events:none; user-select:none; }
+    .layer-image[hidden] { display:none; }
+    .layer-image.missing { display:none; }
+    .original { z-index:2; pointer-events:none; object-fit:fill; width:100%; height:100%; }
+    .original[hidden] { display:none; }
+    .selection { z-index:3; pointer-events:none; }
+    .selection[hidden] { display:none; }
+    .bounds { position:absolute; border:1.5px solid #c12d6b; box-shadow:0 0 0 1px #fff9; }
+    .pivot { position:absolute; height:13px; width:13px; border:1.5px solid #fff; border-radius:50%; background:#c12d6b; transform:translate(-50%,-50%); box-shadow:0 0 0 1px #c12d6b; }
+    .pivot::before,.pivot::after { content:""; position:absolute; background:#fff; }
+    .pivot::before { width:1px; height:7px; left:4.5px; top:1.5px; }
+    .pivot::after { width:7px; height:1px; top:4.5px; left:1.5px; }
+    .comparison-divider { position:absolute; top:0; bottom:0; width:2px; background:#fff; box-shadow:0 0 0 1px #3e192554; z-index:4; pointer-events:none; }
+    .comparison-divider[hidden] { display:none; }
+    .comparison-label { position:absolute; top:12px; z-index:5; padding:3px 8px; color:var(--ink); background:#fffaf4e8; border-radius:4px; font-size:10px; letter-spacing:.06em; text-transform:uppercase; pointer-events:none; }
+    .comparison-label[hidden] { display:none; }
+    .left-label { left:12px; }.right-label { right:12px; }
+    .compare-control { display:flex; gap:15px; align-items:center; padding:10px 14px; background:var(--panel); font-size:12px; }
+    .compare-control[hidden] { display:none; }
+    .compare-control input { min-width:80px; flex:1; accent-color:var(--wine); }
+    .stage-footer { display:flex; flex-wrap:wrap; gap:6px 20px; align-items:center; justify-content:space-between; color:var(--muted); font-size:12px; padding-top:12px; }
+    .status { min-height:18px; }
+    .error { color:#9d2540; }
+    .info { display:grid; grid-template-columns:1.2fr 1fr 1fr; gap:20px; margin-top:24px; padding-top:18px; border-top:1px solid var(--line); }
+    .info h2 { margin:0 0 5px; font-size:11px; letter-spacing:.1em; text-transform:uppercase; color:var(--muted); font-weight:600; }
+    .info p { margin:0; font-size:13px; overflow-wrap:anywhere; }
+    .file-name { font-size:11px!important; color:var(--muted); margin-top:5px!important; }
+    .sidebar { align-self:stretch; background:var(--panel); border-left:1px solid var(--line); }
+    .sidebar-inner { padding:23px 16px; position:sticky; top:0; max-height:100vh; overflow:auto; scrollbar-width:thin; }
+    .side-title { display:flex; align-items:baseline; justify-content:space-between; margin-bottom:14px; }
+    .side-title h2 { font:400 24px/1.1 Georgia,serif; margin:0; }
+    .layer-count { font-size:11px; color:var(--muted); }
+    .side-actions { display:flex; gap:6px; margin-bottom:18px; }
+    .small-btn { background:transparent; border:1px solid var(--line); border-radius:6px; padding:6px 9px; font-size:11px; }
+    .small-btn:hover:not(:disabled) { background:#f3e5e3; }
+    .export { width:100%; margin-top:18px; }
+    .layer-group { margin-top:15px; }
+    .group-heading { display:flex; align-items:center; justify-content:space-between; padding:0 7px 6px; font-size:10px; letter-spacing:.1em; font-weight:650; text-transform:uppercase; color:var(--muted); border-bottom:1px solid #e6d7d2; margin-bottom:4px; }
+    .group-toggle { border:0; padding:1px 0; font-size:10px; text-transform:none; letter-spacing:0; background:transparent; color:var(--wine); }
+    .layer-row { display:flex; gap:8px; align-items:center; min-height:34px; padding:2px 7px; border-radius:5px; }
+    .layer-row.selected { background:#f0dce4; }
+    .layer-row:hover { background:#f6e9e9; }
+    .layer-row.selected:hover { background:#f0dce4; }
+    .layer-name { min-width:0; flex:1; text-align:left; border:0; background:transparent; padding:5px 0; font-size:12px; display:flex; gap:7px; align-items:center; }
+    .layer-name span:first-child { min-width:0; overflow-wrap:anywhere; }
+    .layer-type { margin-left:auto; color:var(--muted); font-size:9px; letter-spacing:.03em; }
+    .missing .layer-type { color:#9d2540; }
+    .legend { color:var(--muted); font-size:11px; padding:14px 7px 0; }
+    .empty { padding:40px 25px; text-align:center; color:var(--muted); position:absolute; inset:0; display:grid; place-content:center; z-index:6; background:var(--panel); }
+    .empty[hidden] { display:none; }
+    .empty strong { color:var(--wine); }
+    code { font:11px ui-monospace,SFMono-Regular,Consolas,monospace; }
+    .is-animating .animation-swing { animation:swing var(--duration,3.8s) ease-in-out var(--delay,0s) infinite; }
+    .is-animating .animation-float { animation:float var(--duration,5s) ease-in-out var(--delay,0s) infinite; }
+    @keyframes swing { 0%,100% { transform:rotate(-1.6deg); } 50% { transform:rotate(1.6deg); } }
+    @keyframes float { 0%,100% { transform:translateY(0); } 50% { transform:translateY(-.45%); } }
+    @media (max-width:1050px) { .workspace { grid-template-columns:minmax(0,1fr) 270px; } header { padding:22px 24px; } .main { padding:18px; } .sidebar-inner { padding:20px 12px; } .info { grid-template-columns:1fr; gap:14px; } }
+    @media (max-width:780px) { .workspace { grid-template-columns:1fr; } .sidebar { border-left:0; border-top:1px solid var(--line); } .sidebar-inner { position:static; max-height:none; } .groups { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:0 18px; } header { align-items:flex-start; flex-direction:column; gap:12px; padding:22px 18px; } .main { padding:18px 12px; } .info { grid-template-columns:1fr 1fr; } .info>div:first-child { grid-column:1/-1; } .mode { padding:6px 10px; } }
+    @media (max-width:440px) { .groups { grid-template-columns:1fr; } .options { font-size:11px; gap:10px; } }
+    @media (prefers-reduced-motion:reduce) { .is-animating .layer-image { animation:none; } }
+  </style>
+</head>
+<body>
+  <header>
+    <div>
+      <p class="eyebrow">The Eras Escape · Recursos para animación</p>
+      <h1>Pulsera de recuerdos</h1>
+      <p class="description">Revisá cada pieza, su transparencia y su punto de giro. Las capas reconstruyen una imagen plana; las partes ocultas se completaron para permitir movimiento.</p>
+    </div>
+    <span class="canvas-size" id="canvas-size">1672 × 941 px</span>
+  </header>
+  <div class="workspace">
+    <main class="main">
+      <div class="toolbar">
+        <div class="mode-picker" role="group" aria-label="Modo de visualización">
+          <button class="mode" type="button" data-mode="layers" aria-pressed="true">Capas</button>
+          <button class="mode" type="button" data-mode="original" aria-pressed="false">Original</button>
+          <button class="mode" type="button" data-mode="compare" aria-pressed="false">Comparar</button>
+        </div>
+        <div class="options">
+          <label class="check"><input id="animate" type="checkbox">Animación demo</label>
+          <label class="check"><input id="transparency" type="checkbox">Transparencia</label>
+          <label class="check"><input id="show-bounds" type="checkbox" checked>Ver pivote</label>
+        </div>
+      </div>
+      <div class="stage-wrap">
+        <div class="stage" id="stage" role="img" aria-label="Composición de capas del menú Pulsera de recuerdos">
+          <div id="layer-stack" class="layer-stack"></div>
+          <img id="original" class="original" src="source.png" alt="Imagen original del menú" hidden>
+          <div id="selection" class="selection" aria-hidden="true" hidden><div id="bounds" class="bounds"></div><div id="pivot" class="pivot"></div></div>
+          <div id="divider" class="comparison-divider" hidden></div>
+          <span id="original-label" class="comparison-label left-label" hidden>Original</span>
+          <span id="layers-label" class="comparison-label right-label" hidden>Capas</span>
+          <div id="empty" class="empty" hidden><p><strong>No se pudo cargar el manifiesto.</strong><br>Guardá <code>layers-data.js</code> junto a este visor<br>y volvé a abrirlo.</p></div>
+        </div>
+        <label id="compare-control" class="compare-control" hidden><span>Original</span><input id="compare-range" type="range" min="0" max="100" value="50" aria-label="Porción visible del original"><span>Capas</span></label>
+      </div>
+      <div class="stage-footer"><span id="status" class="status" role="status" aria-live="polite">Cargando capas…</span><span id="motion-note">La animación se activa manualmente.</span></div>
+      <section class="info" aria-label="Información de la capa seleccionada">
+        <div><h2>Capa seleccionada</h2><p id="selected-name">Elegí una capa de la lista.</p><p id="selected-file" class="file-name"></p></div>
+        <div><h2>Posición y tamaño</h2><p id="selected-bounds">—</p></div>
+        <div><h2>Pivote de animación</h2><p id="selected-pivot">—</p></div>
+      </section>
+    </main>
+    <aside class="sidebar" aria-label="Inspector de capas">
+      <div class="sidebar-inner">
+        <div class="side-title"><h2>Capas</h2><span id="layer-count" class="layer-count"></span></div>
+        <div class="side-actions"><button id="show-all" class="small-btn" type="button">Mostrar todas</button><button id="solo" class="small-btn" type="button" disabled>Solo selección</button></div>
+        <div id="groups" class="groups"></div>
+        <button id="export" class="small-btn export" type="button">Exportar estado de capas · JSON</button>
+        <p class="legend">El punto rosa indica el eje de giro. La caja marca el área de la pieza. La demo no modifica los archivos originales.</p>
+      </div>
+    </aside>
+  </div>
+  <script src="layers-data.js"></script>
+  <script>
+    (() => {
+      'use strict';
+      const data = window.HUB_LAYERS;
+      const get = id => document.getElementById(id);
+      const stage=get('stage'), stack=get('layer-stack'), original=get('original'), selection=get('selection');
+      const elements=new Map(), rows=new Map(), checkboxes=new Map(), failed=new Set(), loaded=new Set();
+      let selected=null, mode='layers';
+      if (!data || !Array.isArray(data.layers) || !data.layers.length) {
+        get('empty').hidden=false;
+        get('status').textContent='Falta layers-data.js o no contiene capas.';
+        get('status').classList.add('error');
+        document.querySelectorAll('button,input').forEach(el=>{el.disabled=true;});
+        return;
+      }
+      const width=Number(data.width)||1672, height=Number(data.height)||941;
+      const layers=data.layers.map((layer,index)=>({ ...layer, id:layer.id||'layer-'+index, name:layer.name||layer.id||'Capa '+(index+1), group:layer.group||'Otras', visible:layer.visible!==false, z:Number.isFinite(layer.z)?layer.z:index }));
+      stage.style.aspectRatio=width+' / '+height;
+      get('canvas-size').textContent=width+' × '+height+' px';
+      const reducedMotion=window.matchMedia('(prefers-reduced-motion: reduce)');
+      if (reducedMotion.matches) get('motion-note').textContent='Movimiento reducido: la demo permanece estática.';
+      const safeNumber=(value,fallback=0)=>Number.isFinite(Number(value))?Number(value):fallback;
+      function pivotOf(layer) {
+        if(layer.pivot && Number.isFinite(Number(layer.pivot.x)) && Number.isFinite(Number(layer.pivot.y))) return {x:Number(layer.pivot.x),y:Number(layer.pivot.y)};
+        const box=boxOf(layer);
+        return box?{x:(box.x+box.width/2)/width,y:(box.y+box.height/2)/height}:{x:.5,y:.5};
+      }
+      function boxOf(layer) {
+        const box=layer.bounds||layer.bbox||layer;
+        if(Array.isArray(box)&&box.length>=4) return {x:safeNumber(box[0]),y:safeNumber(box[1]),width:safeNumber(box[2]),height:safeNumber(box[3])};
+        if(Number.isFinite(Number(box.x))&&Number.isFinite(Number(box.y))&&Number.isFinite(Number(box.width))&&Number.isFinite(Number(box.height))) return {x:Number(box.x),y:Number(box.y),width:Number(box.width),height:Number(box.height)};
+        return null;
+      }
+      function updateStatus() {
+        const visible=layers.filter(layer=>layer.visible).length;
+        get('layer-count').textContent=visible+' / '+layers.length+' visibles';
+        get('status').textContent=failed.size?failed.size+' archivo(s) sin cargar. Revisá las rutas indicadas en la lista.':loaded.size===layers.length?layers.length+' capas cargadas · cambios solo en la vista previa.':'Cargando '+loaded.size+' / '+layers.length+' capas…';
+        get('status').classList.toggle('error',failed.size>0);
+      }
+      function updateVisibility() {
+        layers.forEach(layer=>{elements.get(layer.id).hidden=!layer.visible;checkboxes.get(layer.id).checked=layer.visible;});
+        updateSelection();updateStatus();
+      }
+      function updateSelection() {
+        const layer=layers.find(item=>item.id===selected);
+        selection.hidden=!layer || mode==='original' || !get('show-bounds').checked || !layer.visible;
+        if(!layer) return;
+        const box=boxOf(layer),p=pivotOf(layer);
+        get('selected-name').textContent=layer.name;
+        get('selected-file').textContent=layer.file||'Sin archivo';
+        get('selected-bounds').textContent=box?Math.round(box.x)+', '+Math.round(box.y)+' px · '+Math.round(box.width)+' × '+Math.round(box.height)+' px':'Lienzo completo';
+        get('selected-pivot').textContent=Math.round(p.x*width)+', '+Math.round(p.y*height)+' px · '+p.x.toFixed(3)+', '+p.y.toFixed(3);
+        const bounds=get('bounds');bounds.hidden=!box;
+        if(box) Object.assign(bounds.style,{left:100*box.x/width+'%',top:100*box.y/height+'%',width:100*box.width/width+'%',height:100*box.height/height+'%'});
+        Object.assign(get('pivot').style,{left:100*p.x+'%',top:100*p.y+'%'});
+        get('solo').disabled=false;
+        rows.forEach((row,id)=>{row.classList.toggle('selected',id===selected);row.querySelector('button').setAttribute('aria-pressed',String(id===selected));});
+      }
+      function selectLayer(id) { selected=id;updateSelection(); }
+      function updateCompare() {
+        const value=Number(get('compare-range').value);
+        original.hidden=mode==='layers';
+        original.style.clipPath=mode==='compare'?'inset(0 '+(100-value)+'% 0 0)':'none';
+        get('divider').hidden=mode!=='compare';get('divider').style.left=value+'%';
+        get('compare-control').hidden=mode!=='compare';
+        get('original-label').hidden=mode!=='compare';get('layers-label').hidden=mode!=='compare';
+        updateSelection();
+      }
+      const renderLayers=[...layers].sort((a,b)=>a.z-b.z);
+      const layersById=new Map(layers.map(layer=>[layer.id,layer]));
+      const renderIndices=new Map(renderLayers.map((layer,index)=>[layer.id,index]));
+      renderLayers.forEach((layer,index)=>{
+        const img=document.createElement('img');
+        img.className='layer-image';
+        const animationLayer=layersById.get(layer.parent)||layer;
+        const animationIndex=renderIndices.get(animationLayer.id)??index;
+        const animation=['swing','float'].includes(animationLayer.animation)?animationLayer.animation:'none';
+        img.classList.add('animation-'+animation);
+        img.alt='';img.draggable=false;img.hidden=!layer.visible;img.style.zIndex=String(layer.z);
+        img.style.setProperty('--duration',(animation==='swing'?3.4+animationIndex%4*.35:4.5+animationIndex%5*.35)+'s');
+        img.style.setProperty('--delay',(-animationIndex*.37)+'s');
+        const p=pivotOf(animationLayer);
+        img.style.transformOrigin=100*p.x+'% '+100*p.y+'%';
+        if(layer.fullCanvas===false){
+          const b=boxOf(layer);
+          if(b){Object.assign(img.style,{inset:'auto',left:100*b.x/width+'%',top:100*b.y/height+'%',width:100*b.width/width+'%',height:100*b.height/height+'%'});img.style.transformOrigin=100*(p.x*width-b.x)/b.width+'% '+100*(p.y*height-b.y)/b.height+'%';}
+        }
+        img.addEventListener('load',()=>{loaded.add(layer.id);failed.delete(layer.id);updateStatus();});
+        img.addEventListener('error',()=>{failed.add(layer.id);img.classList.add('missing');const row=rows.get(layer.id);if(row){row.classList.add('missing');row.querySelector('.layer-type').textContent='FALTA';}updateStatus();});
+        elements.set(layer.id,img);stack.append(img);img.src=layer.file;
+      });
+      const preferred=['Fondo','Decoración','Pulsera','Dijes','Etiquetas','Interfaz','Bloqueos'];
+      const groupNames=[...new Set(layers.map(layer=>layer.group))].sort((a,b)=>{const aa=preferred.indexOf(a),bb=preferred.indexOf(b);return(aa<0?99:aa)-(bb<0?99:bb)||a.localeCompare(b,'es');});
+      groupNames.forEach(name=>{
+        const groupLayers=layers.filter(layer=>layer.group===name).sort((a,b)=>b.z-a.z);
+        const group=document.createElement('section');group.className='layer-group';
+        const heading=document.createElement('div');heading.className='group-heading';
+        const label=document.createElement('span');label.textContent=name+' · '+groupLayers.length;
+        const toggle=document.createElement('button');toggle.className='group-toggle';toggle.type='button';toggle.textContent='Alternar';toggle.setAttribute('aria-label','Alternar visibilidad de '+name);
+        toggle.addEventListener('click',()=>{const show=groupLayers.some(layer=>!layer.visible);groupLayers.forEach(layer=>{layer.visible=show;});updateVisibility();});
+        heading.append(label,toggle);group.append(heading);
+        groupLayers.forEach(layer=>{
+          const row=document.createElement('div');row.className='layer-row';
+          const check=document.createElement('input');check.type='checkbox';check.checked=layer.visible;check.setAttribute('aria-label','Mostrar '+layer.name);
+          check.addEventListener('change',()=>{layer.visible=check.checked;updateVisibility();});
+          const button=document.createElement('button');button.type='button';button.className='layer-name';button.setAttribute('aria-pressed','false');
+          const text=document.createElement('span');text.textContent=layer.name;
+          const type=document.createElement('span');type.className='layer-type';type.textContent=layer.type==='svg'||String(layer.file).endsWith('.svg')?'SVG':'PNG';
+          button.append(text,type);button.addEventListener('click',()=>selectLayer(layer.id));
+          row.append(check,button);group.append(row);rows.set(layer.id,row);checkboxes.set(layer.id,check);
+        });
+        get('groups').append(group);
+      });
+      document.querySelectorAll('[data-mode]').forEach(button=>button.addEventListener('click',()=>{mode=button.dataset.mode;document.querySelectorAll('[data-mode]').forEach(item=>item.setAttribute('aria-pressed',String(item===button)));updateCompare();}));
+      get('compare-range').addEventListener('input',updateCompare);
+      get('animate').addEventListener('change',()=>stage.classList.toggle('is-animating',get('animate').checked));
+      get('transparency').addEventListener('change',()=>stage.classList.toggle('checker',get('transparency').checked));
+      get('show-bounds').addEventListener('change',updateSelection);
+      get('show-all').addEventListener('click',()=>{layers.forEach(layer=>{layer.visible=true;});updateVisibility();});
+      get('solo').addEventListener('click',()=>{if(!selected)return;layers.forEach(layer=>{layer.visible=layer.id===selected;});mode='layers';document.querySelectorAll('[data-mode]').forEach(button=>button.setAttribute('aria-pressed',String(button.dataset.mode===mode)));updateVisibility();updateCompare();get('transparency').checked=true;stage.classList.add('checker');});
+      get('export').addEventListener('click',()=>{
+        const exportData={...data,layers:layers.map(layer=>({...layer}))};
+        const blob=new Blob([JSON.stringify(exportData,null,2)],{type:'application/json'}),url=URL.createObjectURL(blob),link=document.createElement('a');
+        link.href=url;link.download='hub-layers-state.json';document.body.append(link);link.click();link.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);
+      });
+      get('groups').addEventListener('keydown',event=>{
+        if(!['ArrowDown','ArrowUp'].includes(event.key)||event.target.tagName!=='BUTTON'||!event.target.classList.contains('layer-name'))return;
+        const buttons=[...get('groups').querySelectorAll('.layer-name')],index=buttons.indexOf(event.target),next=index+(event.key==='ArrowDown'?1:-1);
+        if(buttons[next]){event.preventDefault();buttons[next].focus();buttons[next].click();}
+      });
+      original.addEventListener('error',()=>{get('status').textContent='No se encontró source.png para comparar con el original.';get('status').classList.add('error');});
+      updateVisibility();updateCompare();
+    })();
+  </script>
+</body>
+</html>

@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1672" height="941" viewBox="0 0 1672 941" role="img" aria-labelledby="layer-title">
+<title id="layer-title">Título · The Eras Escape</title>
+<desc>Capa vectorial editable, reconstruida como aproximación de la imagen de referencia. Lienzo compartido de 1672 × 941.</desc>
+<defs>
+ <linearGradient id="gold" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#f5dfab"/><stop offset=".52" stop-color="#bf9049"/><stop offset="1" stop-color="#f0d89b"/></linearGradient>
+ <linearGradient id="berry" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#790b2c"/><stop offset=".55" stop-color="#650421"/><stop offset="1" stop-color="#480219"/></linearGradient>
+ <linearGradient id="paper" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#f3e4cc"/><stop offset=".5" stop-color="#e9d6b8"/><stop offset="1" stop-color="#e8d6ba"/></linearGradient>
+ <linearGradient id="lock" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#f4e6cc"/><stop offset=".5" stop-color="#d8c4a5"/><stop offset="1" stop-color="#c2aa87"/></linearGradient>
+ <filter id="softShadow" x="-20%" y="-30%" width="140%" height="170%"><feDropShadow dx="0" dy="2" stdDeviation="2" flood-color="#65432c" flood-opacity=".25"/></filter>
+</defs>
+<g fill="#5e0924" font-family="Georgia, 'Times New Roman', serif" font-weight="400">
+ <text x="0" y="0" transform="translate(115 365) scale(0.699 1)" font-size="151">THE ERAS</text>
+ <text x="0" y="0" transform="translate(174 482) scale(0.803 1)" font-size="151">ESCAPE</text>
+ <path d="M182 506H347 M381 506H556" fill="none" stroke="#5e0924" stroke-width="1"/>
+ <path d="M363 496 L365 503 L370.2 498.8 L367 505 L373 506 L366 508 L369.5 512.5 L364 510 L363 516 L361 509 L355.8 513.2 L359 507 L353 506 L360 504 L356.5 499.5 L362 502 Z"/>
+</g>
+</svg>

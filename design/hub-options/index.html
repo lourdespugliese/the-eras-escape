@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>The Eras Escape · Colección del hub</title>
+  <style>
+    :root { color-scheme: dark; --bg: #160e15; --fg: #f8e9e2; --soft: #c7aebf; --pink: #f49ac8; --gold: #dabd86; }
+    * { box-sizing: border-box; }
+    body { margin: 0; padding: 54px 5vw 38px; background: radial-gradient(ellipse at 90% 0, #3a1b32 0, transparent 55%), var(--bg); color: var(--fg); font: 16px/1.6 system-ui, sans-serif; }
+    main { max-width: 1480px; margin: auto; }
+    .eyebrow { color: var(--gold); text-transform: uppercase; letter-spacing: .22em; font-size: 12px; }
+    h1 { margin: 10px 0 12px; font: 400 clamp(35px, 5vw, 68px)/1.1 Georgia, serif; }
+    .intro { color: var(--soft); max-width: 780px; }
+    .eras { display: flex; flex-wrap: wrap; gap: 7px 18px; margin: 24px 0 35px; padding: 16px 0; border-block: 1px solid #6b425756; color: var(--soft); font-size: 13px; }
+    .eras span::before { content: '✦'; color: var(--pink); margin-right: 9px; }
+    .grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 38px 26px; }
+    article { min-width: 0; }
+    .preview { display: block; border-radius: 8px; overflow: hidden; outline-offset: 6px; background: #251520; aspect-ratio: 16/9; }
+    .preview:focus-visible { outline: 2px solid var(--pink); }
+    img { width: 100%; height: 100%; object-fit: contain; display: block; transition: transform .25s ease; }
+    .preview:hover img { transform: scale(1.015); }
+    .meta { display: flex; align-items: baseline; gap: 12px; margin-top: 14px; }
+    .number { color: var(--gold); font-size: 12px; }
+    h2 { margin: 0; font: 400 27px/1.2 Georgia, serif; }
+    article p { color: var(--soft); margin: 10px 0; max-width: 600px; font-size: 14px; }
+    .tags { color: var(--pink); font-size: 12px; letter-spacing: .035em; }
+    .recommendation { margin-top: 44px; border-top: 1px solid #6b425756; padding-top: 26px; }
+    .recommendation strong { color: var(--gold); font-weight: 500; }
+    footer { margin-top: 28px; color: var(--soft); font-size: 12px; }
+    a { color: var(--pink); }
+    @media (max-width: 800px) { body { padding: 30px 20px; } .grid { grid-template-columns: 1fr; } }
+    @media (prefers-reduced-motion: reduce) { img { transition: none; } }
+  </style>
+</head>
+<body>
+<main>
+  <div class="eyebrow">The Eras Escape · Dirección visual</div>
+  <h1>Un recuerdo de cada era.</h1>
+  <p class="intro">Cuatro propuestas para el menú de inicio y pausa. Cada una conecta los seis niveles con sus objetos y con guiños swifties. Abrí una imagen para verla completa.</p>
+  <div class="eras" aria-label="Los seis niveles del juego">
+    <span>Fearless</span><span>1989</span><span>reputation</span><span>Lover</span><span>folklore / evermore</span><span>Midnights</span>
+  </div>
+  <div class="grid">
+    <article>
+      <a class="preview" href="museo-de-las-eras.png" aria-label="Ver Museo de las eras completo"><img src="museo-de-las-eras.png" alt="Propuesta de menú en un museo nocturno con vitrinas y objetos de las seis eras."></a>
+      <div class="meta"><span class="number">01</span><h2>Museo de las eras</h2></div>
+      <p>Vitrinas, terciopelo borgoña y recuerdos iluminados. La evolución más cercana al museo que ya existe en el juego.</p>
+      <div class="tags">Inmersión · Misterio · Oro y rosa</div>
+    </article>
+    <article>
+      <a class="preview" href="casa-de-las-eras.png" aria-label="Ver Casa de las eras completa"><img src="casa-de-las-eras.png" alt="Propuesta con una casa de muñecas y seis habitaciones inspiradas en los niveles del juego."></a>
+      <div class="meta"><span class="number">02</span><h2>Casa de las eras</h2></div>
+      <p>Una habitación por capítulo. Interpretación propia inspirada en la casa de Lover, con un bosque compartido para folklore y evermore.</p>
+      <div class="tags">Fantasía · Habitaciones · Lover</div>
+    </article>
+    <article>
+      <a class="preview" href="pulsera-de-recuerdos.png" aria-label="Ver Pulsera de recuerdos completa"><img src="pulsera-de-recuerdos.png" alt="Propuesta de menú sobre papel marfil con una pulsera de seis dijes coleccionables."></a>
+      <div class="meta"><span class="number">03</span><h2>Pulsera de recuerdos</h2></div>
+      <p>Los seis objetos se convierten en dijes. Una forma cálida de mostrar el progreso que se puede combinar con el museo.</p>
+      <div class="tags">Friendship bracelets · Recuerdos · Pastel</div>
+    </article>
+    <article>
+      <a class="preview" href="archivo-13.png" aria-label="Ver Archivo 13 completo"><img src="archivo-13.png" alt="Propuesta de menú de misterio con seis expedientes, objetos de cada era y el número 13."></a>
+      <div class="meta"><span class="number">04</span><h2>Archivo 13</h2></div>
+      <p>Cada era se transforma en un expediente. Texturas de papel, objetos escondidos y luz de medianoche para poner el foco en resolver pistas.</p>
+      <div class="tags">Easter eggs · Archivo · Medianoche</div>
+    </article>
+  </div>
+  <p class="recommendation"><strong>Combinación recomendada:</strong> la atmósfera de Museo de las eras con la pulsera como indicador de los seis recuerdos.</p>
+  <footer>Conceptos visuales generados con IA. El juego no fue modificado. <a href="README.md">Detalles, referencias y criterios</a> · <a href="PROMPTS.md">Prompts completos</a></footer>
+</main>
+</body>
+</html>

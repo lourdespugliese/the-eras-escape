@@ -1,0 +1,363 @@
+[
+  {
+    "id": "ui-title",
+    "name": "Título · The Eras Escape",
+    "file": "vectors/ui-title.svg",
+    "type": "svg",
+    "x": 113,
+    "y": 254,
+    "width": 522,
+    "height": 264,
+    "z": 70,
+    "group": "Interfaz",
+    "visible": true,
+    "animation": "none",
+    "pivot": {
+      "x": 0.223684,
+      "y": 0.410202
+    },
+    "note": "Reconstrucción vectorial editable; tipografía aproximada."
+  },
+  {
+    "id": "ui-subtitle",
+    "name": "Subtítulo",
+    "file": "vectors/ui-subtitle.svg",
+    "type": "svg",
+    "x": 95,
+    "y": 525,
+    "width": 553,
+    "height": 30,
+    "z": 71,
+    "group": "Interfaz",
+    "visible": true,
+    "animation": "none",
+    "pivot": {
+      "x": 0.222189,
+      "y": 0.573858
+    },
+    "note": "Reconstrucción vectorial editable; tipografía aproximada."
+  },
+  {
+    "id": "ui-button-bg",
+    "name": "Botón · Fondo",
+    "file": "vectors/ui-button-bg.svg",
+    "type": "svg",
+    "x": 112,
+    "y": 597,
+    "width": 530,
+    "height": 93,
+    "z": 72,
+    "group": "Interfaz",
+    "visible": true,
+    "animation": "none",
+    "pivot": {
+      "x": 0.225478,
+      "y": 0.683847
+    },
+    "note": "Reconstrucción vectorial editable; tipografía aproximada."
+  },
+  {
+    "id": "ui-button-text",
+    "name": "Botón · Texto y flecha",
+    "file": "vectors/ui-button-text.svg",
+    "type": "svg",
+    "x": 183,
+    "y": 629,
+    "width": 392,
+    "height": 28,
+    "z": 73,
+    "group": "Interfaz",
+    "visible": true,
+    "animation": "none",
+    "pivot": {
+      "x": 0.226675,
+      "y": 0.683316
+    },
+    "note": "Reconstrucción vectorial editable; tipografía aproximada."
+  },
+  {
+    "id": "ui-progress",
+    "name": "Progreso · 0 / 6 recuerdos",
+    "file": "vectors/ui-progress.svg",
+    "type": "svg",
+    "x": 151,
+    "y": 717,
+    "width": 450,
+    "height": 33,
+    "z": 74,
+    "group": "Interfaz",
+    "visible": true,
+    "animation": "none",
+    "pivot": {
+      "x": 0.22488,
+      "y": 0.77949
+    },
+    "note": "Reconstrucción vectorial editable; tipografía aproximada."
+  },
+  {
+    "id": "ui-keyboard",
+    "name": "Controles · Teclado",
+    "file": "vectors/ui-keyboard.svg",
+    "type": "svg",
+    "x": 736,
+    "y": 849,
+    "width": 763,
+    "height": 51,
+    "z": 75,
+    "group": "Interfaz",
+    "visible": true,
+    "animation": "none",
+    "pivot": {
+      "x": 0.668361,
+      "y": 0.92933
+    },
+    "note": "Reconstrucción vectorial editable; tipografía aproximada."
+  },
+  {
+    "id": "ui-sound",
+    "name": "Ajuste · Sonido",
+    "file": "vectors/ui-sound.svg",
+    "type": "svg",
+    "x": 1315,
+    "y": 32,
+    "width": 155,
+    "height": 27,
+    "z": 76,
+    "group": "Interfaz",
+    "visible": true,
+    "animation": "none",
+    "pivot": {
+      "x": 0.832835,
+      "y": 0.048353
+    },
+    "note": "Reconstrucción vectorial editable; tipografía aproximada."
+  },
+  {
+    "id": "ui-music",
+    "name": "Ajuste · Música",
+    "file": "vectors/ui-music.svg",
+    "type": "svg",
+    "x": 1501,
+    "y": 31,
+    "width": 125,
+    "height": 26,
+    "z": 77,
+    "group": "Interfaz",
+    "visible": true,
+    "animation": "none",
+    "pivot": {
+      "x": 0.935108,
+      "y": 0.046759
+    },
+    "note": "Reconstrucción vectorial editable; tipografía aproximada."
+  },
+  {
+    "id": "label-fearless",
+    "name": "Etiqueta · Fearless",
+    "file": "vectors/label-fearless.svg",
+    "type": "svg",
+    "x": 937,
+    "y": 244,
+    "width": 163,
+    "height": 68,
+    "z": 50,
+    "group": "Etiquetas",
+    "visible": true,
+    "animation": "none",
+    "pivot": {
+      "x": 0.609151,
+      "y": 0.29543
+    },
+    "note": "Reconstrucción vectorial editable; tipografía aproximada."
+  },
+  {
+    "id": "label-1989",
+    "name": "Etiqueta · 1989",
+    "file": "vectors/label-1989.svg",
+    "type": "svg",
+    "x": 1217,
+    "y": 299,
+    "width": 131,
+    "height": 65,
+    "z": 50,
+    "group": "Etiquetas",
+    "visible": true,
+    "animation": "none",
+    "pivot": {
+      "x": 0.767045,
+      "y": 0.352285
+    },
+    "note": "Reconstrucción vectorial editable; tipografía aproximada."
+  },
+  {
+    "id": "label-reputation",
+    "name": "Etiqueta · reputation",
+    "file": "vectors/label-reputation.svg",
+    "type": "svg",
+    "x": 1479,
+    "y": 511,
+    "width": 163,
+    "height": 71,
+    "z": 50,
+    "group": "Etiquetas",
+    "visible": true,
+    "animation": "none",
+    "pivot": {
+      "x": 0.933313,
+      "y": 0.580765
+    },
+    "note": "Reconstrucción vectorial editable; tipografía aproximada."
+  },
+  {
+    "id": "label-lover",
+    "name": "Etiqueta · Lover",
+    "file": "vectors/label-lover.svg",
+    "type": "svg",
+    "x": 1315,
+    "y": 728,
+    "width": 147,
+    "height": 67,
+    "z": 50,
+    "group": "Etiquetas",
+    "visible": true,
+    "animation": "none",
+    "pivot": {
+      "x": 0.830443,
+      "y": 0.809245
+    },
+    "note": "Reconstrucción vectorial editable; tipografía aproximada."
+  },
+  {
+    "id": "label-folklore",
+    "name": "Etiqueta · folklore / evermore",
+    "file": "vectors/label-folklore.svg",
+    "type": "svg",
+    "x": 958,
+    "y": 771,
+    "width": 252,
+    "height": 67,
+    "z": 50,
+    "group": "Etiquetas",
+    "visible": true,
+    "animation": "none",
+    "pivot": {
+      "x": 0.648325,
+      "y": 0.854942
+    },
+    "note": "Reconstrucción vectorial editable; tipografía aproximada."
+  },
+  {
+    "id": "label-midnights",
+    "name": "Etiqueta · Midnights",
+    "file": "vectors/label-midnights.svg",
+    "type": "svg",
+    "x": 696,
+    "y": 589,
+    "width": 156,
+    "height": 66,
+    "z": 50,
+    "group": "Etiquetas",
+    "visible": true,
+    "animation": "none",
+    "pivot": {
+      "x": 0.462919,
+      "y": 0.660999
+    },
+    "note": "Reconstrucción vectorial editable; tipografía aproximada."
+  },
+  {
+    "id": "lock-1989",
+    "name": "Candado · 1989",
+    "file": "vectors/lock-1989.svg",
+    "type": "svg",
+    "x": 1311,
+    "y": 244,
+    "width": 30,
+    "height": 41,
+    "z": 60,
+    "group": "Bloqueos",
+    "visible": true,
+    "animation": "none",
+    "pivot": {
+      "x": 0.793062,
+      "y": 0.281084
+    },
+    "note": "Reconstrucción vectorial editable; tipografía aproximada."
+  },
+  {
+    "id": "lock-reputation",
+    "name": "Candado · reputation",
+    "file": "vectors/lock-reputation.svg",
+    "type": "svg",
+    "x": 1501,
+    "y": 435,
+    "width": 31,
+    "height": 43,
+    "z": 60,
+    "group": "Bloqueos",
+    "visible": true,
+    "animation": "none",
+    "pivot": {
+      "x": 0.906998,
+      "y": 0.485122
+    },
+    "note": "Reconstrucción vectorial editable; tipografía aproximada."
+  },
+  {
+    "id": "lock-lover",
+    "name": "Candado · Lover",
+    "file": "vectors/lock-lover.svg",
+    "type": "svg",
+    "x": 1341,
+    "y": 649,
+    "width": 31,
+    "height": 41,
+    "z": 60,
+    "group": "Bloqueos",
+    "visible": true,
+    "animation": "none",
+    "pivot": {
+      "x": 0.811304,
+      "y": 0.711477
+    },
+    "note": "Reconstrucción vectorial editable; tipografía aproximada."
+  },
+  {
+    "id": "lock-folklore",
+    "name": "Candado · folklore / evermore",
+    "file": "vectors/lock-folklore.svg",
+    "type": "svg",
+    "x": 1048,
+    "y": 633,
+    "width": 28,
+    "height": 39,
+    "z": 60,
+    "group": "Bloqueos",
+    "visible": true,
+    "animation": "none",
+    "pivot": {
+      "x": 0.635167,
+      "y": 0.693411
+    },
+    "note": "Reconstrucción vectorial editable; tipografía aproximada."
+  },
+  {
+    "id": "lock-midnights",
+    "name": "Candado · Midnights",
+    "file": "vectors/lock-midnights.svg",
+    "type": "svg",
+    "x": 785,
+    "y": 540,
+    "width": 30,
+    "height": 42,
+    "z": 60,
+    "group": "Bloqueos",
+    "visible": true,
+    "animation": "none",
+    "pivot": {
+      "x": 0.478469,
+      "y": 0.596174
+    },
+    "note": "Reconstrucción vectorial editable; tipografía aproximada."
+  }
+]

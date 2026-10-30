@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1672" height="941" viewBox="0 0 1672 941" role="img" aria-labelledby="layer-title">
+<title id="layer-title">Controles · Teclado</title>
+<desc>Capa vectorial editable, reconstruida como aproximación de la imagen de referencia. Lienzo compartido de 1672 × 941.</desc>
+<defs>
+ <linearGradient id="gold" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#f5dfab"/><stop offset=".52" stop-color="#bf9049"/><stop offset="1" stop-color="#f0d89b"/></linearGradient>
+ <linearGradient id="berry" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#790b2c"/><stop offset=".55" stop-color="#650421"/><stop offset="1" stop-color="#480219"/></linearGradient>
+ <linearGradient id="paper" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#f3e4cc"/><stop offset=".5" stop-color="#e9d6b8"/><stop offset="1" stop-color="#e8d6ba"/></linearGradient>
+ <linearGradient id="lock" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#f4e6cc"/><stop offset=".5" stop-color="#d8c4a5"/><stop offset="1" stop-color="#c2aa87"/></linearGradient>
+ <filter id="softShadow" x="-20%" y="-30%" width="140%" height="170%"><feDropShadow dx="0" dy="2" stdDeviation="2" flood-color="#65432c" flood-opacity=".25"/></filter>
+</defs>
+<g fill="#5e0924"><path d="M737 861H1099 M1133 861H1497" fill="none" stroke="#5e0924" stroke-width=".9" opacity=".7"/><path d="M1116 850 L1118 858 L1123.92 853.08 L1120 860 L1127 861 L1119 863 L1123.15 868.15 L1117 865 L1116 872 L1114 864 L1108.08 868.92 L1112 862 L1105 861 L1113 859 L1108.85 853.85 L1115 857 Z"/><text x="858" y="896" font-family="Georgia, 'Times New Roman', serif" font-size="14.2" letter-spacing="2.55">WASD · MOVERSE   E · INTERACTUAR   ESC · PAUSA</text></g>
+</svg>

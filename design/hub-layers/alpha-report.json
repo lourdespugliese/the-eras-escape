@@ -1,0 +1,167 @@
+[
+  {
+    "id": "paper",
+    "left": 0,
+    "top": 0,
+    "width": 1672,
+    "height": 941,
+    "sourceWidth": 1672,
+    "sourceHeight": 941,
+    "transparentFraction": 0,
+    "partialAlphaPixels": 0
+  },
+  {
+    "id": "bracelet",
+    "left": 126,
+    "top": 21,
+    "width": 1298,
+    "height": 955,
+    "sourceWidth": 1536,
+    "sourceHeight": 1024,
+    "transparentFraction": 0.8470986684163412,
+    "partialAlphaPixels": 21400
+  },
+  {
+    "id": "fearless",
+    "left": 236,
+    "top": 78,
+    "width": 1105,
+    "height": 1007,
+    "sourceWidth": 1386,
+    "sourceHeight": 1135,
+    "transparentFraction": 0.7656711863760322,
+    "partialAlphaPixels": 9976
+  },
+  {
+    "id": "1989",
+    "left": 252,
+    "top": 129,
+    "width": 821,
+    "height": 1016,
+    "sourceWidth": 1311,
+    "sourceHeight": 1200,
+    "transparentFraction": 0.6627593440122044,
+    "partialAlphaPixels": 8017
+  },
+  {
+    "id": "reputation",
+    "left": 216,
+    "top": 54,
+    "width": 772,
+    "height": 1266,
+    "sourceWidth": 1146,
+    "sourceHeight": 1373,
+    "transparentFraction": 0.7419429053714811,
+    "partialAlphaPixels": 16334
+  },
+  {
+    "id": "lover",
+    "left": 188,
+    "top": 99,
+    "width": 1009,
+    "height": 978,
+    "sourceWidth": 1343,
+    "sourceHeight": 1171,
+    "transparentFraction": 0.603349880742923,
+    "partialAlphaPixels": 8921
+  },
+  {
+    "id": "forest",
+    "left": 369,
+    "top": 54,
+    "width": 680,
+    "height": 1053,
+    "sourceWidth": 1310,
+    "sourceHeight": 1201,
+    "transparentFraction": 0.7987052774087752,
+    "partialAlphaPixels": 18607
+  },
+  {
+    "id": "midnights",
+    "left": 320,
+    "top": 64,
+    "width": 758,
+    "height": 1053,
+    "sourceWidth": 1312,
+    "sourceHeight": 1199,
+    "transparentFraction": 0.7503159390955878,
+    "partialAlphaPixels": 16804
+  },
+  {
+    "id": "envelope",
+    "left": 266,
+    "top": 236,
+    "width": 850,
+    "height": 766,
+    "sourceWidth": 1360,
+    "sourceHeight": 1157,
+    "transparentFraction": 0.725886547358788,
+    "partialAlphaPixels": 7175
+  },
+  {
+    "id": "decor-tl",
+    "left": 0,
+    "top": 0,
+    "width": 1523,
+    "height": 834,
+    "sourceWidth": 1671,
+    "sourceHeight": 941,
+    "transparentFraction": 0.5641864626996377,
+    "partialAlphaPixels": 24784
+  },
+  {
+    "id": "decor-bl",
+    "left": 0,
+    "top": 17,
+    "width": 1040,
+    "height": 924,
+    "sourceWidth": 1672,
+    "sourceHeight": 941,
+    "transparentFraction": 0.7727673146250807,
+    "partialAlphaPixels": 60631
+  },
+  {
+    "id": "decor-tr",
+    "left": 462,
+    "top": 0,
+    "width": 1210,
+    "height": 661,
+    "sourceWidth": 1672,
+    "sourceHeight": 941,
+    "transparentFraction": 0.7763621872282871,
+    "partialAlphaPixels": 6570
+  },
+  {
+    "id": "decor-br",
+    "left": 444,
+    "top": 175,
+    "width": 580,
+    "height": 1361,
+    "sourceWidth": 1024,
+    "sourceHeight": 1536,
+    "transparentFraction": 0.8022168477376302,
+    "partialAlphaPixels": 23257
+  },
+  {
+    "id": "confetti",
+    "left": 122,
+    "top": 36,
+    "width": 1476,
+    "height": 860,
+    "sourceWidth": 1672,
+    "sourceHeight": 941,
+    "transparentFraction": 0.9948136208553457,
+    "partialAlphaPixels": 4570
+  },
+  {
+    "id": "rose",
+    "left": 218,
+    "top": 67,
+    "width": 821,
+    "height": 1149,
+    "sourceWidth": 1261,
+    "sourceHeight": 1247,
+    "transparentFraction": 0.887165835594642,
+    "partialAlphaPixels": 119803
+  }
+]

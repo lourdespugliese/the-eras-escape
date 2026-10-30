@@ -1,0 +1,25 @@
+# Propuesta de retexturizado
+
+Generado con la herramienta integrada image_gen. Simulaciones conceptuales a partir de las capturas originales; no son capturas del motor ni modificaciones de los modelos.
+
+## exterior
+
+Use case: style-transfer.
+Asset type: game art direction preview, material-only paintover of an existing 3D screenshot.
+Input image 1 is the EDIT TARGET. Show how this exact game view would look after a careful PBR retexture and normal/height map pass ON THE SAME EXISTING MODELS.
+CRITICAL INVARIANTS: lock the camera, projection, perspective, building outline and every architectural element to the reference. Exactly preserve the simple triangular pediment, plain cylindrical columns, window and door count and positions, flat wall masses, clock, stairs, flags, ground-plane shape, little gold square particles, rain and nighttime setting. Keep the original plain cylindrical columns and their silhouettes. Do not add grooves that alter geometry, ornament, new lights, plants, trees, buildings, furniture or architectural details. Do not redesign or remodel anything.
+Materials: warm pale limestone wall texture with small pores and gentle tonal variation; subtle slab joints represented only within the surface texture; smooth stone columns with fine mineral detail; slightly worn stone step treads using shallow normal/height detail; existing dark entrance with satin dark metal and restrained aged brass details; clock keeps same size and placement. Existing flat path/ground receives a dark stone surface with fine seams and restrained wet roughness variation, shallow puddle sheen and reflections from the EXISTING warm lights. Surface relief must be subtle, plausible from normal maps and shallow parallax, never deep modeled masonry. Retain predominantly dark surroundings.
+Lighting: maintain the existing warm gold fixtures, cool dark night, rain and same light positions. Show improved material response, modest contact shading, controlled highlights and readable stone, with restrained bloom. Target achievable polished real-time game graphics, not extravagant offline cinematic rendering. Preserve overall exposure and scene mood.
+Framing: preserve the exact landscape game view with same relative subject placement; remove the Windows taskbar and stray white OS/window frame at the top, making the game view fill the image. Keep the small existing in-game instruction 'Presiona E para recoger.' at the same spot. No captions, comparison labels, watermark or added UI. Deliver ONE finished landscape view.
+
+## interior
+
+Use case: style-transfer.
+Asset type: game art direction preview, material-only paintover of an existing 3D screenshot.
+Input image 1 is the EDIT TARGET. Show how this exact museum game view would look after a careful PBR retexture and normal/height map pass ON THE SAME EXISTING MODELS.
+CRITICAL INVARIANTS: lock the camera, lens, perspective, floor checker tile scale and layout, simple room shape, ceiling beam positions, plain cylindrical column silhouettes, ring chandelier, central female statue and pose, plinth dimensions, every existing display case and its contents and placement, door, wall icons and signage to the reference. Preserve the scene topology and all proportions precisely. Do not remodel or add moldings, capitals, cornices, decorative grooves, windows, extra objects, extra lights, plants or architectural detail.
+Materials only: existing dark and cream checkerboard floor becomes realistic dark veined marble and warm ivory stone, with fine hairline scratches, subtle grout represented by normal/height maps, believable restrained reflections and roughness variation. Existing flat walls become fine warm stone/plaster with understated pores and fine surface variation. Plain smooth columns get quiet pale stone material without new geometry or fluting. Existing ceiling beams get dark wood grain. Existing vitrine frames and circular chandelier get brushed antique brass, small wear and metallic reflections. Existing glass gets clear, faint reflections while remaining transparent. Existing statue stays the identical female figure, size, location and pose, with finely textured white marble and gentle normal detail. Existing plinth gets polished dark stone and preserves its plaque.
+Keep exact plaque wording: 'Taylor Swift' and beneath 'La música también es una forma de memoria'. Keep other existing signage and six colored wall icons, matching their original placement and scale. Do not invent extra text.
+Lighting: preserve existing warm light sources and their positions. Only improve material response, restrained contact shadows and glass/stone reflections. A polished achievable real-time game look, not a heavily redesigned cinematic museum. Maintain dark ceiling, warm ambiance and readable displays.
+Framing: preserve the exact landscape game view and composition; remove Windows taskbar and stray white OS/window border at the top, letting the game view fill the image. No extra captions, comparison labels, watermark or added UI. Deliver ONE finished landscape view.
+
