@@ -59,7 +59,8 @@ function maps(kind) {
     }
     if (kind === 'wood') v = 0.5 + Math.sin(x * 0.15 + Math.sin(y * Math.PI * 2 / SIZE) * 3) * 0.14 + n * 0.04;
     heights[p] = v;
-    const r = kind === 'paving' ? 85 + cloud * 65 + n * 6 : kind.includes('marble') || kind === 'checker' ? 68 + cloud * 22 + n * 4 : 175 + cloud * 25 + n * 8;
+    const wet = kind === 'paving' ? THREE.MathUtils.smoothstep(noise(x, y, 4) + cloud * 0.2, -0.15, 0.28) : 0;
+    const r = kind === 'paving' ? 170 - wet * 144 + n * 5 : kind.includes('marble') || kind === 'checker' ? 68 + cloud * 22 + n * 4 : 175 + cloud * 25 + n * 8;
     for (let k = 0; k < 3; k++) { hd.data[p * 4 + k] = v * 255; rd.data[p * 4 + k] = r; }
     hd.data[p * 4 + 3] = rd.data[p * 4 + 3] = 255;
   }
@@ -75,7 +76,7 @@ function maps(kind) {
     b.putImageData(bd, 0, 0);
   }
   const result = { map: texture(base, true), normalMap: texture(normal), bumpMap: texture(height), roughnessMap: texture(rough) };
-  const source = { paving: 'wet-paving', plaster: 'warm-plaster', wood: 'walnut' }[kind] || kind;
+  const source = { paving: 'weathered-paving', plaster: 'warm-plaster', wood: 'walnut' }[kind] || kind;
   if (['limestone', 'ivory-marble', 'dark-marble', 'paving', 'plaster', 'wood'].includes(kind)) {
     pending.push(new Promise(resolve => new THREE.TextureLoader().load(`assets/textures/museum/${source}.png`, t => {
       b.drawImage(t.image, 0, 0, SIZE, SIZE); result.map.needsUpdate = true;
@@ -100,11 +101,12 @@ export function museumMaterial(kind, overrides = {}) {
   if (!cache.has(kind)) {
     const physical = kind === 'paving' || kind.includes('marble') || kind === 'checker';
     const mat = new THREE.MeshPhysicalMaterial({ color: kind === 'limestone' ? 0xb29b77 : 0xffffff, ...maps(kind),
-      roughness: 1, metalness: 0, normalScale: new THREE.Vector2(kind === 'paving' ? 0.8 : 0.18, kind === 'paving' ? 0.8 : 0.18),
-      bumpScale: kind === 'limestone' || kind === 'paving' ? 0.035 : 0.009,
+      roughness: 1, metalness: 0, normalScale: new THREE.Vector2(kind === 'paving' ? 1.1 : 0.18, kind === 'paving' ? 1.1 : 0.18),
+      bumpScale: kind === 'paving' ? 0.055 : kind === 'limestone' ? 0.035 : 0.009,
       clearcoat: physical ? 0.32 : 0, clearcoatRoughness: kind === 'paving' ? 0.22 : 0.25,
       envMapIntensity: 0.12 });
-    mat.userData.tileSize = kind === 'limestone' ? [4, 3] : kind === 'wood' ? [1, 6] : [3, 3];
+    if (kind === 'paving') { mat.clearcoatRoughnessMap = mat.roughnessMap; mat.clearcoatRoughness = 0.8; }
+    mat.userData.tileSize = kind === 'limestone' ? [4, 3] : kind === 'wood' ? [1, 6] : kind === 'paving' ? [2.4, 2] : [3, 3];
     mat.userData.surfaceKind = kind;
     cache.set(kind, mat);
   }
@@ -169,17 +171,18 @@ export function setupMuseumReflections(renderer, scene, camera, ctx) {
     const uniforms = THREE.UniformsUtils.clone(shader.uniforms);
     uniforms.surfaceNormal = { value: floor.material.normalMap };
     uniforms.surfaceRoughness = { value: floor.material.roughnessMap };
-    uniforms.reflectionStrength = { value: index === 0 ? 0.28 : 0.18 };
+    uniforms.reflectionStrength = { value: index === 0 ? 0.38 : 0.18 };
+    uniforms.courtyard = { value: index === 0 ? 1 : 0 };
     uniforms.reflectionTexel = { value: new THREE.Vector2(1 / 1024, 1 / 576) };
-    uniforms.surfaceDistortion = { value: index === 0 ? 0.028 : 0.003 };
-    uniforms.reflectionBlur = { value: index === 0 ? 8 : 4 };
+    uniforms.surfaceDistortion = { value: index === 0 ? 0.045 : 0.003 };
+    uniforms.reflectionBlur = { value: index === 0 ? 11 : 4 };
     const vertexShader = shader.vertexShader.replace('varying vec4 vUv;', 'varying vec4 vUv; varying vec2 surfaceUv;')
       .replace('vUv = textureMatrix', 'surfaceUv = uv; vUv = textureMatrix');
     const fragmentShader = shader.fragmentShader.replace('varying vec4 vUv;',
       `varying vec4 vUv; varying vec2 surfaceUv;
       uniform sampler2D surfaceNormal; uniform sampler2D surfaceRoughness;
       uniform float reflectionStrength; uniform vec2 reflectionTexel;
-      uniform float surfaceDistortion; uniform float reflectionBlur;`)
+      uniform float surfaceDistortion; uniform float reflectionBlur; uniform float courtyard;`)
       .replace('vec4 base = texture2DProj( tDiffuse, vUv );',
         `float rough = texture2D(surfaceRoughness, surfaceUv).g;
         vec2 projected = vUv.xy / vUv.w + (texture2D(surfaceNormal, surfaceUv).rg - 0.5) * surfaceDistortion;
@@ -193,7 +196,7 @@ export function setupMuseumReflections(renderer, scene, camera, ctx) {
         base += texture2D(tDiffuse, projected - spread) * 0.06;
         base += texture2D(tDiffuse, projected + vec2(spread.x, -spread.y)) * 0.06;
         base += texture2D(tDiffuse, projected + vec2(-spread.x, spread.y)) * 0.06;`)
-      .replace('blendOverlay( base.rgb, color ), 1.0', 'blendOverlay( base.rgb, color ), reflectionStrength * (1.0 - rough * 0.65)');
+      .replace('blendOverlay( base.rgb, color ), 1.0', 'blendOverlay( base.rgb, color ), reflectionStrength * (1.0 - rough * 0.65) * mix(1.0, 0.12 + 0.88 * (1.0 - smoothstep(0.12, 0.65, rough)), courtyard)');
     const reflector = new Reflector(floor.geometry.clone(), { textureWidth: 1024, textureHeight: 576,
       clipBias: 0.003, multisample: 0, color: 0xbcbcbc, shader: { uniforms, vertexShader, fragmentShader } });
     reflector.position.copy(floor.position); reflector.position.y += index === 0 ? 0.018 : 0.006;

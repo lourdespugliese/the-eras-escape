@@ -5,10 +5,13 @@ Rama: `retexturizado`. Texturas de color generadas con la herramienta integrada 
 - `limestone.png`: fachada y bloques de piedra, repetición de 4 × 3 metros.
 - `ivory-marble.png`: damero, pedestales, columnas interiores y estatua existente.
 - `dark-marble.png`: damero y pedestal central.
-- `walnut.png`, `warm-plaster.png`, `wet-paving.png`: nogal, revoque mineral y pavimento. Prompts en `prompts-pass2.md`.
+- `walnut.png`, `warm-plaster.png`: nogal y revoque mineral. Prompts en `prompts-pass2.md`.
+- `weathered-paving.png`: pavimento activo con juntas desgastadas y losas de 1,2 × 0,5 metros. Prompt en `weathered-paving.PROMPT.md`. `wet-paving.png` conserva la primera variante.
 - Normal, altura y rugosidad: mapas en canvas, con detalle alineado a las texturas de piedra, madera y revoque. La rugosidad varía suavemente en la superficie.
 - El damero conserva el tamaño de las baldosas y usa un atlas de 1024 px con vetas giradas para reducir la repetición.
 - Reflejos planos del exterior y hall: Reflector de Three.js r160, un reflejo activo según la zona, resolución 1024 × 576. Mantiene las texturas del piso mediante mezcla transparente. El reflejo usa distorsión normal, rugosidad y un filtro de nueve muestras para suavizar la imagen. Referencia de implementación: https://github.com/mrdoob/three.js/blob/r160/examples/jsm/objects/Reflector.js
+- Cornisa: `js/museum-cornice.js` agrega tres niveles de piedra con vuelo y dos remates inclinados. Estas piezas grandes proyectan sombra mediante `userData.forceShadow`; el reloj se eleva para quedar por encima del borde saliente.
+- Pavimento: rugosidad variable de zonas húmedas y charcos, normal/altura alineados a la textura nueva y distorsión de los reflejos según la superficie.
 - Sombras y luz cálida ajustadas en el museo; las salas conservan sus materiales. El latón y el vidrio mantienen su intensidad propia de reflejos.
 - La lluvia se oculta dentro del hall y las partículas bajo techo se descartan.
 

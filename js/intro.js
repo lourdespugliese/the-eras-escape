@@ -8,6 +8,7 @@ import { createIntroSound } from './introsound.js';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { museumMaterial, checkerMaterial, brassMaterial, mapMuseumMesh } from './museum-materials.js';
 import { buildMuseumPremiere } from './museum-premiere.js';
+import { buildMuseumCornice } from './museum-cornice.js';
 
 // ================= Medidas del mundo =================
 const GROUND = -1.2;                 // nivel del suelo exterior (el interior del museo está en y = 0)
@@ -217,8 +218,9 @@ export function buildIntro(ctx, room1, { player, skip = false } = {}) {
   const pedShape = new THREE.Shape(); pedShape.moveTo(-18, 0); pedShape.lineTo(18, 0); pedShape.lineTo(0, 3.8); pedShape.closePath();
   const pediment = new THREE.Mesh(new THREE.ExtrudeGeometry(pedShape, { depth: 3.4, bevelEnabled: false }), stone);
   pediment.position.set(HCX, 9.8, FZ + 0.3); root.add(pediment);
+  buildMuseumCornice(root, HCX, stone);
   const clock = new THREE.Mesh(new THREE.CircleGeometry(1.3, 48), new THREE.MeshBasicMaterial({ map: clockTexture() }));
-  clock.position.set(HCX, 11.1, FZ + 3.75); root.add(clock);
+  clock.position.set(HCX, 11.45, FZ + 3.75); root.add(clock);
   const clockRing = new THREE.Mesh(new THREE.TorusGeometry(1.34, 0.1, 10, 48), goldM); clockRing.position.copy(clock.position); root.add(clockRing);
   [-16, -12, -8, -4, 4, 8, 12, 16].map((o) => HCX + o).forEach((x) => {                                                              // columnas gigantes
     const col = new THREE.Mesh(new THREE.CylinderGeometry(0.55, 0.65, 8.6, 20), columnStone); col.position.set(x, 4.3, 27.6); root.add(col);
