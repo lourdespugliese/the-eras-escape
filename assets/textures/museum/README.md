@@ -11,6 +11,7 @@ Rama: `retexturizado`. Texturas de color generadas con la herramienta integrada 
 - El damero conserva el tamaño de las baldosas y usa un atlas de 1024 px con vetas giradas para reducir la repetición.
 - Reflejos planos del exterior y hall: Reflector de Three.js r160, un reflejo activo según la zona, resolución 1024 × 576. Mantiene las texturas del piso mediante mezcla transparente. El reflejo usa distorsión normal, rugosidad y un filtro de nueve muestras para suavizar la imagen. Referencia de implementación: https://github.com/mrdoob/three.js/blob/r160/examples/jsm/objects/Reflector.js
 - Cornisa: `js/museum-cornice.js` agrega tres niveles de piedra con vuelo y dos remates inclinados. Estas piezas grandes proyectan sombra mediante `userData.forceShadow`; el reloj se eleva para quedar por encima del borde saliente.
+- Iluminación del frontón: seis bañadores cálidos sobre el labio y un relleno rectangular amplio aclaran la franja que quedaba en sombra. Se atenúan al entrar y se apagan al ocultar la introducción.
 - Pavimento: rugosidad variable de zonas húmedas y charcos, normal/altura alineados a la textura nueva y distorsión de los reflejos según la superficie.
 - Sombras y luz cálida ajustadas en el museo; las salas conservan sus materiales. El latón y el vidrio mantienen su intensidad propia de reflejos.
 - La lluvia se oculta dentro del hall y las partículas bajo techo se descartan.

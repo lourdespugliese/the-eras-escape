@@ -218,7 +218,7 @@ export function buildIntro(ctx, room1, { player, skip = false } = {}) {
   const pedShape = new THREE.Shape(); pedShape.moveTo(-18, 0); pedShape.lineTo(18, 0); pedShape.lineTo(0, 3.8); pedShape.closePath();
   const pediment = new THREE.Mesh(new THREE.ExtrudeGeometry(pedShape, { depth: 3.4, bevelEnabled: false }), stone);
   pediment.position.set(HCX, 9.8, FZ + 0.3); root.add(pediment);
-  buildMuseumCornice(root, HCX, stone);
+  const cornice = buildMuseumCornice(root, HCX, stone);
   const clock = new THREE.Mesh(new THREE.CircleGeometry(1.3, 48), new THREE.MeshBasicMaterial({ map: clockTexture() }));
   clock.position.set(HCX, 11.45, FZ + 3.75); root.add(clock);
   const clockRing = new THREE.Mesh(new THREE.TorusGeometry(1.34, 0.1, 10, 48), goldM); clockRing.position.copy(clock.position); root.add(clockRing);
@@ -522,6 +522,7 @@ export function buildIntro(ctx, room1, { player, skip = false } = {}) {
     introItems.forEach((m) => (m.visible = false));
     root.visible = false; orb.visible = false;
     ambient.intensity = facadeLight.intensity = hallLight.intensity = statueFill.intensity = 0;            // (las luces siguen en la escena para no recompilar los materiales)
+    cornice.update(0);
     museumFill.forEach(light => { light.intensity = 0; });
     sound.outdoor(0); sound.drone(0); player.speed = baseSpeed; hudMode('full');
     gone = true;
@@ -575,6 +576,7 @@ export function buildIntro(ctx, room1, { player, skip = false } = {}) {
     // ----- Luces según la zona (las luces de three.js son globales) -----
     const z = cam.z, out = smooth(FZ - 1, FZ + 1.5, z), inZone = smooth(3.4, 5.6, z);
     premiere.update(dt, t, smooth(FZ, FZ + 1.2, z));
+    cornice.update(smooth(FZ, FZ + 1.2, z));
     ambient.color.setRGB(0.8 + 0.2 * (1 - out), 0.82 + 0.05 * (1 - out), 0.9 - 0.22 * (1 - out));
     ambient.intensity = inZone * (0.22 * out + 0.18 * (1 - out));
     statueFill.intensity = 60 * inZone * (1 - out);
@@ -725,7 +727,7 @@ export function buildIntro(ctx, room1, { player, skip = false } = {}) {
   });
 
   root.traverse(mapMuseumMesh);
-  ctx.museum = { root, premiere, reflectionSurfaces: [plaza, path, hallFloor], lights: [facadeLight, hallLight] };
+  ctx.museum = { root, premiere, cornice, reflectionSurfaces: [plaza, path, hallFloor], lights: [facadeLight, hallLight] };
 
   // ================= API =================
   function finishInstant() {                                                        // ?skip: salta la intro y empieza en la sala 1
