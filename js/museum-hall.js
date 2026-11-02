@@ -10,18 +10,21 @@ export function buildHallLighting(root, centerX) {
     const light = new THREE.RectAreaLight(0xffdfb4, 0, 2.8, 14);
     light.position.set(centerX + side * 10, 7.6, 15);
     light.lookAt(centerX + side * 5, 0, 15);
-    light.userData.hallPower = 5;
+    light.userData.hallPower = 2.7;
     group.add(light); lights.push(light);
   }
   for (const dx of [-9, 0, 9]) {
-    const light = new THREE.PointLight(0xffcf91, 0, 10, 2);
-    light.position.set(centerX + dx, 5.8, 6.9);
-    light.userData.hallPower = 15; light.userData.noShadow = true;
-    group.add(light); lights.push(light);
+    const light = new THREE.SpotLight(0xffcf91, 0, 11, 0.48, 0.65, 2);
+    light.name = 'hall-wall-downlight';
+    light.position.set(centerX + dx, 7.7, 6.4);
+    light.target.position.set(centerX + dx, 3.4, 5.25);
+    light.userData.hallPower = 45; light.userData.noShadow = true;
+    light.castShadow = false;
+    group.add(light, light.target); lights.push(light);
   }
   const chandelier = new THREE.RectAreaLight(0xffe2b9, 0, 4.5, 4.5);
   chandelier.position.set(centerX, 7.25, 15); chandelier.lookAt(centerX, 0, 15);
-  chandelier.userData.hallPower = 2.4; group.add(chandelier); lights.push(chandelier);
+  chandelier.userData.hallPower = 1.5; group.add(chandelier); lights.push(chandelier);
   return {
     group, lights,
     update(amount) { lights.forEach(light => { light.intensity = light.userData.hallPower * amount; }); },
@@ -77,7 +80,7 @@ export function setupHallMaterials(renderer, scene, ctx) {
     const kind = original.userData.surfaceKind;
     if (!['brass', 'ivory-marble', 'dark-marble', 'checker'].includes(kind) && !original.userData.museumGlass) return original;
     if (original.userData.museumStatue) {
-      original.envMap = environment.texture; original.envMapIntensity = 0.22; original.needsUpdate = true;
+      original.envMap = environment.texture; original.envMapIntensity = 0.15; original.needsUpdate = true;
       return original;
     }
     if (copies.has(original)) return copies.get(original);
@@ -89,7 +92,7 @@ export function setupHallMaterials(renderer, scene, ctx) {
       material.color.setHex(0xc3beb4); material.opacity = 0.12; material.metalness = 0.12;
       material.roughness = 0.045; material.envMapIntensity = 2;
     } else {
-      material.envMapIntensity = kind === 'checker' ? 0.35 : 0.3;
+      material.envMapIntensity = kind === 'checker' ? 0.2 : 0.18;
       if (kind === 'checker') {
         material.normalScale.set(0.065, 0.065); material.roughness = 0.62;
         material.clearcoat = 0.65; material.clearcoatRoughness = 0.12;

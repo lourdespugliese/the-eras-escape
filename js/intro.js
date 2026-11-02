@@ -587,9 +587,9 @@ export function buildIntro(ctx, room1, { player, skip = false } = {}) {
     cornice.update(smooth(FZ, FZ + 1.2, z));
     hallAtmosphere.update(inZone * (1 - out));
     ambient.color.setRGB(0.8 + 0.2 * (1 - out), 0.82 + 0.05 * (1 - out), 0.9 - 0.22 * (1 - out));
-    ambient.intensity = inZone * (0.22 * out + 0.12 * (1 - out));
+    ambient.intensity = inZone * (0.22 * out + 0.045 * (1 - out));
     statueFill.intensity = 40 * inZone * (1 - out);
-    facadeLight.intensity = 155 * out; hallLight.intensity = 80 * inZone * (1 - out);
+    facadeLight.intensity = 155 * out; hallLight.intensity = 50 * inZone * (1 - out);
     museumFill.forEach(light => {
       light.position.z = 15 + 16 * out;
       light.intensity = inZone * 28 * out;

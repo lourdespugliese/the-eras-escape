@@ -14,7 +14,7 @@ Rama: `retexturizado`. Texturas de color generadas con la herramienta integrada 
 - Iluminación del frontón: seis bañadores cálidos sobre el labio y un relleno rectangular amplio aclaran la franja que quedaba en sombra. Se atenúan al entrar y se apagan al ocultar la introducción.
 - Pavimento: rugosidad variable de zonas húmedas y charcos, normal/altura alineados a la textura nueva y distorsión de los reflejos según la superficie.
 - Sombras y luz cálida ajustadas en el museo; las salas conservan sus materiales. El latón y el vidrio mantienen su intensidad propia de reflejos.
-- Hall: `js/museum-hall.js` distribuye luz de galería a los lados, bajo la lámpara y sobre la pared del fondo. Un entorno de reflejos propio añade destellos verticales en el vidrio y el latón; el damero conserva reflejos suaves. Las bases de las vitrinas reciben sombras de contacto y el pedestal central usa mármol oscuro.
+- Hall: `js/museum-hall.js` distribuye luz de galería a los lados, bajo la lámpara y con tres spots dirigidos hacia abajo en la pared del fondo. La luz ambiental y el relleno lateral se reducen para conservar el contraste de la referencia. Un entorno de reflejos propio añade destellos verticales en el vidrio y el latón; el damero conserva reflejos suaves. Las bases de las vitrinas reciben sombras de contacto y el pedestal central usa mármol oscuro.
 - Las paredes y columnas del hall evitan recibir la franja de sombra de las luces globales; el suelo y las piezas expuestas mantienen sus sombras. El techo oscuro, las vigas de nogal y la estatua mate completan la ambientación.
 - La lluvia se oculta dentro del hall y las partículas bajo techo se descartan.
 

@@ -1,0 +1,14 @@
+{
+  "premiere": {
+    "downlights": 3,
+    "aimDown": true,
+    "hallActive": true,
+    "statueLoaded": true
+  },
+  "transitions": {
+    "hiddenAfterSkip": true,
+    "visibleAfterReturn": true,
+    "returnZ": 23.2
+  },
+  "errors": []
+}
