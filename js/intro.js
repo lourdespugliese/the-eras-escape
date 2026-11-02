@@ -11,6 +11,7 @@ import { buildMuseumPremiere } from './museum-premiere.js';
 import { buildMuseumCornice } from './museum-cornice.js';
 import { buildHallLighting } from './museum-hall.js';
 import { buildCorinthianColumns } from './museum-columns.js';
+import { buildMuseumNeon } from './museum-neon.js';
 
 // ================= Medidas del mundo =================
 const GROUND = -1.2;                 // nivel del suelo exterior (el interior del museo está en y = 0)
@@ -76,17 +77,6 @@ function eraTexture(kind, hex) {
       g.beginPath(); g.arc(0, 0, 74, 0, TAU); g.fill(); g.fillStyle = '#14100c'; g.beginPath(); g.arc(34, -14, 62, 0, TAU); g.fill();
       g.fillStyle = hex; [[60, -60], [78, 20], [48, 62]].forEach(([x, y]) => { g.beginPath(); g.arc(x, y, 6, 0, TAU); g.fill(); });
     }
-  });
-}
-function clockTexture() {      // reloj marcando las 11:55 PM
-  return canvasTex(256, 256, (g) => {
-    g.fillStyle = '#e9dfc4'; g.fillRect(0, 0, 256, 256);
-    g.translate(128, 128); g.strokeStyle = '#2a1d10'; g.fillStyle = '#2a1d10'; g.lineCap = 'round';
-    for (let i = 0; i < 12; i++) { const a = (i / 12) * TAU; g.lineWidth = i % 3 ? 5 : 9; g.beginPath(); g.moveTo(Math.sin(a) * 100, -Math.cos(a) * 100); g.lineTo(Math.sin(a) * 118, -Math.cos(a) * 118); g.stroke(); }
-    const hand = (deg, len, w) => { const a = (deg * Math.PI) / 180; g.lineWidth = w; g.beginPath(); g.moveTo(0, 0); g.lineTo(Math.sin(a) * len, -Math.cos(a) * len); g.stroke(); };
-    hand((11 + 55 / 60) * 30, 62, 11);     // hora: 11:55
-    hand(55 * 6, 98, 7);                   // minutos: 55
-    g.beginPath(); g.arc(0, 0, 9, 0, TAU); g.fill();
   });
 }
 function glowTexture(inner = '255,236,170') {
@@ -225,9 +215,7 @@ export function buildIntro(ctx, room1, { player, skip = false } = {}) {
   const pediment = new THREE.Mesh(new THREE.ExtrudeGeometry(pedShape, { depth: 3.4, bevelEnabled: false }), stone);
   pediment.position.set(HCX, 9.8, FZ + 0.3); root.add(pediment);
   const cornice = buildMuseumCornice(root, HCX, stone);
-  const clock = new THREE.Mesh(new THREE.CircleGeometry(1.3, 48), new THREE.MeshBasicMaterial({ map: clockTexture() }));
-  clock.position.set(HCX, 11.45, FZ + 3.75); root.add(clock);
-  const clockRing = new THREE.Mesh(new THREE.TorusGeometry(1.34, 0.1, 10, 48), goldM); clockRing.position.copy(clock.position); root.add(clockRing);
+  const neon = buildMuseumNeon(root, HCX);
   const columnXs = [-16, -12, -8, -4, 4, 8, 12, 16].map((o) => HCX + o);                                                     // columnas corintias gigantes
   buildCorinthianColumns(root, columnXs, 27.6, columnStone);
   columnXs.forEach((x) => ctx.colliders.push({ minX: x - 0.6, maxX: x + 0.6, minZ: 27, maxZ: 28.2 }));
@@ -530,6 +518,7 @@ export function buildIntro(ctx, room1, { player, skip = false } = {}) {
     root.visible = false; orb.visible = false;
     ambient.intensity = facadeLight.intensity = hallLight.intensity = statueFill.intensity = 0;            // (las luces siguen en la escena para no recompilar los materiales)
     cornice.update(0);
+    neon.update(0);
     hallAtmosphere.update(0);
     museumFill.forEach(light => { light.intensity = 0; });
     sound.outdoor(0); sound.drone(0); player.speed = baseSpeed; hudMode('full');
@@ -585,6 +574,7 @@ export function buildIntro(ctx, room1, { player, skip = false } = {}) {
     const z = cam.z, out = smooth(FZ - 1, FZ + 1.5, z), inZone = smooth(3.4, 5.6, z);
     premiere.update(dt, t, smooth(FZ, FZ + 1.2, z));
     cornice.update(smooth(FZ, FZ + 1.2, z));
+    neon.update(smooth(FZ, FZ + 1.2, z));
     hallAtmosphere.update(inZone * (1 - out));
     ambient.color.setRGB(0.8 + 0.2 * (1 - out), 0.82 + 0.05 * (1 - out), 0.9 - 0.22 * (1 - out));
     ambient.intensity = inZone * (0.22 * out + 0.045 * (1 - out));
@@ -736,7 +726,7 @@ export function buildIntro(ctx, room1, { player, skip = false } = {}) {
   });
 
   root.traverse(mapMuseumMesh);
-  ctx.museum = { root, premiere, cornice, hallAtmosphere, reflectionSurfaces: [plaza, path, hallFloor], lights: [facadeLight, hallLight] };
+  ctx.museum = { root, premiere, cornice, neon, hallAtmosphere, reflectionSurfaces: [plaza, path, hallFloor], lights: [facadeLight, hallLight] };
 
   // ================= API =================
   function finishInstant() {                                                        // ?skip: salta la intro y empieza en la sala 1
@@ -790,5 +780,6 @@ export function buildIntro(ctx, room1, { player, skip = false } = {}) {
     },
     get phase() { return phase; },
     get guide() { return { phase: orbPhase, obj: orb }; },     // solo lectura (para pruebas)
+    get doors() { return { front: doorAngle > 0.001, fearless: fAngle > 0.001 }; },   // visibility.js: ¿se ve a través de ellas?
   };
 }

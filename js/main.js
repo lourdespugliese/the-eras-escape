@@ -25,6 +25,8 @@ import { createVolume } from './volume.js';
 import { setupLighting } from './lighting.js';
 import { setupMuseumReflections } from './museum-materials.js';
 import { setupHallMaterials } from './museum-hall.js';
+import { setupVisibility } from './visibility.js';
+import { setupLightBudget } from './light-budget.js';
 
 // Diagnóstico: si algo falla mientras corre el juego, el error aparece en un cartel rojo arriba (clic para cerrarlo), además de la consola.
 const errBox = document.createElement('div');
@@ -37,7 +39,7 @@ addEventListener('error', (e) => showError(`${e.message} (${String(e.filename ||
 addEventListener('unhandledrejection', (e) => showError('Promesa rechazada: ' + (e.reason && e.reason.message ? e.reason.message : e.reason)));
 
 const canvas = document.getElementById('game');
-const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: false });   // el antialias lo hace el composer (MSAA en su render target)
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 renderer.setSize(innerWidth, innerHeight);
 
@@ -94,6 +96,7 @@ const room6 = buildRoomMidnights(ctx, room5); // Habitación 6: Midnights (4 ace
 //   ?skip       salta la intro y empieza en la sala 1
 //   ?room=N     salta la intro y empieza dentro de la sala N (1-6): inventario con los objetos de las salas anteriores
 //               y puertas anteriores abiertas. La puerta de salida de la sala N sigue cerrada (se abre al resolverla).
+//   ?perf       deja renderer, escena, cámara, composer y visibilidad en window.__perf para medir desde la consola
 const params = new URLSearchParams(location.search);
 const START_ROOM = parseInt(params.get('room'), 10) || 0;
 const FINALE = params.has('lobby') || params.has('finale');   // ?lobby (o ?finale): empiezas en el hall con los 6 trofeos recogidos (para probar la ceremonia final)
@@ -125,6 +128,17 @@ buildSongShelf(ctx);
 const lighting = setupLighting({ renderer, scene, camera, ctx });   // tone mapping, reflejos en metales y sombras (después de crear todo)
 setupHallMaterials(renderer, scene, ctx);
 setupMuseumReflections(renderer, scene, camera, ctx);
+// Zonas en cadena (exterior -> hall -> salas 1-6) y la puerta que une cada una con la siguiente: lo que no se ve no se dibuja.
+const hallZone = ctx.rooms.find((r) => /^Hall/.test(r.name));
+const chain = [{ name: 'exterior', bounds: { minX: -1e3, maxX: 1e3, minZ: hallZone.bounds.maxZ, maxZ: 1e3 } }, hallZone, ...ctx.rooms.filter((r) => r !== hallZone)];
+const roomDoors = [room1, room2, room3, room4, room5].map((r) => r.door);
+const visibility = setupVisibility({
+  scene, camera, zones: chain,
+  openings: () => { const d = intro.doors; return [d.front, d.fearless, ...roomDoors.map((door) => !door.locked)]; },
+  shadowLights: lighting.shadowLights.map(({ light, room }) => ({ light, zone: room === 'exterior' ? 0 : chain.indexOf(room) })),
+});
+const lightBudget = setupLightBudget({ renderer, scene, camera, target: composer.readBuffer, zone: () => visibility.current });   // después de visibility: usa su zona y los reflejos activos
+if (params.has('perf')) window.__perf = { renderer, scene, camera, composer, ctx, player, visibility, lightBudget };
 
 ui.onStart(() => { audio.start(); player.lock(); });   // el audio necesita un click del usuario
 let devJumped = false;
@@ -154,7 +168,6 @@ function animate() {
   }
   ctx.updaters.forEach((fn) => fn(dt, t));
   ctx.particles.update(dt);
-  lighting.update();
   const bk = Math.min(1, dt * 3), full = ctx.fx.bloom;   // transición suave; en modo base solo brillan las luces muy intensas
   bloomPass.strength += ((full ? BLOOM_FULL : BLOOM_BASE) - bloomPass.strength) * bk;
   bloomPass.threshold += ((full ? 0.9 : 1.6) - bloomPass.threshold) * bk;

@@ -28,6 +28,78 @@ function noise(x, y, cells = 8) {
   return THREE.MathUtils.lerp(THREE.MathUtils.lerp(at(ix, iy), at(ix + 1, iy), u),
     THREE.MathUtils.lerp(at(ix, iy + 1), at(ix + 1, iy + 1), u), v);
 }
+// Perlin de gradientes: el ruido de valor formaba charcos de bloques idénticos en cada losa.
+const GRADIENTS = [[1, 0], [0.7071, 0.7071], [0, 1], [-0.7071, 0.7071], [-1, 0], [-0.7071, -0.7071], [0, -1], [0.7071, -0.7071]];
+function lattice(a, b, seed) {
+  let n = Math.imul(a, 374761393) ^ Math.imul(b, 668265263) ^ Math.imul(seed, 2246822519);
+  n = Math.imul(n ^ (n >>> 13), 1274126177);
+  return (n ^ (n >>> 16)) >>> 0;
+}
+function gradientDot(ix, iy, fx, fy, seed) {
+  const g = GRADIENTS[lattice(ix, iy, seed) & 7];
+  return g[0] * fx + g[1] * fy;
+}
+const wrapCell = (i, period) => period ? ((i % period) + period) % period : i;
+// Coordenadas en celdas de la rejilla; cada semilla da un campo distinto. Con period > 0 el campo repite sin costuras.
+function perlin(x, y, seed, period = 0) {
+  const ix = Math.floor(x), iy = Math.floor(y);
+  const fx = x - ix, fy = y - iy;
+  const x0 = wrapCell(ix, period), x1 = wrapCell(ix + 1, period), y0 = wrapCell(iy, period), y1 = wrapCell(iy + 1, period);
+  const u = fx * fx * fx * (fx * (fx * 6 - 15) + 10), v = fy * fy * fy * (fy * (fy * 6 - 15) + 10);
+  return THREE.MathUtils.lerp(
+    THREE.MathUtils.lerp(gradientDot(x0, y0, fx, fy, seed), gradientDot(x1, y0, fx - 1, fy, seed), u),
+    THREE.MathUtils.lerp(gradientDot(x0, y1, fx, fy - 1, seed), gradientDot(x1, y1, fx - 1, fy - 1, seed), u), v);
+}
+// Charcos: losas de 256×128 px con juntas desplazadas por fila. Cada losa tiene su propio campo Perlin
+// deformado y una humedad base, así que no se repiten iguales. Todo se calcula al hornear la textura.
+function puddle(x, y, cloud) {
+  const row = Math.floor(y / 128), shifted = x + (row % 2) * 128;
+  const slab = row * 2 + Math.floor((shifted % 512) / 256), seed = slab * 4;
+  const px = (shifted % 256) / 112, py = (y % 128) / 112;
+  const wx = px + perlin(px, py, seed) * 0.6, wy = py + perlin(px + 5.2, py + 1.3, seed + 1) * 0.6;
+  const field = perlin(wx, wy, seed + 2) * 0.62 + perlin(wx * 2, wy * 2, seed + 2) * 0.3 + perlin(wx * 4, wy * 4, seed + 2) * 0.15;
+  const bias = (lattice(slab, 0, 7) / 4294967296 - 0.5) * 0.3;
+  return THREE.MathUtils.smoothstep(field + cloud * 0.2 + bias, -0.2, 0.22);
+}
+// Máscara macro en espacio mundo: rompe la repetición de las losas. Su periodo (48 m) supera la plaza (38×33 m),
+// así que no se repite a la vista. Se hornea una vez, como el resto de texturas.
+const MACRO_METERS = 48, MACRO_SIZE = 256;
+let macroTexture = null;
+function puddleMacroTexture() {
+  if (macroTexture) return macroTexture;
+  const data = new Uint8Array(MACRO_SIZE * MACRO_SIZE * 4);
+  for (let y = 0; y < MACRO_SIZE; y++) for (let x = 0; x < MACRO_SIZE; x++) {
+    const u = x / MACRO_SIZE * 8, v = y / MACRO_SIZE * 8;
+    const field = perlin(u, v, 91, 8) * 0.65 + perlin(u * 2, v * 2, 92, 16) * 0.35;
+    const wet = THREE.MathUtils.smoothstep(field, -0.1, 0.1) * 255, p = (y * MACRO_SIZE + x) * 4;
+    data[p] = data[p + 1] = data[p + 2] = wet; data[p + 3] = 255;
+  }
+  macroTexture = new THREE.DataTexture(data, MACRO_SIZE, MACRO_SIZE);
+  macroTexture.wrapS = macroTexture.wrapT = THREE.RepeatWrapping;
+  macroTexture.magFilter = macroTexture.minFilter = THREE.LinearFilter;
+  macroTexture.needsUpdate = true;
+  return macroTexture;
+}
+// Escala de rugosidad: en zonas húmedas el charco se intensifica, en secas se apaga. Coste: una lectura de textura.
+const PUDDLE_GLSL = `
+float puddleRoughnessScale(vec2 world, sampler2D macroMap, float strength) {
+  float wet = texture2D(macroMap, world / ${MACRO_METERS.toFixed(1)}).r;
+  return mix(1.0, mix(1.5, 0.75, wet), strength);
+}`;
+// El pavimento recibe la máscara en su shader (también sus clones). Usa el mismo nombre de programa para compartir compilación.
+function attachPuddleMacro(material) {
+  const macroMap = puddleMacroTexture();
+  material.onBeforeCompile = (shader) => {
+    shader.uniforms.puddleMacroMap = { value: macroMap };
+    shader.vertexShader = shader.vertexShader
+      .replace('#include <common>', '#include <common>\nvarying vec2 vPuddleWorld;')
+      .replace('#include <begin_vertex>', '#include <begin_vertex>\nvPuddleWorld = (modelMatrix * vec4(transformed, 1.0)).xz;');
+    shader.fragmentShader = shader.fragmentShader
+      .replace('#include <common>', `#include <common>\nvarying vec2 vPuddleWorld;\nuniform sampler2D puddleMacroMap;${PUDDLE_GLSL}`)
+      .replace('#include <roughnessmap_fragment>', '#include <roughnessmap_fragment>\nroughnessFactor = min(roughnessFactor * puddleRoughnessScale(vPuddleWorld, puddleMacroMap, 1.0), 1.0);');
+  };
+  material.customProgramCacheKey = () => 'puddle-macro';
+}
 function writeNormals(heightData, target) {
   const g = target.getContext('2d'), data = g.createImageData(SIZE, SIZE);
   for (let y = 0; y < SIZE; y++) for (let x = 0; x < SIZE; x++) {
@@ -59,7 +131,7 @@ function maps(kind) {
     }
     if (kind === 'wood') v = 0.5 + Math.sin(x * 0.15 + Math.sin(y * Math.PI * 2 / SIZE) * 3) * 0.14 + n * 0.04;
     heights[p] = v;
-    const wet = kind === 'paving' ? THREE.MathUtils.smoothstep(noise(x, y, 4) + cloud * 0.2, -0.15, 0.28) : 0;
+    const wet = kind === 'paving' ? puddle(x, y, cloud) : 0;
     const r = kind === 'paving' ? 170 - wet * 144 + n * 5 : kind.includes('marble') || kind === 'checker' ? 68 + cloud * 22 + n * 4 : 175 + cloud * 25 + n * 8;
     for (let k = 0; k < 3; k++) { hd.data[p * 4 + k] = v * 255; rd.data[p * 4 + k] = r; }
     hd.data[p * 4 + 3] = rd.data[p * 4 + 3] = 255;
@@ -105,13 +177,15 @@ export function museumMaterial(kind, overrides = {}) {
       bumpScale: kind === 'paving' ? 0.055 : kind === 'limestone' ? 0.035 : 0.009,
       clearcoat: physical ? 0.32 : 0, clearcoatRoughness: kind === 'paving' ? 0.22 : 0.25,
       envMapIntensity: 0.12 });
-    if (kind === 'paving') { mat.clearcoatRoughnessMap = mat.roughnessMap; mat.clearcoatRoughness = 0.8; }
+    if (kind === 'paving') { mat.clearcoatRoughnessMap = mat.roughnessMap; mat.clearcoatRoughness = 0.8; attachPuddleMacro(mat); }
     mat.userData.tileSize = kind === 'limestone' ? [4, 3] : kind === 'wood' ? [1, 6] : kind === 'paving' ? [2.4, 2] : [3, 3];
     mat.userData.surfaceKind = kind;
     cache.set(kind, mat);
   }
   if (!Object.keys(overrides).length) return cache.get(kind);
-  const m = cache.get(kind).clone(); Object.assign(m, overrides); return m;
+  const m = cache.get(kind).clone(); Object.assign(m, overrides);
+  if (kind === 'paving') attachPuddleMacro(m);   // clone() no copia onBeforeCompile
+  return m;
 }
 
 export function brassMaterial() {
@@ -176,15 +250,18 @@ export function setupMuseumReflections(renderer, scene, camera, ctx) {
     uniforms.reflectionTexel = { value: new THREE.Vector2(1 / 1024, 1 / 576) };
     uniforms.surfaceDistortion = { value: index === 0 ? 0.045 : 0.003 };
     uniforms.reflectionBlur = { value: index === 0 ? 11 : 7 };
-    const vertexShader = shader.vertexShader.replace('varying vec4 vUv;', 'varying vec4 vUv; varying vec2 surfaceUv;')
-      .replace('vUv = textureMatrix', 'surfaceUv = uv; vUv = textureMatrix');
+    uniforms.puddleMacroMap = { value: puddleMacroTexture() };
+    uniforms.puddleMacroStrength = { value: index === 0 ? 1 : 0 };   // solo el patio tiene charcos
+    const vertexShader = shader.vertexShader.replace('varying vec4 vUv;', 'varying vec4 vUv; varying vec2 surfaceUv; varying vec2 surfaceWorld;')
+      .replace('vUv = textureMatrix', 'surfaceUv = uv; surfaceWorld = (modelMatrix * vec4(position, 1.0)).xz; vUv = textureMatrix');
     const fragmentShader = shader.fragmentShader.replace('varying vec4 vUv;',
-      `varying vec4 vUv; varying vec2 surfaceUv;
+      `varying vec4 vUv; varying vec2 surfaceUv; varying vec2 surfaceWorld;
       uniform sampler2D surfaceNormal; uniform sampler2D surfaceRoughness;
       uniform float reflectionStrength; uniform vec2 reflectionTexel;
-      uniform float surfaceDistortion; uniform float reflectionBlur; uniform float courtyard;`)
+      uniform float surfaceDistortion; uniform float reflectionBlur; uniform float courtyard;
+      uniform sampler2D puddleMacroMap; uniform float puddleMacroStrength;${PUDDLE_GLSL}`)
       .replace('vec4 base = texture2DProj( tDiffuse, vUv );',
-        `float rough = texture2D(surfaceRoughness, surfaceUv).g;
+        `float rough = texture2D(surfaceRoughness, surfaceUv).g * puddleRoughnessScale(surfaceWorld, puddleMacroMap, puddleMacroStrength);
         vec2 projected = vUv.xy / vUv.w + (texture2D(surfaceNormal, surfaceUv).rg - 0.5) * surfaceDistortion;
         vec2 spread = reflectionTexel * reflectionBlur * (0.35 + rough);
         vec4 base = texture2D(tDiffuse, projected) * 0.28;

@@ -1,6 +1,7 @@
 {
   "version": "0.0.1",
   "configurations": [
-    { "name": "museo", "runtimeExecutable": "python", "runtimeArgs": ["-m", "http.server", "8000"], "port": 8000 }
+    { "name": "museo", "runtimeExecutable": "python", "runtimeArgs": ["-m", "http.server", "8000"], "port": 8000 },
+    { "name": "museo-8012", "runtimeExecutable": "python", "runtimeArgs": ["-m", "http.server", "8012"], "port": 8012, "autoPort": false }
   ]
 }

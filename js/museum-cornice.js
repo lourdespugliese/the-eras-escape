@@ -15,7 +15,7 @@ export function buildMuseumCornice(root, centerX, stone) {
   beam(36.9, 0.14, 0.7, 0, 9.13, 28.95, shade);
   beam(37.5, 0.3, 0.9, 0, 9.35, 29.02);
   beam(38.2, 0.18, 1.12, 0, 9.63, 29.05, coping);
-  // Los remates inclinados siguen la silueta existente sin invadir el reloj.
+  // Los remates inclinados siguen la silueta existente y enmarcan el cartel.
   for (const side of [-1, 1]) {
     const x = side * 18.5, y = 9.95, peak = 13.86;
     const length = Math.hypot(x, peak - y);

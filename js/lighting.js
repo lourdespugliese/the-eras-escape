@@ -1,12 +1,12 @@
 // lighting.js — Tone mapping, reflejos en metales (mapa de entorno) y sombras.
 // Se llama una vez en main.js, DESPUÉS de construir todas las salas. No cambia las luces de cada sala: solo añade sombras
 // a una luz clave por habitación y revisa cada 1.5 s los objetos nuevos (por ejemplo los .glb, que cargan tarde).
+// Cuándo se redibuja cada mapa de sombras lo decide visibility.js (con la lista shadowLights que devuelve esta función).
 import * as THREE from 'three';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 
 const ENV_INTENSITY = 0.3;     // reflejo suave: un valor alto haría brillar los metales en las salas oscuras
 const MAX_CASTER = 8;          // los meshes más grandes que esto (paredes, pisos, techos) reciben sombra pero no la proyectan
-const WARMUP_FRAMES = 4;       // al inicio todas las luces dibujan su mapa de sombras una vez; después solo la de la sala actual
 
 export function setupLighting({ renderer, scene, camera, ctx }) {
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
@@ -50,7 +50,7 @@ export function setupLighting({ renderer, scene, camera, ctx }) {
   setInterval(scan, 1500);
 
   // --- Luces con sombra ---
-  const entries = [];   // { light, room }  (room = objeto de ctx.rooms; la luz solo actualiza su mapa cuando el jugador está ahí)
+  const entries = [];   // { light, room }  (room = objeto de ctx.rooms al que pertenece la luz)
   const v = new THREE.Vector3();
   const inside = (b, p) => p.x > b.minX && p.x < b.maxX && p.z > b.minZ && p.z < b.maxZ;
 
@@ -86,24 +86,15 @@ export function setupLighting({ renderer, scene, camera, ctx }) {
     entries.push({ light: o, room });
   });
 
+  // Luces del museo: la de la fachada ilumina el exterior y la del hall, el hall.
   const museumLights = ctx.museum?.lights || [];
-  museumLights.forEach(light => {
+  const hall = ctx.rooms.find((r) => /^Hall/.test(r.name));
+  museumLights.forEach((light, i) => {
     light.castShadow = true;
     light.shadow.mapSize.set(1024, 1024);
     light.shadow.camera.near = 0.5; light.shadow.camera.far = light.distance;
     light.shadow.bias = -0.0003; light.shadow.normalBias = 0.04;
+    entries.push({ light, room: i === 0 ? 'exterior' : hall });
   });
-  let frame = 0;
-  return {
-    entries,
-    update() {
-      const p = camera.position;
-      const cur = ctx.rooms.find((r) => inside(r.bounds, p));
-      const warm = frame++ < WARMUP_FRAMES;
-      museumLights.forEach((light, i) => {
-        light.shadow.autoUpdate = warm || (ctx.museum.root.visible && (i === 0 ? p.z >= 25 : p.z >= 5 && p.z < 25));
-      });
-      for (const e of entries) e.light.shadow.autoUpdate = warm || e.room === cur;
-    },
-  };
+  return { shadowLights: entries };
 }

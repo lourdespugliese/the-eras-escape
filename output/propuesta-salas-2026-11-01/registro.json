@@ -1,0 +1,208 @@
+{
+  "capturedAt": "2026-11-02T02:51:05.196Z",
+  "viewport": {
+    "width": 1440,
+    "height": 900
+  },
+  "rooms": [
+    {
+      "name": "Habitación 1 — Fearless",
+      "bounds": {
+        "minX": -5,
+        "maxX": 9,
+        "minZ": -5,
+        "maxZ": 5
+      },
+      "slug": "fearless",
+      "views": [
+        {
+          "name": "entrada",
+          "x": 2,
+          "z": 3.2,
+          "tx": 2,
+          "tz": -4
+        },
+        {
+          "name": "diagonal",
+          "x": -3.2,
+          "z": 2.6,
+          "tx": 3,
+          "tz": -1
+        },
+        {
+          "name": "contraplano",
+          "x": 7.2,
+          "z": -2.6,
+          "tx": 1,
+          "tz": 1
+        }
+      ]
+    },
+    {
+      "name": "Habitación 2 — 1989",
+      "bounds": {
+        "minX": -6.5,
+        "maxX": 6.5,
+        "minZ": -22,
+        "maxZ": -9
+      },
+      "slug": "1989",
+      "views": [
+        {
+          "name": "entrada",
+          "x": 0,
+          "z": -10.8,
+          "tx": 0,
+          "tz": -21
+        },
+        {
+          "name": "diagonal",
+          "x": -4.7,
+          "z": -11.4,
+          "tx": 1,
+          "tz": -16.5
+        },
+        {
+          "name": "contraplano",
+          "x": 4.7,
+          "z": -19.6,
+          "tx": -1,
+          "tz": -14.5
+        }
+      ]
+    },
+    {
+      "name": "Habitación 3 — Reputation",
+      "bounds": {
+        "minX": -6,
+        "maxX": 6,
+        "minZ": -38,
+        "maxZ": -26
+      },
+      "slug": "reputation",
+      "views": [
+        {
+          "name": "entrada",
+          "x": 0,
+          "z": -27.8,
+          "tx": 0,
+          "tz": -37
+        },
+        {
+          "name": "diagonal",
+          "x": -4.2,
+          "z": -28.4,
+          "tx": 1,
+          "tz": -33
+        },
+        {
+          "name": "contraplano",
+          "x": 4.2,
+          "z": -35.6,
+          "tx": -1,
+          "tz": -31
+        }
+      ]
+    },
+    {
+      "name": "Habitación 4 — Lover",
+      "bounds": {
+        "minX": -6,
+        "maxX": 6,
+        "minZ": -57,
+        "maxZ": -45
+      },
+      "slug": "lover",
+      "views": [
+        {
+          "name": "entrada",
+          "x": 0,
+          "z": -46.8,
+          "tx": 0,
+          "tz": -56
+        },
+        {
+          "name": "diagonal",
+          "x": -4.2,
+          "z": -47.4,
+          "tx": 1,
+          "tz": -52
+        },
+        {
+          "name": "contraplano",
+          "x": 4.2,
+          "z": -54.6,
+          "tx": -1,
+          "tz": -50
+        }
+      ]
+    },
+    {
+      "name": "Habitación 5 — Folklore / Evermore",
+      "bounds": {
+        "minX": -20,
+        "maxX": 20,
+        "minZ": -93,
+        "maxZ": -61
+      },
+      "slug": "folklore-evermore",
+      "views": [
+        {
+          "name": "entrada",
+          "x": 0,
+          "z": -62.8,
+          "tx": 0,
+          "tz": -92
+        },
+        {
+          "name": "diagonal",
+          "x": -11.5,
+          "z": -74,
+          "tx": -11.5,
+          "tz": -80
+        },
+        {
+          "name": "contraplano",
+          "x": 8,
+          "z": -67,
+          "tx": 8,
+          "tz": -75
+        }
+      ]
+    },
+    {
+      "name": "Habitación 6 — Midnights",
+      "bounds": {
+        "minX": -15,
+        "maxX": 15,
+        "minZ": -131,
+        "maxZ": -97
+      },
+      "slug": "midnights",
+      "views": [
+        {
+          "name": "entrada",
+          "x": 0,
+          "z": -98.8,
+          "tx": 0,
+          "tz": -130
+        },
+        {
+          "name": "diagonal",
+          "x": -13.2,
+          "z": -99.4,
+          "tx": 1,
+          "tz": -115
+        },
+        {
+          "name": "contraplano",
+          "x": 13.2,
+          "z": -128.6,
+          "tx": -1,
+          "tz": -113
+        }
+      ]
+    }
+  ],
+  "errors": []
+}

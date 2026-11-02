@@ -1,0 +1,24 @@
+{
+  "exterior": {
+    "text": "Taylor Swift Museum",
+    "mergedTubeMeshes": 1,
+    "triangles": 17088,
+    "outsidePediment": 0,
+    "hiddenByCornice": 0,
+    "stoneLit": true,
+    "litStoneMaterials": 3,
+    "pointLights": 0,
+    "banners": 6
+  },
+  "inside": {
+    "dim": 0,
+    "glow": 0
+  },
+  "transitions": {
+    "hiddenAfterSkip": true,
+    "offAfterSkip": true,
+    "restored": true,
+    "returnZ": 23.2
+  },
+  "errors": []
+}
