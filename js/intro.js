@@ -9,6 +9,8 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { museumMaterial, checkerMaterial, brassMaterial, mapMuseumMesh } from './museum-materials.js';
 import { buildMuseumPremiere } from './museum-premiere.js';
 import { buildMuseumCornice } from './museum-cornice.js';
+import { buildHallLighting } from './museum-hall.js';
+import { buildCorinthianColumns } from './museum-columns.js';
 
 // ================= Medidas del mundo =================
 const GROUND = -1.2;                 // nivel del suelo exterior (el interior del museo está en y = 0)
@@ -179,8 +181,11 @@ export function buildIntro(ctx, room1, { player, skip = false } = {}) {
   // ---------- Materiales y utilidades ----------
   const M = (color, o = {}) => new THREE.MeshStandardMaterial({ color, roughness: 0.85, ...o });
   const stone = museumMaterial('limestone'), stoneDark = museumMaterial('dark-marble');
-  const wall = stone, hallWall = museumMaterial('plaster'), roof = museumMaterial('wood');
-  const columnStone = museumMaterial('plaster', { color: new THREE.Color(0xc9b58e), roughness: 0.88 });
+  const wall = stone, roof = museumMaterial('wood');
+  const hallWall = museumMaterial('plaster', { color: new THREE.Color(0xd5c3a7), roughness: 0.95,
+    bumpScale: 0.022, normalScale: new THREE.Vector2(0.45, 0.45) });
+  const hallBeam = museumMaterial('wood', { color: new THREE.Color(0xb89b78), roughness: 0.85 });
+  const columnStone = museumMaterial('plaster', { color: new THREE.Color(0xc9b58e), roughness: 0.88, side: THREE.DoubleSide });
   const stepStone = museumMaterial('plaster', { color: new THREE.Color(0xa39378), roughness: 0.7, clearcoat: 0.15 });
   const marble = museumMaterial('ivory-marble');
   const bronze = brassMaterial(), goldM = brassMaterial();
@@ -188,6 +193,7 @@ export function buildIntro(ctx, room1, { player, skip = false } = {}) {
   const slab = (x0, x1, y0, y1, z0, z1, mat, collide = false, parent = root) => {
     const m = new THREE.Mesh(new THREE.BoxGeometry(x1 - x0, y1 - y0, z1 - z0), mat);
     m.position.set((x0 + x1) / 2, (y0 + y1) / 2, (z0 + z1) / 2); parent.add(m); mapMuseumMesh(m);
+    if (mat === hallWall) m.userData.noReceiveShadow = true;
     if (collide) ctx.colliders.push({ minX: x0, maxX: x1, minZ: z0, maxZ: z1 });
     return m;
   };
@@ -222,11 +228,9 @@ export function buildIntro(ctx, room1, { player, skip = false } = {}) {
   const clock = new THREE.Mesh(new THREE.CircleGeometry(1.3, 48), new THREE.MeshBasicMaterial({ map: clockTexture() }));
   clock.position.set(HCX, 11.45, FZ + 3.75); root.add(clock);
   const clockRing = new THREE.Mesh(new THREE.TorusGeometry(1.34, 0.1, 10, 48), goldM); clockRing.position.copy(clock.position); root.add(clockRing);
-  [-16, -12, -8, -4, 4, 8, 12, 16].map((o) => HCX + o).forEach((x) => {                                                              // columnas gigantes
-    const col = new THREE.Mesh(new THREE.CylinderGeometry(0.55, 0.65, 8.6, 20), columnStone); col.position.set(x, 4.3, 27.6); root.add(col);
-    slab(x - 0.85, x + 0.85, 8.2, 8.6, 26.75, 28.45, stone); slab(x - 0.85, x + 0.85, 0, 0.4, 26.75, 28.45, stone);
-    ctx.colliders.push({ minX: x - 0.6, maxX: x + 0.6, minZ: 27, maxZ: 28.2 });
-  });
+  const columnXs = [-16, -12, -8, -4, 4, 8, 12, 16].map((o) => HCX + o);                                                     // columnas corintias gigantes
+  buildCorinthianColumns(root, columnXs, 27.6, columnStone);
+  columnXs.forEach((x) => ctx.colliders.push({ minX: x - 0.6, maxX: x + 0.6, minZ: 27, maxZ: 28.2 }));
 
   // Ventanas (algunas con luz cálida que titila)
   const windows = [];
@@ -352,8 +356,8 @@ export function buildIntro(ctx, room1, { player, skip = false } = {}) {
   const hallFloor = new THREE.Mesh(new THREE.PlaneGeometry(HX1 - HX0, FZ - HZ0), checkerMaterial());
   hallFloor.rotation.x = -Math.PI / 2; hallFloor.position.set(HCX, 0, (FZ + HZ0) / 2); root.add(hallFloor);
   slab(FD_L, FD_R, -0.02, 0.004, 4.8, 5.4, marble);                                                                 // umbral de la puerta de Fearless
-  const hallCeil = new THREE.Mesh(new THREE.PlaneGeometry(HX1 - HX0, FZ - HZ0), M(0x2a241f)); hallCeil.rotation.x = Math.PI / 2; hallCeil.position.set(HCX, HALL_H, (FZ + HZ0) / 2); root.add(hallCeil);
-  for (let x = HX0 + 3; x < HX1; x += 5) slab(x - 0.25, x + 0.25, HALL_H - 0.6, HALL_H, HZ0, FZ, woodDoor);   // vigas
+  const hallCeil = new THREE.Mesh(new THREE.PlaneGeometry(HX1 - HX0, FZ - HZ0), M(0x0b0907)); hallCeil.rotation.x = Math.PI / 2; hallCeil.position.set(HCX, HALL_H, (FZ + HZ0) / 2); hallCeil.userData.noReceiveShadow = true; root.add(hallCeil);
+  for (let x = HX0 + 3; x < HX1; x += 5) slab(x - 0.25, x + 0.25, HALL_H - 0.6, HALL_H, HZ0, FZ, hallBeam);   // vigas
   slab(HX0 - 0.2, HX0 + 0.2, 0, HALL_H, 5.2, FZ + 0.2, hallWall, true);                                            // pared oeste
   slab(HX1 - 0.2, HX1 + 0.2, 0, HALL_H, 4.8, FZ + 0.2, hallWall, true);                                            // pared este
   slab(HX0 - 0.2, -5.2, 0, HALL_H, 4.8, 5.2, hallWall, true);                                                       // pared norte (izquierda, junto a la sala 1)
@@ -361,6 +365,7 @@ export function buildIntro(ctx, room1, { player, skip = false } = {}) {
   slab(-5.2, 9.2, 4, HALL_H, 4.8, 5.2, hallWall);                                                                   // pared norte sobre la sala 1
   for (const x of [HX0 + 1, HX1 - 1]) for (const z of [9, 13, 17, 21]) {                                        // columnas
     const c = new THREE.Mesh(new THREE.CylinderGeometry(0.45, 0.5, HALL_H, 16), marble); c.position.set(x, HALL_H / 2, z); root.add(c);
+    c.userData.noReceiveShadow = true;
     ctx.colliders.push({ minX: x - 0.5, maxX: x + 0.5, minZ: z - 0.5, maxZ: z + 0.5 });
   }
   const carpet = new THREE.Mesh(new THREE.PlaneGeometry(4, 19.2), M(0x5a1a22, { roughness: 1 })); carpet.rotation.x = -Math.PI / 2; carpet.position.set(HCX, 0.012, 15);   // alfombra: de la puerta principal a la puerta de Fearless root.add(carpet);
@@ -372,13 +377,14 @@ export function buildIntro(ctx, room1, { player, skip = false } = {}) {
 
   // Estatua central con placa
   // Base inferior (más ancha)
-  slab(HCX - 1.9, HCX + 1.9, 0.0, 0.28, 13.1, 16.9, marble, true);
+  slab(HCX - 1.9, HCX + 1.9, 0.0, 0.28, 13.1, 16.9, stoneDark, true);
 
   // Cuerpo principal
   slab(HCX - 1.55, HCX + 1.55, 0.28, 1.55, 13.45, 16.55, stoneDark, true);
 
   // Tapa superior
-  slab(HCX - 1.75, HCX + 1.75, 1.55, 1.72, 13.25, 16.75, marble);
+  slab(HCX - 1.75, HCX + 1.75, 1.55, 1.72, 13.25, 16.75, stoneDark);
+  const hallAtmosphere = buildHallLighting(root, HCX);
   const STATUE = { url: 'assets/models/estatua-taylor.glb', height: 3.9, rotY: 0 };   // height = alto final en metros · rotY = giro en radianes
   const statueLamp = new THREE.Object3D();                                      // (la luz guía usa este objeto; ya no es una esfera visible)
   const holder = new THREE.Group(); holder.position.set(HCX, 1.72, 15); holder.rotation.y = STATUE.rotY; root.add(holder);
@@ -389,7 +395,8 @@ export function buildIntro(ctx, room1, { player, skip = false } = {}) {
     box.setFromObject(model);
     const c = box.getCenter(new THREE.Vector3());
     model.position.set(-c.x, -box.min.y, -c.z);                                 // centrada sobre el pedestal y apoyada en él
-    const statueMarble = museumMaterial('ivory-marble', { roughness: 0.95, clearcoat: 0.12 });
+    const statueMarble = museumMaterial('ivory-marble', { roughness: 0.62, roughnessMap: null, clearcoat: 0, specularIntensity: 0.35 });
+    statueMarble.userData.museumStatue = true;
     // El mármol escultórico tiene vetas más suaves que las losas pulidas del piso.
     statueMarble.onBeforeCompile = shader => {
       shader.fragmentShader = shader.fragmentShader.replace('#include <map_fragment>',
@@ -523,6 +530,7 @@ export function buildIntro(ctx, room1, { player, skip = false } = {}) {
     root.visible = false; orb.visible = false;
     ambient.intensity = facadeLight.intensity = hallLight.intensity = statueFill.intensity = 0;            // (las luces siguen en la escena para no recompilar los materiales)
     cornice.update(0);
+    hallAtmosphere.update(0);
     museumFill.forEach(light => { light.intensity = 0; });
     sound.outdoor(0); sound.drone(0); player.speed = baseSpeed; hudMode('full');
     gone = true;
@@ -577,13 +585,14 @@ export function buildIntro(ctx, room1, { player, skip = false } = {}) {
     const z = cam.z, out = smooth(FZ - 1, FZ + 1.5, z), inZone = smooth(3.4, 5.6, z);
     premiere.update(dt, t, smooth(FZ, FZ + 1.2, z));
     cornice.update(smooth(FZ, FZ + 1.2, z));
+    hallAtmosphere.update(inZone * (1 - out));
     ambient.color.setRGB(0.8 + 0.2 * (1 - out), 0.82 + 0.05 * (1 - out), 0.9 - 0.22 * (1 - out));
-    ambient.intensity = inZone * (0.22 * out + 0.18 * (1 - out));
-    statueFill.intensity = 60 * inZone * (1 - out);
-    facadeLight.intensity = 155 * out; hallLight.intensity = 185 * inZone * (1 - out);
+    ambient.intensity = inZone * (0.22 * out + 0.12 * (1 - out));
+    statueFill.intensity = 40 * inZone * (1 - out);
+    facadeLight.intensity = 155 * out; hallLight.intensity = 80 * inZone * (1 - out);
     museumFill.forEach(light => {
       light.position.z = 15 + 16 * out;
-      light.intensity = inZone * (28 * out + 42 * (1 - out));
+      light.intensity = inZone * 28 * out;
     });
     room1.lights.mute = Math.min(room1.lights.mute, Math.max(0.04, fOpen ? Math.max(clamp((5.4 - z) / 1.8, 0, 1), 0.22) : clamp((5.4 - z) / 1.8, 0, 1)));
     room1.lights.apply();
@@ -727,7 +736,7 @@ export function buildIntro(ctx, room1, { player, skip = false } = {}) {
   });
 
   root.traverse(mapMuseumMesh);
-  ctx.museum = { root, premiere, cornice, reflectionSurfaces: [plaza, path, hallFloor], lights: [facadeLight, hallLight] };
+  ctx.museum = { root, premiere, cornice, hallAtmosphere, reflectionSurfaces: [plaza, path, hallFloor], lights: [facadeLight, hallLight] };
 
   // ================= API =================
   function finishInstant() {                                                        // ?skip: salta la intro y empieza en la sala 1

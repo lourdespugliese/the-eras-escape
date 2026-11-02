@@ -39,7 +39,7 @@ export function setupLighting({ renderer, scene, camera, ctx }) {
         if (m.transparent || m.depthWrite === false || m.isMeshBasicMaterial) solid = false;   // brillos, neón y cristales no hacen sombra
       }
       if (!lit) return;
-      o.receiveShadow = true;
+      o.receiveShadow = o.userData.noReceiveShadow !== true;
       if (solid) {
         box.setFromObject(o); box.getSize(size);
         o.castShadow = o.userData.forceShadow === true || Math.max(size.x, size.z, size.y) <= MAX_CASTER;

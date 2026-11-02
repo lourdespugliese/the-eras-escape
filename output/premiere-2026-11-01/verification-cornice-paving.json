@@ -1,0 +1,14 @@
+{
+  "premiere": {
+    "banners": 6,
+    "fixtures": 4,
+    "textures": true,
+    "beams": true
+  },
+  "transitions": {
+    "hiddenAfterSkip": true,
+    "visibleAfterReturn": true,
+    "returnZ": 23.2
+  },
+  "errors": []
+}
