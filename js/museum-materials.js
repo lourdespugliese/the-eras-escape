@@ -162,7 +162,7 @@ export function mapMuseumMesh(mesh) {
 
 export function setupMuseumReflections(renderer, scene, camera, ctx) {
   const museum = ctx.museum; if (!museum) return;
-  museum.ready = Promise.all(pending);
+  museum.ready = Promise.all([...pending, museum.premiere?.ready]);
   const reflectors = [];
   for (const [index, floor] of [[0, museum.reflectionSurfaces[0]], [1, museum.reflectionSurfaces[2]]]) {
     const shader = Reflector.ReflectorShader;

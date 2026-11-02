@@ -7,6 +7,7 @@ import { canvasTex, makeTextTexture, addCollider } from './rooms.js';
 import { createIntroSound } from './introsound.js';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { museumMaterial, checkerMaterial, brassMaterial, mapMuseumMesh } from './museum-materials.js';
+import { buildMuseumPremiere } from './museum-premiere.js';
 
 // ================= Medidas del mundo =================
 const GROUND = -1.2;                 // nivel del suelo exterior (el interior del museo está en y = 0)
@@ -236,6 +237,8 @@ export function buildIntro(ctx, room1, { player, skip = false } = {}) {
   [-13, -10, -7, -4, 4, 7, 10, 13].forEach((o, i) => addWindow(HCX + o, 3.4, 1.4, 3.6, [1, 0, 1, 1, 1, 1, 0, 1][i]));
   [-22.5, -19.5, -16.8, 17.5, 20.5, 23].forEach((o, i) => { addWindow(HCX + o, 3.4, 1.4, 3.6, i % 3 !== 1); addWindow(HCX + o, 7.6, 1.2, 1.4, i % 2 === 0); });
   [-13, -7, 4, 10].forEach((o, i) => addWindow(HCX + o, 7.4, 1.2, 1.4, i % 2 === 0));
+
+  const premiere = buildMuseumPremiere({ root, colliders: ctx.colliders, centerX: HCX, ground: GROUND, brass: goldM });
 
   // Faroles junto a la puerta (el de la izquierda lo apaga el viento más adelante)
   const lanterns = [DOOR_X - 3, DOOR_X + 3].map((x) => {
@@ -569,6 +572,7 @@ export function buildIntro(ctx, room1, { player, skip = false } = {}) {
 
     // ----- Luces según la zona (las luces de three.js son globales) -----
     const z = cam.z, out = smooth(FZ - 1, FZ + 1.5, z), inZone = smooth(3.4, 5.6, z);
+    premiere.update(dt, t, smooth(FZ, FZ + 1.2, z));
     ambient.color.setRGB(0.8 + 0.2 * (1 - out), 0.82 + 0.05 * (1 - out), 0.9 - 0.22 * (1 - out));
     ambient.intensity = inZone * (0.22 * out + 0.18 * (1 - out));
     statueFill.intensity = 60 * inZone * (1 - out);
@@ -719,7 +723,7 @@ export function buildIntro(ctx, room1, { player, skip = false } = {}) {
   });
 
   root.traverse(mapMuseumMesh);
-  ctx.museum = { root, reflectionSurfaces: [plaza, path, hallFloor], lights: [facadeLight, hallLight] };
+  ctx.museum = { root, premiere, reflectionSurfaces: [plaza, path, hallFloor], lights: [facadeLight, hallLight] };
 
   // ================= API =================
   function finishInstant() {                                                        // ?skip: salta la intro y empieza en la sala 1
