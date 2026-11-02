@@ -298,7 +298,7 @@ export function buildIntro(ctx, room1, { player, skip = false } = {}) {
   });
 
   // ---------- Sobre dorado en el suelo ----------
-  const env = new THREE.Group(); env.position.set(START.x + 0.15, GROUND + 0.02, START.z - 2.0); env.rotation.y = 0.4; root.add(env);
+  const env = new THREE.Group(); env.position.set(START.x + 0.15, GROUND + 0.06, START.z - 2.0); env.rotation.y = 0.4; root.add(env);
   const envBody = new THREE.Mesh(new THREE.BoxGeometry(0.34, 0.012, 0.24), goldM);
   const envFlap = new THREE.Mesh(new THREE.ConeGeometry(0.17, 0.12, 3), M(0xc99a30, { metalness: 0.8, roughness: 0.35, emissive: 0x3a2806 }));
   envFlap.rotation.set(0, Math.PI, 0); envFlap.rotation.x = 0; envFlap.scale.set(1, 0.1, 1); envFlap.rotation.y = Math.PI / 6; envFlap.position.set(0, 0.008, -0.06);

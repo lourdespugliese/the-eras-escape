@@ -12,6 +12,47 @@ const BANNERS = [
 const WIDTH = 2.64, HEIGHT = 7.15;
 const UP = new THREE.Vector3(0, 1, 0);
 
+function buildRedCarpet(group, centerX, ground) {
+  const width = 3.45, lift = 0.045;
+  const profile = [[62, ground + lift], [35.012, ground + lift]];
+  for (let step = 0; step < 6; step++) {
+    const front = 35 - step + 0.012, top = ground + (step + 1) * 0.2 + lift;
+    profile.push([front, top], [front - 1, top]);
+  }
+  profile.push([25.13, lift]);
+  const positions = [], uvs = [], indices = [];
+  let length = 0;
+  profile.forEach(([z, y], index) => {
+    if (index) length += Math.hypot(z - profile[index - 1][0], y - profile[index - 1][1]);
+    positions.push(centerX - width / 2, y, z, centerX + width / 2, y, z);
+    uvs.push(0, length, 1, length);
+    if (index) { const i = index * 2; indices.push(i - 2, i - 1, i, i, i - 1, i + 1); }
+  });
+  const geometry = new THREE.BufferGeometry();
+  geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+  geometry.setAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2));
+  geometry.setIndex(indices); geometry.computeVertexNormals();
+  // Microtrama repetible para que la tela absorba la luz en lugar de parecer plástico.
+  const fibers = new Uint8Array(64 * 64 * 4);
+  for (let y = 0; y < 64; y++) for (let x = 0; x < 64; x++) {
+    const i = (y * 64 + x) * 4;
+    fibers[i] = 128 + (x % 2 ? 5 : -5); fibers[i + 1] = 128 + (y % 2 ? 5 : -5);
+    fibers[i + 2] = 255; fibers[i + 3] = 255;
+  }
+  const normalMap = new THREE.DataTexture(fibers, 64, 64);
+  normalMap.wrapS = normalMap.wrapT = THREE.RepeatWrapping;
+  normalMap.repeat.set(24, 7); normalMap.generateMipmaps = true;
+  normalMap.minFilter = THREE.LinearMipmapLinearFilter; normalMap.magFilter = THREE.LinearFilter;
+  normalMap.needsUpdate = true;
+  const material = new THREE.MeshPhysicalMaterial({ color: 0xb4142e, roughness: 0.98,
+    metalness: 0, normalMap, normalScale: new THREE.Vector2(0.2, 0.2),
+    sheen: 0.7, sheenColor: 0xc62640, sheenRoughness: 0.85, specularIntensity: 0.18,
+    emissive: 0x390410, emissiveIntensity: 0.22 });
+  const carpet = new THREE.Mesh(geometry, material); carpet.name = 'premiere-red-carpet';
+  carpet.receiveShadow = true; group.add(carpet);
+  return carpet;
+}
+
 function haloTexture() {
   const c = document.createElement('canvas'); c.width = c.height = 128;
   const g = c.getContext('2d'), fill = g.createRadialGradient(64, 64, 2, 64, 64, 64);
@@ -60,6 +101,7 @@ function beamMaterial() {
 
 export function buildMuseumPremiere({ root, colliders, centerX = 2, ground = -1.2, brass }) {
   const group = new THREE.Group(); group.name = 'museum-premiere'; root.add(group);
+  const redCarpet = buildRedCarpet(group, centerX, ground);
   const loader = new THREE.TextureLoader(), banners = [], fixtures = [], pools = [];
   const pending = [];
   const casing = new THREE.MeshStandardMaterial({ color: 0x13171d, metalness: 0.65, roughness: 0.36 });
@@ -137,7 +179,7 @@ export function buildMuseumPremiere({ root, colliders, centerX = 2, ground = -1.
   let frame = 0;
   const direction = new THREE.Vector3();
   return {
-    group, banners, fixtures,
+    group, banners, fixtures, redCarpet,
     ready: Promise.all(pending),
     update(dt, time, outside) {
       // Desactivar los haces al entrar evita que el humo atraviese el techo del hall.
