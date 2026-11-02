@@ -19,6 +19,9 @@ export function buildHallLighting(root, centerX) {
     light.userData.hallPower = 15; light.userData.noShadow = true;
     group.add(light); lights.push(light);
   }
+  const chandelier = new THREE.RectAreaLight(0xffe2b9, 0, 4.5, 4.5);
+  chandelier.position.set(centerX, 7.25, 15); chandelier.lookAt(centerX, 0, 15);
+  chandelier.userData.hallPower = 2.4; group.add(chandelier); lights.push(chandelier);
   return {
     group, lights,
     update(amount) { lights.forEach(light => { light.intensity = light.userData.hallPower * amount; }); },
@@ -42,9 +45,13 @@ function galleryEnvironment(renderer) {
   for (const side of [-1, 1]) {
     surface(24, 9, 0x6d5840, side * 16, 0.5, 0, [0, 0.5, 0]);
     for (const z of [-7, 0, 7]) {
-      const card = surface(2.2, 6.5, 0xffffff, side * 15.8, 1, z, [0, 1, z]);
+      const card = surface(0.8, 8, 0xffffff, side * 15.8, 0.5, z, [0, 0.5, z]);
       card.material.color.setRGB(4.5, 3.8, 2.8);
     }
+  }
+  for (const z of [-11.8, 11.8]) for (const x of [-10, 0, 10]) {
+    const card = surface(1.1, 7, 0xffffff, x, 0.5, z, [x, 0.5, 0]);
+    card.material.color.setRGB(4.2, 3.9, 3.3);
   }
   const overhead = surface(8, 12, 0xffffff, 0, 4.7, 0, [0, 0, 0]);
   overhead.material.color.setRGB(3, 2.5, 1.9);
@@ -58,6 +65,13 @@ export function setupHallMaterials(renderer, scene, ctx) {
   const museum = ctx.museum; if (!museum) return;
   const environment = galleryEnvironment(renderer), seen = new WeakSet(), copies = new WeakMap();
   const position = new THREE.Vector3();
+  const contacts = new THREE.Group(); contacts.name = 'hall-contact-shadows'; museum.root.add(contacts);
+  const canvas = document.createElement('canvas'); canvas.width = canvas.height = 64;
+  const g = canvas.getContext('2d'), gradient = g.createRadialGradient(32, 32, 10, 32, 32, 32);
+  gradient.addColorStop(0, 'rgba(0,0,0,.55)'); gradient.addColorStop(0.55, 'rgba(0,0,0,.3)'); gradient.addColorStop(1, 'rgba(0,0,0,0)');
+  g.fillStyle = gradient; g.fillRect(0, 0, 64, 64);
+  const contactMaterial = new THREE.MeshBasicMaterial({ map: new THREE.CanvasTexture(canvas),
+    transparent: true, depthWrite: false, toneMapped: false });
   function apply(original) {
     if (!original.isMeshStandardMaterial) return original;
     const kind = original.userData.surfaceKind;
@@ -72,11 +86,14 @@ export function setupHallMaterials(renderer, scene, ctx) {
       material.color.setHex(0xd9b05b); material.metalness = 0.82;
       material.roughness = 0.24; material.envMapIntensity = 0.9;
     } else if (original.userData.museumGlass) {
-      material.color.setHex(0xffffff); material.opacity = 0.17; material.metalness = 0.03;
-      material.roughness = 0.065; material.envMapIntensity = 1.25;
+      material.color.setHex(0xc3beb4); material.opacity = 0.12; material.metalness = 0.12;
+      material.roughness = 0.045; material.envMapIntensity = 2;
     } else {
-      material.envMapIntensity = kind === 'checker' ? 0.25 : 0.3;
-      if (kind === 'checker') material.normalScale.set(0.065, 0.065);
+      material.envMapIntensity = kind === 'checker' ? 0.35 : 0.3;
+      if (kind === 'checker') {
+        material.normalScale.set(0.065, 0.065); material.roughness = 0.62;
+        material.clearcoat = 0.65; material.clearcoatRoughness = 0.12;
+      }
     }
     material.needsUpdate = true; copies.set(original, material); return material;
   }
@@ -88,6 +105,13 @@ export function setupHallMaterials(renderer, scene, ctx) {
       if (position.x < -13 || position.x > 17 || position.z < 5.2 || position.z > 24.9) return;
       seen.add(mesh);
       mesh.material = Array.isArray(mesh.material) ? mesh.material.map(apply) : apply(mesh.material);
+      const dimensions = mesh.geometry.parameters;
+      if (mesh.geometry.type === 'BoxGeometry' && dimensions.width > 0.6 && dimensions.depth > 0.6 &&
+          dimensions.height > 0.2 && Math.abs(position.y - dimensions.height / 2) < 0.025) {
+        const shadow = new THREE.Mesh(new THREE.PlaneGeometry(dimensions.width + 0.9, dimensions.depth + 0.9), contactMaterial);
+        shadow.rotation.x = -Math.PI / 2; shadow.position.set(position.x, 0.01, position.z);
+        shadow.raycast = () => {}; contacts.add(shadow);
+      }
     });
   }
   refresh();

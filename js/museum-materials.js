@@ -171,11 +171,11 @@ export function setupMuseumReflections(renderer, scene, camera, ctx) {
     const uniforms = THREE.UniformsUtils.clone(shader.uniforms);
     uniforms.surfaceNormal = { value: floor.material.normalMap };
     uniforms.surfaceRoughness = { value: floor.material.roughnessMap };
-    uniforms.reflectionStrength = { value: index === 0 ? 0.38 : 0.13 };
+    uniforms.reflectionStrength = { value: index === 0 ? 0.38 : 0.32 };
     uniforms.courtyard = { value: index === 0 ? 1 : 0 };
     uniforms.reflectionTexel = { value: new THREE.Vector2(1 / 1024, 1 / 576) };
     uniforms.surfaceDistortion = { value: index === 0 ? 0.045 : 0.003 };
-    uniforms.reflectionBlur = { value: index === 0 ? 11 : 9 };
+    uniforms.reflectionBlur = { value: index === 0 ? 11 : 7 };
     const vertexShader = shader.vertexShader.replace('varying vec4 vUv;', 'varying vec4 vUv; varying vec2 surfaceUv;')
       .replace('vUv = textureMatrix', 'surfaceUv = uv; vUv = textureMatrix');
     const fragmentShader = shader.fragmentShader.replace('varying vec4 vUv;',

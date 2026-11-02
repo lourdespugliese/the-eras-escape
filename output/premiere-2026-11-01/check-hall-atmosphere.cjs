@@ -12,6 +12,8 @@ await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
 const browser=await chromium.launch({channel: 'msedge',headless:true,args:['--enable-webgl','--ignore-gpu-blocklist']});
 const page=await browser.newPage({viewport:{width:1724,height:912}});
 page.on('requestfailed',r=>console.log('request-failed',r.url(),r.failure()?.errorText));
+await page.route('https://fonts.googleapis.com/**',route=>route.fulfill({status:200,contentType:'text/css',body:''}));
+await page.route('https://fonts.gstatic.com/**',route=>route.abort());
 const errors=[];page.on('pageerror',e=>errors.push(e.message));page.on('console',m=>{if(m.type()==='error' || (m.type()==='warning' && (m.text().includes('[museum]') || m.text().includes('[premiere]'))))errors.push(m.text())});
 await page.route('**/js/main.js',async route=>{const res=await route.fetch();await route.fulfill({response:res,body:(await res.text())+'\nwindow.__museumTest={scene,camera,ctx,renderer,intro};'});});
 await page.goto('http://127.0.0.1:'+server.address().port,{waitUntil:'domcontentloaded',timeout:60000});await page.waitForFunction(()=>window.__museumTest,{timeout:60000});
