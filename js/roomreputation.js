@@ -1,4 +1,4 @@
-// roomReputation.js — Habitación 3: Reputation. Sala del trono dorada (abanicos art déco, bordes turquesa),
+// roomReputation.js — Habitación 3: Reputation. Carbón art déco, plata y terciopelo vino,
 // serpientes en las paredes, calaveras doradas, té, rojo... y recortes de periódico en blanco y negro.
 // Es 12x12 (las salas anteriores son 10x10).
 //
@@ -6,20 +6,22 @@
 // (R E P U T A I O N + una H de "engaño"). Hay que PISARLOS en orden para formar R-E-P-U-T-A-T-I-O-N
 // (la T se pisa dos veces). Cada acierto ilumina el espejo y escribe la letra en el titular de la pared;
 // si pisas uno equivocado, el espejo parpadea en rojo, se agrieta y la palabra se deshace.
-// Al completarla aparece una serpiente plateada sobre el trono y se desbloquea la puerta.
+// Al completarla aparece el bate. Tras derrotar las serpientes, recoger el premio desbloquea la puerta.
 //
 // EASTER EGG: con el bate en la mano, el espejo de pared a la derecha de la entrada se rompe de un golpe
 // y deja ver un toca discos secreto que reproduce una canción de assets/audio.
 import * as THREE from 'three';
-import { createRoom, createDoor, addWall, canvasTex, makeTextTexture, DOOR_H, WALL_H } from './rooms.js';
+import { createRoom, createDoor, addWall, canvasTex, makeTextTexture, DOOR_H } from './rooms.js';
 import { addBox, addTube, neon } from './room1989.js';
 import { createGlitter } from './glitter.js';
+import { createReputationMaterials, fitReputationWall } from './reputation-materials.js';
+import { roundedGeometry } from './surface-library.js';
 
 const TAU = Math.PI * 2;
 const SIZE = 12;                                         // lado de la sala (las anteriores: 10 y 13 m); su Z se calcula a partir de la sala 2
 const HALL = 4;                                          // largo del pasillo entre salas
 const WORD = 'REPUTATION';
-const GOLD = 0xd4a640, RED = 0xd01828;
+const RED = 0xd01828;
 const COVER_URL = 'assets/images/reputation.png';        // portada del álbum (copiar el archivo a esa ruta)
 const clamp = THREE.MathUtils.clamp;
 // Combate con el bate (se pueden ajustar)
@@ -41,61 +43,72 @@ const TILES = [
 const NOTES = [261.6, 293.7, 329.6, 392, 440, 523.3, 587.3, 659.3, 784, 880];   // una nota por letra acertada
 
 // ================= Texturas =================
-function makeWallTexture() {                              // un "azulejo" de 3 m x 4 m: abanicos y rombos dorados, bordes turquesa
-  return canvasTex(384, 512, (g, w, h) => {
+function makeWallTexture() {                              // patrón de 3 m x 4 m: carbón, abanicos latón y bandas de peltre
+  return canvasTex(768, 1024, (g) => {
+    g.scale(2, 2); const w = 384, h = 512;
     const gr = g.createLinearGradient(0, 0, 0, h);
-    gr.addColorStop(0, '#d9b45a'); gr.addColorStop(0.5, '#bf9238'); gr.addColorStop(1, '#a37a28');
+    gr.addColorStop(0, '#33373d'); gr.addColorStop(0.5, '#292d33'); gr.addColorStop(1, '#23272d');
     g.fillStyle = gr; g.fillRect(0, 0, w, h);
     const fan = (cx, cy, r, rays, a0) => {
       for (let i = 0; i < rays; i++) {
-        g.fillStyle = i % 2 ? '#ecd183' : '#b8892f';
+        g.fillStyle = i % 2 ? '#918165' : '#48463f';
         g.beginPath(); g.moveTo(cx, cy); g.arc(cx, cy, r, a0 + (i / rays) * Math.PI, a0 + ((i + 1) / rays) * Math.PI); g.closePath(); g.fill();
       }
-      g.strokeStyle = 'rgba(80,50,8,.6)'; g.lineWidth = 3; g.beginPath(); g.arc(cx, cy, r, a0, a0 + Math.PI); g.stroke();
+      g.strokeStyle = 'rgba(172,155,114,.55)'; g.lineWidth = 3; g.beginPath(); g.arc(cx, cy, r, a0, a0 + Math.PI); g.stroke();
     };
     fan(192, h, 150, 14, Math.PI); fan(192, 0, 120, 12, 0);          // abanicos abajo y arriba
-    g.strokeStyle = 'rgba(80,50,8,.6)'; g.lineWidth = 3;             // rombos
+    g.strokeStyle = 'rgba(172,155,114,.55)'; g.lineWidth = 3;             // rombos
     [118, 92].forEach((s) => { g.beginPath(); g.moveTo(192, 256 - s); g.lineTo(192 + s * 0.75, 256); g.lineTo(192, 256 + s); g.lineTo(192 - s * 0.75, 256); g.closePath(); g.stroke(); });
-    g.fillStyle = 'rgba(120,80,15,.55)'; g.beginPath(); g.moveTo(192, 226); g.lineTo(214, 256); g.lineTo(192, 286); g.lineTo(170, 256); g.closePath(); g.fill();
-    g.fillStyle = '#0f6b6b'; g.fillRect(0, 0, 14, h); g.fillRect(w - 14, 0, 14, h);   // bordes turquesa
-    g.fillStyle = '#ecd183'; g.fillRect(14, 0, 3, h); g.fillRect(w - 17, 0, 3, h);
+    g.fillStyle = 'rgba(155,142,111,.32)'; g.beginPath(); g.moveTo(192, 226); g.lineTo(214, 256); g.lineTo(192, 286); g.lineTo(170, 256); g.closePath(); g.fill();
+    g.fillStyle = '#464d54'; g.fillRect(0, 0, 14, h); g.fillRect(w - 14, 0, 14, h);   // bandas de peltre
+    g.fillStyle = '#918165'; g.fillRect(14, 0, 1, h); g.fillRect(w - 15, 0, 1, h);
+    g.fillStyle='rgba(220,225,230,.035)'; for(let y=0;y<h;y+=2)g.fillRect(0,y,w,.35);
   });
 }
-function makeFloorTexture() {                             // mármol casi negro con vetas y filete dorado
-  const t = canvasTex(512, 512, (g, w, h) => {
-    g.fillStyle = '#0b0f12'; g.fillRect(0, 0, w, h);
-    g.strokeStyle = 'rgba(160,170,180,.10)'; g.lineWidth = 2;
-    for (let k = 0; k < 9; k++) { let x = Math.random() * w, y = 0; g.beginPath(); g.moveTo(x, y); for (let i = 0; i < 8; i++) { x += (Math.random() - 0.5) * 80; y += h / 8; g.lineTo(x, y); } g.stroke(); }
-    g.strokeStyle = 'rgba(212,166,64,.55)'; g.lineWidth = 4; g.strokeRect(2, 2, w - 4, h - 4);
-  });
-  t.wrapS = t.wrapT = THREE.RepeatWrapping;
-  return t;
-}
-function makeNewspaperTexture(w, h, headline = 'REPUTATION') {   // collage de periódico en blanco y negro (como la portada)
-  return canvasTex(w, h, (g) => {
-    g.fillStyle = '#e9e5db'; g.fillRect(0, 0, w, h);
-    const cols = Math.max(3, Math.round(w / 90)), cw = w / cols;
-    for (let c = 0; c < cols; c++) {
-      let y = 10 + Math.random() * 30;
-      while (y < h - 12) {
-        if (Math.random() < 0.12) {                       // titular: bloque negro con letras blancas
-          const bh = 28 + Math.random() * 26; g.fillStyle = '#111'; g.fillRect(c * cw + 6, y, cw - 12, bh);
-          g.fillStyle = '#eee'; g.font = `bold ${Math.round(bh * 0.6)}px Georgia`; g.textBaseline = 'middle'; g.textAlign = 'left'; g.fillText(headline, c * cw + 10, y + bh / 2, cw - 20);
-          y += bh + 8;
-        } else { g.fillStyle = '#333'; g.fillRect(c * cw + 8, y, (cw - 16) * (0.6 + Math.random() * 0.4), 3); y += 8; }
-      }
+function makeNewspaperTexture(w, h, headline = 'REPUTATION') {
+  return canvasTex(w * 2, h * 2, (g) => {
+    g.scale(2, 2);
+    g.fillStyle = '#d7d1c2'; g.fillRect(0, 0, w, h);
+    let seed = w + h;
+    const random = () => { seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0; return seed / 4294967296; };
+    for (let i = 0; i < 4500; i++) {
+      g.fillStyle = `rgba(66,51,34,${random() * .055})`;
+      g.fillRect(random() * w, random() * h, .5, .5);
     }
+    g.fillStyle = '#22211f'; g.textAlign = 'center'; g.textBaseline = 'middle';
+    g.font = `bold ${Math.round(h * .11)}px Georgia`; g.fillText(headline, w / 2, h * .095, w - 26);
+    g.font = `${Math.max(5, h * .018)}px Georgia`; g.fillText('THE REPUTATION EDITION  /  SPECIAL ISSUE', w / 2, h * .17, w - 28);
+    g.fillRect(12, h * .205, w - 24, 1); g.fillRect(12, h * .215, w - 24, .4);
+    const cols = Math.max(3, Math.round(w / 100)), cw = (w - 24) / cols;
+    const text = ['Every voice has a story to tell.', 'The stage is set for a new era.', 'Behind the headlines, a name.', 'A new chapter begins tonight.'];
+    for (let c = 0; c < cols; c++) {
+      const x = 14 + c * cw;
+      g.textAlign = 'left'; g.font = 'bold 9px Georgia'; g.fillText(c % 2 ? 'THE STORY' : 'REPUTATION', x, h * .25, cw - 8);
+      let y = h * .29;
+      while (y < h - 12) {
+        g.fillStyle = '#373632'; g.font = '6px Georgia';
+        for (let line = 0; line < 8 && y < h - 12; line++, y += 7) g.fillText(text[(line + c) % text.length], x, y, cw - 9 - random() * 4);
+        y += 9;
+        if (y < h - 26) { g.fillStyle = '#242321'; g.font = 'bold 8px Georgia'; g.fillText('REPUTATION', x, y, cw - 10); y += 12; }
+      }
+      g.fillStyle = 'rgba(50,45,37,.25)'; if (c) g.fillRect(x - 4, h * .235, .4, h * .72);
+    }
+    const edge = g.createLinearGradient(0, 0, w, 0); edge.addColorStop(0, 'rgba(76,53,25,.16)'); edge.addColorStop(.04, 'rgba(76,53,25,0)'); edge.addColorStop(.96, 'rgba(76,53,25,0)'); edge.addColorStop(1, 'rgba(76,53,25,.16)');
+    g.fillStyle = edge; g.fillRect(0, 0, w, h);
   });
 }
 function makeGlassTexture() {                             // el "reflejo" de los espejos de pared
-  return canvasTex(128, 256, (g, w, h) => {
+  return canvasTex(512, 1024, (g, w, h) => {
     const gr = g.createLinearGradient(0, 0, w, h);
-    gr.addColorStop(0, '#2c2c36'); gr.addColorStop(0.5, '#0e0e14'); gr.addColorStop(1, '#1f202a');
+    gr.addColorStop(0, '#929aa3'); gr.addColorStop(0.5, '#515d69'); gr.addColorStop(1, '#a3a8ae');
     g.fillStyle = gr; g.fillRect(0, 0, w, h);
-    g.fillStyle = 'rgba(255,255,255,.07)'; g.save(); g.transform(1, 0, -0.5, 1, 0, 0); g.fillRect(80, 0, 26, h); g.fillRect(120, 0, 12, h); g.restore();
+    g.fillStyle = 'rgba(255,255,255,.07)'; g.save(); g.transform(1, 0, -0.5, 1, 0, 0); g.fillRect(240, 0, 35, h); g.fillRect(410, 0, 12, h); g.restore();
+    g.strokeStyle='rgba(32,40,48,.25)';g.lineWidth=12;g.strokeRect(6,6,w-12,h-12);
+    g.fillStyle='rgba(30,37,43,.18)';for(let i=0;i<350;i++){const y=(i*71)%h,x=i%2?(i*13)%16:w-16+(i*11)%16;g.fillRect(x,y,1+(i%3),2);}
   });
 }
-const tileTexture = (letter) => canvasTex(256, 256, (g, w, h) => {   // espejo del suelo con la letra grabada
+const tileTexture = (letter) => canvasTex(512, 512, (g) => {   // espejo del suelo con la letra grabada
+  g.scale(2, 2); const w=256, h=256;
   const gr = g.createLinearGradient(0, 0, w, h);
   gr.addColorStop(0, '#2c2c36'); gr.addColorStop(0.5, '#0e0e14'); gr.addColorStop(1, '#1f202a');
   g.fillStyle = gr; g.fillRect(0, 0, w, h);
@@ -115,11 +128,6 @@ function makeCrackTexture() {                             // grietas rojas para 
     }
   });
 }
-function makeDrapeTexture() {                             // cortina de terciopelo rojo
-  return canvasTex(128, 256, (g, w, h) => {
-    for (let x = 0; x < w; x += 16) { const gr = g.createLinearGradient(x, 0, x + 16, 0); gr.addColorStop(0, '#4a0610'); gr.addColorStop(0.5, '#a31020'); gr.addColorStop(1, '#4a0610'); g.fillStyle = gr; g.fillRect(x, 0, 16, h); }
-  });
-}
 // Titular de la pared: casillas para las 10 letras. state: 'normal' | 'wrong' | 'solved'
 function drawBoard(g, w, h, typed, state) {
   g.fillStyle = '#0b0b0b'; g.fillRect(0, 0, w, h);
@@ -134,23 +142,7 @@ function drawBoard(g, w, h, typed, state) {
 }
 
 // ================= Serpientes =================
-// Piel: rombos oscuros con borde claro sobre escamas finas (se repite cada ~0.9 m a lo largo del cuerpo).
-function makeSkinTexture(base, dark, light) {
-  const t = canvasTex(256, 128, (g, w, h) => {
-    g.fillStyle = base; g.fillRect(0, 0, w, h);
-    g.strokeStyle = 'rgba(0,0,0,.2)'; g.lineWidth = 1;
-    for (let y = 0; y < h; y += 8) for (let x = ((y / 8) % 2) * 6; x < w; x += 12) { g.beginPath(); g.arc(x, y, 6, 0, Math.PI); g.stroke(); }
-    for (let k = 0; k < 4; k++) {
-      const cx = k * 64 + 32, cy = h / 2;
-      g.beginPath(); g.moveTo(cx, cy - 40); g.lineTo(cx + 28, cy); g.lineTo(cx, cy + 40); g.lineTo(cx - 28, cy); g.closePath();
-      g.fillStyle = dark; g.fill(); g.strokeStyle = light; g.lineWidth = 3; g.stroke();
-      g.fillStyle = light; g.globalAlpha = 0.35; g.beginPath(); g.arc(cx, cy, 6, 0, TAU); g.fill(); g.globalAlpha = 1;
-      g.fillStyle = dark; g.beginPath(); g.arc(k * 64, h * 0.12, 8, 0, TAU); g.fill(); g.beginPath(); g.arc(k * 64, h * 0.88, 8, 0, TAU); g.fill();
-    }
-  });
-  t.wrapS = t.wrapT = THREE.RepeatWrapping; t.anisotropy = 4;
-  return t;
-}
+// Las escamas finas repiten cada ~0.9 m a lo largo del cuerpo.
 // Grosor a lo largo del cuerpo (u: 0 = cola, 1 = cuello): punta fina, panza gruesa y cuello algo más delgado.
 const bodyProfile = (u) => (u < 0.35 ? 0.12 + 0.88 * (u / 0.35) * (2 - u / 0.35) : u > 0.88 ? 1 - 0.3 * ((u - 0.88) / 0.12) : 1);
 // Tubo de grosor variable (como TubeGeometry, pero con radio = R * perfil(u)).
@@ -220,14 +212,13 @@ function slither(plane, a, b, amp, waves, depth, n = 30) {
 }
 
 // Bate de madera (el mango en y=0, la punta en y=0.89): perfil de revolución + cinta de agarre + aro dorado.
-function makeBat() {
+function makeBat(materials) {
   const grp = new THREE.Group();
   const prof = [[0, 0], [0.018, 0], [0.017, 0.02], [0.014, 0.05], [0.013, 0.3], [0.016, 0.45], [0.026, 0.6], [0.034, 0.72], [0.036, 0.8], [0.032, 0.85], [0.02, 0.88], [0, 0.89]].map(([r, y]) => new THREE.Vector2(r, y));
-  const std = (color, o = {}) => new THREE.MeshStandardMaterial({ color, roughness: 0.55, ...o });
-  grp.add(new THREE.Mesh(new THREE.LatheGeometry(prof, 20), std(0xb98245, { emissive: 0x2a180a })));
-  const grip = new THREE.Mesh(new THREE.CylinderGeometry(0.0145, 0.0155, 0.26, 14), std(0x1a1a1a, { emissive: 0x050505 })); grip.position.y = 0.16; grp.add(grip);
-  const knob = new THREE.Mesh(new THREE.SphereGeometry(0.022, 10, 8), std(0x1a1a1a)); knob.position.y = 0.005; grp.add(knob);
-  const band = new THREE.Mesh(new THREE.CylinderGeometry(0.0175, 0.0175, 0.025, 14), std(GOLD, { metalness: 0.55, roughness: 0.4, emissive: 0x3a2808 })); band.position.y = 0.34; grp.add(band);
+  grp.add(new THREE.Mesh(new THREE.LatheGeometry(prof, 20), materials.batWood.clone()));
+  const grip = new THREE.Mesh(new THREE.CylinderGeometry(0.0145, 0.0155, 0.26, 14), materials.batGrip.clone()); grip.position.y = 0.16; grp.add(grip);
+  const knob = new THREE.Mesh(new THREE.SphereGeometry(0.022, 10, 8), materials.batGrip.clone()); knob.position.y = 0.005; grp.add(knob);
+  const band = new THREE.Mesh(new THREE.CylinderGeometry(0.0175, 0.0175, 0.025, 14), materials.brass.clone()); band.position.y = 0.34; grp.add(band);
   return grp;
 }
 
@@ -237,42 +228,39 @@ export function buildRoomReputation(ctx, room2) {
   const hallStart = room2.bounds.minZ;                    // puerta de la sala 2 (z del mundo)
   const CZ = hallStart - HALL - SIZE / 2;                 // centro de esta sala: justo después del pasillo
   const half = SIZE / 2;                                  // 6 -> el interior llega a ±5.8
-  const wallTex = makeWallTexture(); wallTex.wrapS = wallTex.wrapT = THREE.RepeatWrapping;
-  const wallMat = new THREE.MeshStandardMaterial({ map: wallTex, roughness: 0.55, metalness: 0.25, emissive: 0x2a1c06 });
-  const floorTex = makeFloorTexture(); floorTex.repeat.set(SIZE / 2, SIZE / 2);
-  const floorMat = new THREE.MeshStandardMaterial({ map: floorTex, roughness: 0.18, metalness: 0.6 });
-  const room = createRoom(ctx, { name: 'Habitación 3 — Reputation', z: CZ, w: SIZE, d: SIZE, wallMat, floorMat, ceilColor: 0x1a1208, southOpening: 3 });
+  const materials = createReputationMaterials(SIZE);
+  const wallTex = makeWallTexture(); wallTex.wrapS = wallTex.wrapT = THREE.RepeatWrapping; wallTex.anisotropy = 8;
+  const wallMat = materials.finish(0xffffff, { map: wallTex, roughness: .88, metalness: .12 });
+  wallMat.name = 'Reputation-charcoal-art-deco';
+  const room = createRoom(ctx, { name: 'Habitación 3 — Reputation', z: CZ, w: SIZE, d: SIZE, wallMat, floorMat: materials.floor, ceilColor: 0x252b32, southOpening: 3 });
   const abs = room.group;
-  // Cada pared recibe una copia del material con el patrón repetido cada 3 m (así los abanicos no se deforman).
   abs.traverse((o) => {
-    if (o.isMesh && o.material === wallMat) {
-      const p = o.geometry.parameters, m = wallMat.clone(), tex = wallTex.clone();
-      tex.needsUpdate = true; tex.repeat.set(Math.max(p.width, p.depth) / 3, p.height / WALL_H); m.map = tex; o.material = m;
-    }
+    if (!o.isMesh) return;
+    if (o.material === wallMat) fitReputationWall(o);
+    else if (o.geometry.type === 'PlaneGeometry' && o.rotation.x > 0) { o.material.dispose(); o.material = materials.ceiling; }
   });
   const g = new THREE.Group(); g.position.z = CZ; ctx.scene.add(g);      // contenido en coordenadas locales (norte = -Z)
-  const box = (w, h, d, m, x, y, z, p = g) => addBox(p, w, h, d, m, x, y, z);
-  const mat = (color, o = {}) => new THREE.MeshStandardMaterial({ color, roughness: 0.6, ...o });
+  const box = (w, h, d, m, x, y, z, p = g) => { const mesh=new THREE.Mesh(roundedGeometry(w,h,d,.025),m);mesh.position.set(x,y,z);p.add(mesh);return mesh; };
+  const mat = materials.finish;
   const colBox = (x0, x1, z0, z1) => ctx.colliders.push({ minX: x0, maxX: x1, minZ: CZ + z0, maxZ: CZ + z1 });
   const wp = (x, y, z) => new THREE.Vector3(x, y, z + CZ);
 
-  const gold = mat(GOLD, { metalness: 0.55, roughness: 0.4, emissive: 0x3a2808 });     // (metal + emissive: sin mapa de entorno un metal puro se ve negro)
-  const redVelvet = mat(0x9a1020, { roughness: 0.9, emissive: 0x200306 });
-  const skin = makeSkinTexture('#4a3822', '#2a1d10', '#a58a56');
+  const gold = materials.brass;
+  const redVelvet = materials.upholstery;
   const snakeMats = {
-    body: mat(0xffffff, { map: skin, bumpMap: skin, bumpScale: 2, roughness: 0.42, metalness: 0.1, emissive: 0x100a04 }),
-    belly: mat(0x9a8458, { roughness: 0.5, emissive: 0x100a04 }),
-    eye: mat(0xd8a020, { roughness: 0.2, emissive: 0x553a05 }),
+    body: mat(0x8d969f, { map: materials.scales, bumpMap: materials.scales, bumpScale: .006, roughness: .42, metalness: .45, emissive: 0x080b10 }),
+    belly: mat(0x9da6ae, { map: materials.belly, bumpMap: materials.belly, bumpScale: .003, roughness: .52, metalness: .32 }),
+    eye: mat(0xe4c981, { map: materials.iris, roughness: .23, emissive: 0x241b07 }),
   };
   const heads = [];                                       // cabezas de todas las serpientes (para animar la lengua)
   const lights = { mute: 1 };                             // para atenuar esta sala cuando exista la siguiente
 
   // --- Iluminación: ambiente cálido + 2 luces doradas + un acento rojo junto al trono ---
-  const ambient = new THREE.AmbientLight(0xffe2b0, 0.6); g.add(ambient);
+  const ambient = new THREE.AmbientLight(0xb5bfd0, 0.72); g.add(ambient);
   const lp = [
-    { base: 24, color: 0xffc870, dist: 15, pos: [-3, 3.6, 2.5] },
-    { base: 24, color: 0xffc870, dist: 15, pos: [3, 3.6, -2.5] },
-    { base: 10, color: 0xff2a2a, dist: 7, red: true, pos: [4.4, 2.6, 0] },
+    { base: 24, color: 0xe6d5ba, dist: 15, pos: [-3, 3.6, 2.5] },
+    { base: 24, color: 0xe6d5ba, dist: 15, pos: [3, 3.6, -2.5] },
+    { base: 6, color: 0xb93c57, dist: 7, red: true, pos: [4.4, 2.6, 0] },
   ].map((o) => { o.l = new THREE.PointLight(o.color, o.base, o.dist); o.l.position.set(...o.pos); g.add(o.l); return o; });
 
   // --- Zócalo y molduras doradas ---
@@ -306,8 +294,7 @@ export function buildRoomReputation(ctx, room2) {
   const redrawBoard = () => { const c = boardTex.image; drawBoard(c.getContext('2d'), c.width, c.height, idx, boardState); boardTex.needsUpdate = true; };
 
   // --- Cortinas rojas junto a la puerta, recortes de periódico (oeste) y espejos de pared (sur) ---
-  const drapeTex = makeDrapeTexture();
-  [-1.85, 1.85].forEach((x) => { const d = new THREE.Mesh(new THREE.BoxGeometry(0.5, 3.4, 0.15), new THREE.MeshStandardMaterial({ map: drapeTex, roughness: 0.9, emissive: 0x200306 })); d.position.set(x, 1.7, -5.7); g.add(d); });
+  [-1.85, 1.85].forEach((x) => { const d = new THREE.Mesh(new THREE.BoxGeometry(0.5, 3.4, 0.15), materials.curtains); d.position.set(x, 1.7, -5.7); g.add(d); });
   [-2.4, 2.4].forEach((z) => {
     box(2.6, 1.8, 0.06, mat(0x0a0a0a), -5.76, 2.1, z).rotation.y = Math.PI / 2;
     const np = new THREE.Mesh(new THREE.PlaneGeometry(2.4, 1.6), new THREE.MeshBasicMaterial({ map: makeNewspaperTexture(512, 320), color: new THREE.Color(0.3, 0.3, 0.3) }));
@@ -318,7 +305,7 @@ export function buildRoomReputation(ctx, room2) {
   [-3.75, 3.75].forEach((x) => {
     const m = new THREE.Group(); m.position.set(x, 2.0, 5.74); m.rotation.y = Math.PI; g.add(m);
     box(1.5, 2.3, 0.06, gold, 0, 0, 0, m);
-    const gl = new THREE.Mesh(new THREE.PlaneGeometry(1.25, 2.05), new THREE.MeshStandardMaterial({ map: glassTex, roughness: 0.08, metalness: 0.6, emissive: new THREE.Color(0.06, 0.06, 0.08) })); gl.position.z = 0.04; m.add(gl);
+    const gl = new THREE.Mesh(new THREE.PlaneGeometry(1.25, 2.05), new THREE.MeshStandardMaterial({ map: glassTex, roughness: 0.17, metalness: 0.78, emissive: new THREE.Color(0.025, 0.03, 0.04) })); gl.position.z = 0.04; m.add(gl);
     if (x === EGG_MIRROR_X) eggGlass = gl;
     ctx.interaction.add(m, {
       prompt: () => 'Presiona E para mirar el espejo.',
@@ -356,21 +343,29 @@ export function buildRoomReputation(ctx, room2) {
     const sk = new THREE.Group(); sk.position.set(x, 1.13, 0.42); throne.add(sk);        // calavera dorada
     sk.add(new THREE.Mesh(new THREE.SphereGeometry(0.13, 12, 10), gold));
     box(0.14, 0.06, 0.1, gold, 0, -0.1, 0.05, sk);
+    const hollow=mat(0x151512,{roughness:1});
+    const nose=new THREE.Mesh(new THREE.ConeGeometry(.018,.028,3),hollow);nose.rotation.z=Math.PI;nose.position.set(0,-.018,.128);sk.add(nose);
+    for(let t=0;t<4;t++)box(.018,.028,.018,gold,(t-1.5)*.026,-.078,.11,sk);
+
     [-0.05, 0.05].forEach((ex) => { const e = new THREE.Mesh(new THREE.SphereGeometry(0.03, 8, 6), mat(0x050505)); e.position.set(ex, 0.02, 0.11); sk.add(e); });
   });
   colBox(4.55, 5.75, -0.85, 0.85);
 
   // --- Mesita de té en el centro (taza y tetera) + lámpara de techo ---
   const tea = new THREE.Group(); tea.position.set(0, 0, -0.2); g.add(tea);
-  const white = mat(0xf2f0ea, { roughness: 0.3, emissive: 0x1a1a18 });
+  const white = materials.ceramic;
   const top = new THREE.Mesh(new THREE.CylinderGeometry(0.5, 0.5, 0.05, 24), gold); top.position.y = 0.75; tea.add(top);
   const stem = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.07, 0.72, 10), gold); stem.position.y = 0.38; tea.add(stem);
   const foot = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.32, 0.04, 20), gold); foot.position.y = 0.02; tea.add(foot);
   const pot = new THREE.Mesh(new THREE.SphereGeometry(0.14, 14, 10), white); pot.scale.y = 0.85; pot.position.set(-0.15, 0.91, 0); tea.add(pot);
   const spout = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.035, 0.18, 8), white); spout.position.set(-0.3, 0.95, 0); spout.rotation.z = 1.0; tea.add(spout);
   const lid = new THREE.Mesh(new THREE.SphereGeometry(0.04, 8, 6), white); lid.position.set(-0.15, 1.06, 0); tea.add(lid);
-  const cup = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.045, 0.07, 14), white); cup.position.set(0.18, 0.815, 0.05); tea.add(cup);
+  const cup = new THREE.Mesh(new THREE.LatheGeometry([[.045,-.035],[.06,.035],[.052,.035],[.038,-.027],[0,-.027]].map(p=>new THREE.Vector2(...p)),24), white); cup.position.set(0.18, 0.815, 0.05); tea.add(cup);
   const saucer = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.1, 0.01, 16), white); saucer.position.set(0.18, 0.785, 0.05); tea.add(saucer);
+  const cupHandle=new THREE.Mesh(new THREE.TorusGeometry(.026,.007,6,16),white);cupHandle.position.set(.245,.817,.05);tea.add(cupHandle);
+  const potHandle=new THREE.Mesh(new THREE.TorusGeometry(.075,.012,8,20),white);potHandle.position.set(-.005,.94,0);tea.add(potHandle);
+  const teaSurface=new THREE.Mesh(new THREE.CircleGeometry(.043,24),mat(0x482c19,{roughness:.2}));teaSurface.rotation.x=-Math.PI/2;teaSurface.position.set(.18,.837,.05);tea.add(teaSurface);
+
   colBox(-0.55, 0.55, -0.75, 0.35);
   ctx.interaction.add(tea, { prompt: () => 'Presiona E para mirar el té.', onInteract: () => ctx.ui.toast('Una taza de té todavía tibia. Alguien se levantó de prisa de este trono...', 4500) });
   const ring = new THREE.Mesh(new THREE.TorusGeometry(0.6, 0.03, 8, 28), gold); ring.rotation.x = Math.PI / 2; ring.position.set(0, 3.3, -0.2); g.add(ring);
@@ -390,9 +385,8 @@ export function buildRoomReputation(ctx, room2) {
   });
 
   // --- Serpiente de plata coleccionable (aparece sobre el trono al completar la palabra) ---
-  const silverSkin = makeSkinTexture('#c8ccd8', '#7f8498', '#f2f4ff');
-  const silverMat = mat(0xffffff, { map: silverSkin, bumpMap: silverSkin, bumpScale: 2, metalness: 0.6, roughness: 0.3, emissive: 0x444a66 });
-  const silverMats = { body: silverMat, belly: mat(0xe8ecff, { emissive: 0x444a66 }), eye: snakeMats.eye };
+  const silverMat = mat(0xe2e6ed, { map: materials.scales, bumpMap: materials.scales, bumpScale: .003, metalness: .72, roughness: .28, emissive: 0x151923 });
+  const silverMats = { body: silverMat, belly: mat(0xe8ecff, { map: materials.belly, metalness: .5 }), eye: snakeMats.eye };
   const mkSilverSnake = () => {
     const grp = new THREE.Group(), p = [];
     for (let i = 0; i <= 24; i++) { const a = i * 0.55, r = 0.14 - i * 0.002; p.push(new THREE.Vector3(Math.cos(a) * r, i * 0.012, Math.sin(a) * r)); }
@@ -428,10 +422,10 @@ export function buildRoomReputation(ctx, room2) {
 
   // --- El bate: aparece al completar la palabra; sirve para golpear a TODAS las serpientes de la sala ---
   const batPickup = new THREE.Group(); batPickup.visible = false; g.add(batPickup);
-  const batModel = makeBat(); batModel.rotation.z = 0.6; batModel.position.y = -0.4; batPickup.add(batModel);
+  const batModel = makeBat(materials); batModel.rotation.z = 0.6; batModel.position.y = -0.4; batPickup.add(batModel);
   const batGlow = new THREE.Sprite(new THREE.SpriteMaterial({ map: glowTex, color: 0xffd36a, blending: THREE.AdditiveBlending, transparent: true, depthWrite: false })); batGlow.scale.setScalar(1.1); batPickup.add(batGlow);
   let batEmergeAt = -1, batReady = false, batHeld = false;
-  const heldBat = new THREE.Group(); heldBat.visible = false; heldBat.add(makeBat());                      // el bate "en la mano" cuelga de la cámara
+  const heldBat = new THREE.Group(); heldBat.visible = false; heldBat.add(makeBat(materials));                      // el bate "en la mano" cuelga de la cámara
   heldBat.traverse((o) => { if (o.isMesh) { o.material.depthTest = false; o.renderOrder = 999; } });       // siempre se dibuja encima (no atraviesa paredes)
   if (!ctx.camera.parent) ctx.scene.add(ctx.camera);                                                     // para que se vea lo que cuelga de la cámara
   ctx.camera.add(heldBat);
@@ -486,7 +480,7 @@ export function buildRoomReputation(ctx, room2) {
   box(0.3, 0.07, 0.3, mat(0x1a1010, { roughness: 0.4, metalness: 0.5, emissive: 0x1a0a04 }), 0, 0.035, 0, recordPlayer);
   const platter = new THREE.Group(); platter.position.y = 0.085; recordPlayer.add(platter);
   platter.add(
-    new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.12, 0.012, 28), mat(0x050508, { roughness: 0.25, metalness: 0.6 })),
+    new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.12, 0.012, 28), mat(0x777780, { map: materials.vinyl, roughness: 0.3, metalness: 0.35 })),
     new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 0.014, 18), mat(RED, { emissive: 0x440008 })),
     new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.014, 0.008), mat(0x2a2a44)),               // marca para ver que gira
   );
@@ -529,7 +523,7 @@ export function buildRoomReputation(ctx, room2) {
   // --- Puerta de salida (norte) + pasillo hacia la siguiente era ---
   const doorZ = CZ - half, len = HALL;
   const door = createDoor(ctx, { x: 0, z: doorZ, width: room.doorWidth });
-  door.mesh.material.color.set(0x8a6a1e); door.mesh.material.emissive.set(0x2a1a04); door.mesh.material.metalness = 0.5;
+  door.mesh.material = mat(0x40464e, { map: materials.metal, metalness: .48, roughness: .55, emissive: 0x080a10 });
   addTube(g, 0.07, DOOR_H, 0.07, RED, -1.56, DOOR_H / 2, -half + 0.02, 1.6); addTube(g, 0.07, DOOR_H, 0.07, RED, 1.56, DOOR_H / 2, -half + 0.02, 1.6);
   addTube(g, 3.2, 0.07, 0.07, RED, 0, DOOR_H, -half + 0.02, 1.6);
   const hallMat = mat(0x6b4f1a, { roughness: 1, emissive: 0x1a1204 });
@@ -592,7 +586,7 @@ export function buildRoomReputation(ctx, room2) {
     redPop = Math.max(0, redPop - dt * 1.2);
     goldBoost += ((solved ? 1.5 : 1) - goldBoost) * Math.min(1, dt * 1.5);
     const base = k3 * lights.mute;
-    ambient.intensity = 0.6 * base * (1 + redPop * 0.5);
+    ambient.intensity = 0.72 * base * (1 + redPop * 0.5);
     lp.forEach((o, i) => { o.l.intensity = o.base * base * (0.95 + 0.05 * Math.sin(t * 1.3 + i)) * (o.red ? 1 + redPop * 3 : goldBoost); });
 
     // Detección de pasos: se evalúa al ENTRAR en un espejo (el centro del jugador dentro de la baldosa)
@@ -666,5 +660,5 @@ export function buildRoomReputation(ctx, room2) {
     abs.remove(hallFloor, hallCeil, hallSign, hallLight);
   };
 
-  return { ...room, door, lights, removeHall };
+  return { ...room, door, lights, removeHall, materials, propsRoot: g };
 }
