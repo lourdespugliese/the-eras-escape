@@ -8,6 +8,7 @@
 import * as THREE from 'three';
 import { createRoom, createDoor, addWall, canvasTex, makeTextTexture, DOOR_H } from './rooms.js';
 import { createGlitter } from './glitter.js';
+import { create1989Materials, fit1989Wall } from './materials1989.js';
 
 const TAU = Math.PI * 2;
 // Tamaño de la sala: 10 m x 1.3 = 13 m. La pared sur sigue en z = -9 (empalma con el pasillo de la sala 1); el resto crece hacia el norte.
@@ -85,38 +86,21 @@ function makePanorama() {
 }
 
 function makeWindowTexture(cols, rows) {                    // fachada de edificio con ventanas
-  return canvasTex(cols * 16, rows * 16, (g, w, h) => {
-    const lit = ['#ffd36a', '#ff6bb5', '#6be3ff'];
-    g.fillStyle = '#0b0b22'; g.fillRect(0, 0, w, h);
+  return canvasTex(cols * 64, rows * 48, (g, w, h) => {
+    const lit = ['#d4b77f', '#c58ba5', '#91bbc7'];
+    g.fillStyle = '#34414f'; g.fillRect(0, 0, w, h);
     for (let x = 0; x < cols; x++) for (let y = 0; y < rows; y++) {
-      g.fillStyle = Math.random() < 0.45 ? lit[Math.floor(Math.random() * 3)] : '#14143a';
-      g.fillRect(x * 16 + 4, y * 16 + 3, 8, 10);
+      const px = x * 64, py = y * 48;
+      g.fillStyle = y % 2 ? '#293643' : '#303e4b'; g.fillRect(px, py, 63, 46);
+      g.fillStyle = '#121e2a'; g.fillRect(px + 12, py + 5, 41, 34);
+      g.fillStyle = Math.random() < .45 ? lit[Math.floor(Math.random() * 3)] : '#142b3b';
+      g.fillRect(px + 15, py + 8, 35, 27);
+      g.fillStyle = 'rgba(255,255,255,.12)'; g.fillRect(px + 16, py + 9, 32, 2);
+      g.fillStyle = '#303d48'; g.fillRect(px + 31, py + 8, 2, 28);
+      g.fillStyle = '#687582'; g.fillRect(px + 10, py + 39, 45, 3);
+      g.fillStyle = '#1b2833'; g.fillRect(px + 10, py + 42, 45, 2);
     }
   });
-}
-
-function makeWallTexture() {
-  return canvasTex(512, 256, (g, w, h) => {
-    g.fillStyle = '#4a4a82'; g.fillRect(0, 0, w, h);
-    for (let i = 0; i < 2500; i++) {
-      g.fillStyle = `rgba(${Math.random() < 0.5 ? '255,255,255' : '0,0,0'},${Math.random() * 0.07})`;
-      g.fillRect(Math.random() * w, Math.random() * h, 2, 2);
-    }
-    g.fillStyle = 'rgba(0,0,0,.35)';
-    for (let x = 0; x < w; x += 128) g.fillRect(x, 0, 3, h);
-    g.fillRect(0, h / 2, w, 3);
-  });
-}
-
-function makeFloorTexture() {
-  const t = canvasTex(512, 512, (g, w, h) => {
-    g.fillStyle = '#1a1a3a'; g.fillRect(0, 0, w, h);
-    g.strokeStyle = 'rgba(255,45,149,.45)'; g.lineWidth = 3; g.strokeRect(1, 1, w - 2, h - 2);
-    g.strokeStyle = 'rgba(45,226,255,.2)'; g.lineWidth = 2;
-    g.beginPath(); g.moveTo(w / 2, 0); g.lineTo(w / 2, h); g.moveTo(0, h / 2); g.lineTo(w, h / 2); g.stroke();
-  });
-  t.wrapS = t.wrapT = THREE.RepeatWrapping;
-  return t;
 }
 
 // Texto "de neón": trazo de color con resplandor + relleno blanco. Fondo transparente.
@@ -154,14 +138,14 @@ export function makeSign(text, hex, w = 2.2, h = 0.7) {
   return { group, face };
 }
 
-function makeSeagull() {                                   // gaviota simple, mira hacia -Z
+function makeSeagull(materials) {                          // gaviota simple, mira hacia -Z
   const s = new THREE.Group();
-  const white = new THREE.MeshStandardMaterial({ color: 0xf2f2f2, roughness: 0.8, emissive: 0x222233 });
+  const white = new THREE.MeshStandardMaterial({ map: materials.props.feather, color: 0xf2f2f2, roughness: .95 });
   const body = new THREE.Mesh(new THREE.SphereGeometry(0.14, 12, 8), white); body.scale.set(1, 0.8, 1.6);
   const head = new THREE.Mesh(new THREE.SphereGeometry(0.08, 10, 8), white); head.position.set(0, 0.1, -0.2);
-  const beak = new THREE.Mesh(new THREE.ConeGeometry(0.025, 0.1, 6), new THREE.MeshBasicMaterial({ color: 0xff9a2a }));
+  const beak = new THREE.Mesh(new THREE.ConeGeometry(0.025, 0.1, 6), materials.finish(0xffb34c, { roughness: .7 }));
   beak.rotation.x = -Math.PI / 2; beak.position.set(0, 0.09, -0.3);
-  const gray = new THREE.MeshStandardMaterial({ color: 0xb8bcc8 });
+  const gray = new THREE.MeshStandardMaterial({ map: materials.props.feather, color: 0x98a7b3, roughness: .95 });
   const wingL = addBox(s, 0.32, 0.02, 0.22, gray, -0.2, 0.07, 0.02); wingL.rotation.z = 0.3;
   const wingR = addBox(s, 0.32, 0.02, 0.22, gray, 0.2, 0.07, 0.02); wingR.rotation.z = -0.3;
   addBox(s, 0.1, 0.02, 0.18, gray, 0, 0.03, 0.25);
@@ -180,22 +164,40 @@ export function flash() {                                         // destello bl
 // ================= Habitación 2: 1989 =================
 export function buildRoom1989(ctx, room1) {
   const cam = ctx.camera.position;
-  const wallMat = new THREE.MeshStandardMaterial({ map: makeWallTexture(), roughness: 0.9 });
-  const floorTex = makeFloorTexture(); floorTex.repeat.set(SIZE / 2, SIZE / 2);
-  const floorMat = new THREE.MeshStandardMaterial({ map: floorTex, roughness: 0.25, metalness: 0.5 });
+  const materials = create1989Materials(SIZE);
   // Estructura (paredes, piso, techo) en coordenadas del mundo; entrada abierta al pasillo de la sala 1.
-  const room = createRoom(ctx, { name: 'Habitación 2 — 1989', z: CZ, w: SIZE, d: SIZE, wallMat, floorMat, ceilColor: 0x1a1a38, southOpening: 3 });
+  const room = createRoom(ctx, { name: 'Habitación 2 — 1989', z: CZ, w: SIZE, d: SIZE, wallMat: materials.wall, floorMat: materials.floor, ceilColor: 0x141c2a, southOpening: 3 });
   const abs = room.group;
+  abs.name = '1989-architecture';
+  abs.children.filter(mesh => mesh.isMesh && mesh.material === materials.wall).forEach(mesh => fit1989Wall(mesh));
+  const ceilingMesh = abs.children.find(mesh => mesh.isMesh && mesh.geometry.type === 'PlaneGeometry' && mesh.position.y === 4);
+  ceilingMesh.material.dispose(); ceilingMesh.material = materials.ceiling;
+  const ceilingUv = ceilingMesh.geometry.attributes.uv;
+  for (let i = 0; i < ceilingUv.count; i++) ceilingUv.setXY(i, ceilingUv.getX(i) * SIZE / 2, ceilingUv.getY(i) * SIZE / 2);
+  ceilingUv.needsUpdate = true;
   // Todo el contenido va en "g" con coordenadas LOCALES (0,0 = centro de la sala; norte = -Z).
-  const g = new THREE.Group(); g.position.z = CZ; ctx.scene.add(g);
+  const g = new THREE.Group(); g.name = '1989-props'; g.position.z = CZ; ctx.scene.add(g);
   const box = (w, h, d, m, x, y, z, p = g) => addBox(p, w, h, d, m, x, y, z);
-  const tube = (w, h, d, hex, x, y, z, k) => addTube(g, w, h, d, hex, x, y, z, k);
-  const mat = (color, o = {}) => new THREE.MeshStandardMaterial({ color, roughness: 0.7, ...o });
+  const cityTube = (parent, w, h, d, hex, x, y, z, k = 2.5) => {
+    const material = new THREE.MeshBasicMaterial({ map: materials.props.diffuser, color: neon(hex, k) });
+    material.name = '1989-neon-diffuser'; return addBox(parent, w, h, d, material, x, y, z);
+  };
+  const tube = (w, h, d, hex, x, y, z, k) => cityTube(g, w, h, d, hex, x, y, z, k);
+  const mat = (color, o = {}) => materials.finish(color, o);
+  const citySign = (...args) => {
+    const sign = makeSign(...args);
+    sign.group.children[0].material.dispose(); sign.group.children[0].material = materials.signPlate;
+    sign.face.material.color.setRGB(1.35, 1.35, 1.35);
+    sign.group.children.forEach(mesh => {
+      if (mesh !== sign.face && mesh.material.isMeshBasicMaterial) { mesh.material.map = materials.props.diffuser; mesh.material.needsUpdate = true; }
+    });
+    return sign;
+  };
   const colBox = (x0, x1, z0, z1) => ctx.colliders.push({ minX: x0, maxX: x1, minZ: CZ + z0, maxZ: CZ + z1 });
   const wp = (x, y, z) => new THREE.Vector3(x, y, z + CZ);          // local -> mundo (para partículas)
 
   // --- Luces: ambiente frío + 3 luces de neón (rosa/azul) + foco sobre la mesa ---
-  const ambient = new THREE.AmbientLight(0x6666bb, 0.8); g.add(ambient);
+  const ambient = new THREE.AmbientLight(0x9cbbcf, 0.72); g.add(ambient);
   const lp = [
     { base: 42, color: PINK, pos: [-3.9, 3.3, 2.6] }, { base: 42, color: BLUE, pos: [3.9, 3.3, -3.25] },     // (intensidad x1.5 y alcance x1.3 para la sala más grande)
     { base: 33, color: PINK, pos: [3.9, 3.3, 3.9] },  { base: 10.5, color: 0xbfe6ff, pos: [0, 2.7, -1.3], dist: 8 },
@@ -209,7 +211,10 @@ export function buildRoom1989(ctx, room1) {
   // --- Siluetas de ciudad: edificios en relieve (pared oeste) y dos ventanales panorámicos (pared norte) ---
   [2.4, 3.5, 2.8, 3.7, 2.2].forEach((h, i) => {
     const z = (-4.3 + i) * K;                            // 5 edificios; cada uno más ancho para seguir cubriendo la pared
-    const b = box(0.5, h, 0.96 * K, new THREE.MeshBasicMaterial({ map: makeWindowTexture(5, Math.round(h * 4)) }), -4.55 - EXTRA, h / 2, z);
+    const facade = makeWindowTexture(5, Math.round(h * 4));
+    const facadeMaterial = new THREE.MeshStandardMaterial({ map: facade, emissiveMap: facade, emissive: 0xffffff, emissiveIntensity: .42, roughness: .82, metalness: .12 });
+    facadeMaterial.name = '1989-window-facade';
+    const b = box(0.5, h, 0.96 * K, facadeMaterial, -4.55 - EXTRA, h / 2, z);
     if (i % 2 === 0) tube(0.04, h, 0.04, i === 0 ? PINK : BLUE, -4.28 - EXTRA, h / 2, z - 0.46 * K);
     b.userData.building = true;
   });
@@ -223,29 +228,29 @@ export function buildRoom1989(ctx, room1) {
   });
 
   // --- Carteles decorativos (no interactivos) ---
-  const deco1989 = makeSign('1989', PINK, 1.8, 0.5); deco1989.group.position.set(0, 3.6, 4.74 + EXTRA); deco1989.group.rotation.y = Math.PI; g.add(deco1989.group);
-  const decoNY = makeSign('WELCOME TO NEW YORK', BLUE, 2.9, 0.45); decoNY.group.position.set(0, 3.6, -4.74 - EXTRA); g.add(decoNY.group);
+  const deco1989 = citySign('1989', PINK, 1.8, 0.5); deco1989.group.position.set(0, 3.6, 4.74 + EXTRA); deco1989.group.rotation.y = Math.PI; g.add(deco1989.group);
+  const decoNY = citySign('WELCOME TO NEW YORK', BLUE, 2.9, 0.45); decoNY.group.position.set(0, 3.6, -4.74 - EXTRA); g.add(decoNY.group);
 
   // --- Atrezzo + escondites de las piezas ---
   // Taxi (oeste, mira al norte). Cabina de vidrio: se ve el interior, pero hay que abrir la puerta.
-  const taxi = new THREE.Group(); taxi.position.set(-3.2 * K, 0, 2.6 * K); g.add(taxi);
-  const yellow = mat(0xffc400, { roughness: 0.4, metalness: 0.3, emissive: 0x3a2a00 });
-  const glassMat = mat(0x6688cc, { emissive: 0x0a1a33, roughness: 0.2, transparent: true, opacity: 0.3 });
-  box(1.0, 0.45, 2.1, yellow, 0, 0.45, 0, taxi);                                  // carrocería
+  const taxi = new THREE.Group(); taxi.name = '1989-taxi'; taxi.position.set(-3.2 * K, 0, 2.6 * K); g.add(taxi);
+  const yellow = materials.paint(0xf2bd24);
+  const glassMat = materials.glass;
+  box(1.0, 0.45, 2.1, [materials.taxiSide, materials.taxiSide, yellow, yellow, yellow, yellow], 0, 0.45, 0, taxi); // carrocería
   box(0.92, 0.05, 1.1, yellow, 0, 1.1, -0.05, taxi);                              // techo
   [[-0.43, -0.57], [0.43, -0.57], [-0.43, 0.47], [0.43, 0.47]].forEach(([x, z]) => box(0.06, 0.4, 0.06, yellow, x, 0.88, z, taxi));
   box(0.9, 0.36, 1.08, glassMat, 0, 0.88, -0.05, taxi);                           // vidrios
-  box(0.8, 0.12, 0.4, mat(0x1a1a33), 0, 0.735, 0.3, taxi);                        // asiento trasero
-  box(0.4, 0.14, 0.18, mat(0xffffff, { emissive: 0xfff2b0 }), 0, 1.2, -0.05, taxi);
+  box(0.8, 0.12, 0.4, materials.upholstery, 0, 0.735, 0.3, taxi);                  // asiento trasero
+  box(0.4, 0.14, 0.18, materials.taxiSign, 0, 1.2, -0.05, taxi);
   [[-0.5, -0.7], [0.5, -0.7], [-0.5, 0.7], [0.5, 0.7]].forEach(([x, z]) => {
-    const w = new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.22, 0.12, 14), mat(0x111122)); w.rotation.z = Math.PI / 2; w.position.set(x, 0.22, z); taxi.add(w);
+    const w = new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.22, 0.12, 20), [materials.rubber, materials.rim, materials.rim]); w.rotation.z = Math.PI / 2; w.position.set(x, 0.22, z); taxi.add(w);
   });
-  [-0.3, 0.3].forEach((x) => addTube(taxi, 0.2, 0.1, 0.04, 0xfff2b0, x, 0.5, -1.06, 3));
+  [-0.3, 0.3].forEach((x) => box(0.2, 0.1, 0.04, materials.diffuser, x, 0.5, -1.06, taxi));
   // Puerta del lado de la sala: bisagra delantera, se abre hacia afuera (+X)
   const taxiDoor = new THREE.Group(); taxiDoor.position.set(0.5, 0, -0.52); taxi.add(taxiDoor);
   box(0.05, 0.38, 0.95, glassMat, 0, 0.88, 0.475, taxiDoor);
   box(0.06, 0.04, 0.95, yellow, 0, 0.69, 0.475, taxiDoor);
-  addTube(taxiDoor, 0.07, 0.05, 0.18, PINK, 0.03, 0.8, 0.8);                      // manija luminosa
+  cityTube(taxiDoor, 0.07, 0.05, 0.18, PINK, 0.03, 0.8, 0.8);                     // manija luminosa
   let taxiOpen = false;
   ctx.interaction.add(taxiDoor, {
     prompt: () => 'Presiona E para abrir la puerta del taxi.',
@@ -255,52 +260,53 @@ export function buildRoom1989(ctx, room1) {
   colBox(-3.2 * K - 0.55, -3.2 * K + 0.55, 2.6 * K - 1.1, 2.6 * K + 1.1);
 
   // Quiosco de periódicos (pared este, norte): se dibuja con las coordenadas originales dentro de un grupo desplazado (pegado a la nueva pared)
-  const kiosk = new THREE.Group(); kiosk.position.set(EXTRA, 0, -3.3 * (K - 1)); g.add(kiosk);
-  box(1.2, 1.0, 1.7, mat(0x2b2b55), 4.0, 0.5, -3.3, kiosk);
-  box(0.35, 0.06, 1.7, mat(0x5a5a90), 3.25, 1.0, -3.3, kiosk);
-  box(1.5, 0.08, 1.9, mat(PINK, { emissive: 0x551133 }), 3.85, 2.1, -3.3, kiosk);
-  [-4.1, -2.5].forEach((z) => box(0.06, 2.1, 0.06, mat(0x07071a), 3.15, 1.05, z, kiosk));
-  [-3.85, -3.65, -2.95, -2.75].forEach((z, i) => { const n = box(0.28, 0.03, 0.36, mat(i % 2 ? 0xfff2d0 : 0xe8e0c8), 3.25, 1.05, z, kiosk); n.rotation.y = (i - 1.5) * 0.25; });
+  const kiosk = new THREE.Group(); kiosk.name = '1989-kiosk'; kiosk.position.set(EXTRA, 0, -3.3 * (K - 1)); g.add(kiosk);
+  box(1.2, 1.0, 1.7, materials.paint(0x34495f), 4.0, 0.5, -3.3, kiosk);
+  box(0.35, 0.06, 1.7, materials.steel, 3.25, 1.0, -3.3, kiosk);
+  box(1.5, 0.08, 1.9, materials.paint(0xb7648d), 3.85, 2.1, -3.3, kiosk);
+  [-4.1, -2.5].forEach((z) => box(0.06, 2.1, 0.06, materials.darkSteel, 3.15, 1.05, z, kiosk));
+  [-3.85, -3.65, -2.95, -2.75].forEach((z, i) => { const n = box(0.28, 0.03, 0.36, materials.paper, 3.25, 1.05, z, kiosk); n.rotation.y = (i - 1.5) * 0.25; });
   colBox(3.0 + EXTRA, 4.8 + EXTRA, -4.2 - 3.3 * (K - 1), -2.4 - 3.3 * (K - 1));
 
   // Parada de autobús (pared este, sur)
-  const bus = new THREE.Group(); bus.position.set(EXTRA, 0, 2.4 * (K - 1)); g.add(bus);
-  box(0.06, 2.0, 1.9, mat(0x1a3a66, { emissive: 0x0a3a6a, transparent: true, opacity: 0.6 }), 4.7, 1.1, 2.4, bus);
-  box(0.95, 0.07, 2.0, mat(0x07071a), 4.25, 2.25, 2.4, bus);
-  [1.5, 3.3].forEach((z) => box(0.06, 2.2, 0.06, mat(0x07071a), 3.8, 1.1, z, bus));
-  box(0.4, 0.07, 1.4, mat(0x6a6a9a), 4.3, 0.5, 2.4, bus);
-  [1.8, 3.0].forEach((z) => box(0.35, 0.5, 0.06, mat(0x07071a), 4.3, 0.25, z, bus));
+  const bus = new THREE.Group(); bus.name = '1989-bus-stop'; bus.position.set(EXTRA, 0, 2.4 * (K - 1)); g.add(bus);
+  const busGlass = materials.glass.clone(); busGlass.opacity = .36;
+  box(0.06, 2.0, 1.9, busGlass, 4.7, 1.1, 2.4, bus);
+  box(0.95, 0.07, 2.0, materials.darkSteel, 4.25, 2.25, 2.4, bus);
+  [1.5, 3.3].forEach((z) => box(0.06, 2.2, 0.06, materials.steel, 3.8, 1.1, z, bus));
+  box(0.4, 0.07, 1.4, materials.paint(0x748b9b), 4.3, 0.5, 2.4, bus);
+  [1.8, 3.0].forEach((z) => box(0.35, 0.5, 0.06, materials.darkSteel, 4.3, 0.25, z, bus));
   colBox(3.7 + EXTRA, 4.8 + EXTRA, 1.4 + 2.4 * (K - 1), 3.4 + 2.4 * (K - 1));
 
   // Farola con gaviota + caja
   const LAMPX = -3 * K, LAMPZ = -3.4 * K, CRX = -2.55 * K, CRZ = -3.0 * K;
-  box(0.1, 3.0, 0.1, mat(0x07071a), LAMPX, 1.5, LAMPZ);
-  const lampHead = new THREE.Mesh(new THREE.SphereGeometry(0.18, 12, 8), new THREE.MeshBasicMaterial({ color: neon(0xffd9a0, 3) })); lampHead.position.set(LAMPX, 3.05, LAMPZ); g.add(lampHead);
-  const gull = makeSeagull(); gull.position.set(LAMPX, 3.3, LAMPZ); gull.rotation.y = 0.8; g.add(gull);
-  box(0.55, 0.45, 0.55, mat(0x3a2a55), CRX, 0.225, CRZ);
+  box(0.1, 3.0, 0.1, materials.darkSteel, LAMPX, 1.5, LAMPZ);
+  const lampHead = new THREE.Mesh(new THREE.SphereGeometry(0.18, 12, 8), materials.diffuser); lampHead.position.set(LAMPX, 3.05, LAMPZ); g.add(lampHead);
+  const gull = makeSeagull(materials); gull.name = '1989-seagull'; gull.position.set(LAMPX, 3.3, LAMPZ); gull.rotation.y = 0.8; g.add(gull);
+  box(0.55, 0.45, 0.55, materials.paint(0x516172), CRX, 0.225, CRZ);
   colBox(LAMPX - 0.08, LAMPX + 0.08, LAMPZ - 0.08, LAMPZ + 0.08); colBox(CRX - 0.3, CRX + 0.3, CRZ - 0.3, CRZ + 0.3);
 
   // Contenedor de basura (centro-oeste, lejos de las paredes): esconde una pieza en su lado oeste
   const dumpster = new THREE.Group(); dumpster.position.set(-2.3 * K, 0, -0.2 * K); g.add(dumpster);
-  box(0.8, 1.3, 1.6, mat(0x1f6a4a, { roughness: 0.6, metalness: 0.4, emissive: 0x06201a }), 0, 0.65, 0, dumpster);
-  box(0.86, 0.06, 1.66, mat(0x0d3a2a), 0, 1.32, 0, dumpster);
-  addTube(dumpster, 0.03, 0.03, 1.6, BLUE, 0.41, 0.9, 0);
+  box(0.8, 1.3, 1.6, materials.paint(0x285c49), 0, 0.65, 0, dumpster);
+  box(0.86, 0.06, 1.66, materials.paint(0x1b3b32), 0, 1.32, 0, dumpster);
+  cityTube(dumpster, 0.03, 0.03, 1.6, BLUE, 0.41, 0.9, 0);
   colBox(-2.3 * K - 0.45, -2.3 * K + 0.45, -0.2 * K - 0.85, -0.2 * K + 0.85);
 
   // Armario con candado de 4 dígitos (pared sur, derecha). Código = el año que da nombre a la era.
   const CODE = '1989', digits = [0, 0, 0, 0];
   let cabOpen = false;
   const cab = new THREE.Group(); cab.position.set(3.0 * K, 0, 4.52 + EXTRA); cab.rotation.y = Math.PI; g.add(cab);   // el frente mira al norte
-  const wood = mat(0x2d2350, { roughness: 0.6, metalness: 0.3, emissive: 0x120a22 });
+  const wood = materials.paint(0x393f5c);
   const cb = (w, h, d, x, y, z) => box(w, h, d, wood, x, y, z, cab);
   cb(1.2, 2.1, 0.04, 0, 1.05, -0.25); cb(0.04, 2.1, 0.5, -0.58, 1.05, 0); cb(0.04, 2.1, 0.5, 0.58, 1.05, 0);
   cb(1.2, 0.04, 0.5, 0, 2.08, 0); cb(1.2, 0.04, 0.5, 0, 0.02, 0); cb(1.12, 0.03, 0.48, 0, 0.9, 0); cb(1.12, 0.03, 0.48, 0, 1.6, 0);
-  [-0.6, 0.6].forEach((x) => addTube(cab, 0.03, 2.1, 0.03, PINK, x, 1.05, 0.27));
+  [-0.6, 0.6].forEach((x) => cityTube(cab, 0.03, 2.1, 0.03, PINK, x, 1.05, 0.27));
   const digitTex = Array.from({ length: 10 }, (_, d) => makeTextTexture(String(d), { w: 64, h: 96, bg: '#07071a', color: '#2de2ff', font: 'bold 72px Georgia' }));
   const cabDoors = [-1, 1].map((side) => {                                             // side -1 = izquierda, +1 = derecha (en el espacio del armario)
     const pivot = new THREE.Group(); pivot.position.set(side * 0.6, 0, 0.27); cab.add(pivot);
-    box(0.58, 2.0, 0.04, mat(0x3a2e66, { roughness: 0.5, metalness: 0.3, emissive: 0x150d2a }), -side * 0.3, 1.05, 0, pivot);
-    addTube(pivot, 0.03, 0.2, 0.03, BLUE, -side * 0.06, 1.05, 0.04);
+    box(0.58, 2.0, 0.04, materials.paint(0x4e5672), -side * 0.3, 1.05, 0, pivot);
+    cityTube(pivot, 0.03, 0.2, 0.03, BLUE, -side * 0.06, 1.05, 0.04);
     return pivot;
   });
   const lockInfo = () => ctx.ui.toast('Un armario con candado de cuatro dígitos. Piensa en el año que da nombre a esta era...', 6000);
@@ -332,24 +338,24 @@ export function buildRoom1989(ctx, room1) {
 
   // Mesa de la cámara (pared este): aquí se "revela" la Polaroid al completar el rompecabezas
   const CAMX = 4.2 + EXTRA, CAMZ = -0.4 * K;
-  box(0.9, 0.06, 1.2, mat(0x2a2a52, { roughness: 0.4, metalness: 0.5 }), CAMX, 0.75, CAMZ);
-  [-0.38, 0.38].forEach((dx) => [-0.52, 0.52].forEach((dz) => box(0.06, 0.72, 0.06, mat(0x07071a), CAMX + dx, 0.36, CAMZ + dz)));
+  box(0.9, 0.06, 1.2, materials.paint(0x52687b), CAMX, 0.75, CAMZ);
+  [-0.38, 0.38].forEach((dx) => [-0.52, 0.52].forEach((dz) => box(0.06, 0.72, 0.06, materials.steel, CAMX + dx, 0.36, CAMZ + dz)));
   [-0.45, 0.45].forEach((dx) => tube(0.03, 0.03, 1.2, PINK, CAMX + dx, 0.75, CAMZ));
   const camera3 = new THREE.Group(); camera3.position.set(CAMX, 0.78, CAMZ); camera3.rotation.y = -Math.PI / 2; g.add(camera3);   // mira hacia la sala (-X)
-  const camWhite = mat(0xf2f0ea, { roughness: 0.5, emissive: 0x2a2a30 });
+  const camWhite = materials.finish(0xf4f1e7, { map: materials.props.cameraBody });
   box(0.46, 0.28, 0.3, camWhite, 0, 0.17, 0, camera3);
   box(0.47, 0.05, 0.31, mat(PINK, { emissive: 0x551133 }), 0, 0.1, 0, camera3);
   box(0.47, 0.05, 0.31, mat(0x2de2ff, { emissive: 0x0a4a55 }), 0, 0.15, 0, camera3);
   const lens = new THREE.Mesh(new THREE.CylinderGeometry(0.09, 0.09, 0.1, 18), mat(0x111122, { metalness: 0.6 })); lens.rotation.x = Math.PI / 2; lens.position.set(0, 0.19, 0.18); camera3.add(lens);
-  const glass = new THREE.Mesh(new THREE.CylinderGeometry(0.055, 0.055, 0.02, 14), new THREE.MeshBasicMaterial({ color: neon(BLUE, 2) })); glass.rotation.x = Math.PI / 2; glass.position.set(0, 0.19, 0.235); camera3.add(glass);
-  box(0.1, 0.06, 0.04, mat(0xffffff, { emissive: 0xffffff }), -0.13, 0.33, 0.14, camera3);              // flash
+  const glass = new THREE.Mesh(new THREE.CylinderGeometry(0.055, 0.055, 0.02, 20), materials.lens); glass.rotation.x = Math.PI / 2; glass.position.set(0, 0.19, 0.235); camera3.add(glass);
+  box(0.1, 0.06, 0.04, materials.diffuser, -0.13, 0.33, 0.14, camera3);               // flash
   box(0.28, 0.02, 0.05, mat(0x07071a), 0.05, 0.315, 0, camera3);                                         // ranura por donde sale la foto
   colBox(CAMX - 0.5, CAMX + 0.5, CAMZ - 0.65, CAMZ + 0.65);
 
   // --- Puerta de salida (norte): estilo neón + marco luminoso ---
   const doorZ = CZ - SIZE / 2, len = 4;
   const door = createDoor(ctx, { x: 0, z: doorZ, width: room.doorWidth });
-  Object.assign(door.mesh.material, { metalness: 0.6 }); door.mesh.material.color.set(0x16163a); door.mesh.material.emissive.set(0x3a0a55);
+  door.mesh.material = materials.paint(0x304052);
   tube(0.07, DOOR_H, 0.07, PINK, -1.56, DOOR_H / 2, -4.78 - EXTRA); tube(0.07, DOOR_H, 0.07, PINK, 1.56, DOOR_H / 2, -4.78 - EXTRA);
   tube(3.2, 0.07, 0.07, PINK, 0, DOOR_H, -4.78 - EXTRA);
 
@@ -390,7 +396,7 @@ export function buildRoom1989(ctx, room1) {
       clue: '"Las gaviotas vigilan desde lo alto de la farola." Junto a su caja cayó la pieza del cielo con gaviotas: arriba a la izquierda.' },
   ];
   clues.forEach((c) => {
-    const s = makeSign(c.text, c.hex, c.w, 0.7);
+    const s = citySign(c.text, c.hex, c.w, 0.7);
     s.group.position.set(...c.pos); s.group.rotation.y = c.ry; g.add(s.group);
     const f = { face: s.face, until: 0, idle: !!c.idle }; flicker.push(f);
     ctx.interaction.add(s.group, {
@@ -404,14 +410,14 @@ export function buildRoom1989(ctx, room1) {
   const slices = [0, 1, 2, 3].map((i) => makeSlice(photoTex.image, i % 2, i >> 1));
   const glowTex = canvasTex(128, 128, (c) => {
     const r = c.createRadialGradient(64, 64, 0, 64, 64, 64);
-    r.addColorStop(0, 'rgba(255,255,255,1)'); r.addColorStop(0.35, 'rgba(255,255,255,.35)'); r.addColorStop(1, 'rgba(255,255,255,0)');
+    r.addColorStop(0, 'rgba(255,255,255,.45)'); r.addColorStop(0.35, 'rgba(255,255,255,.12)'); r.addColorStop(1, 'rgba(255,255,255,0)');
     c.fillStyle = r; c.fillRect(0, 0, 128, 128);
   });
   const makeGlow = (hex, size) => {
     const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: glowTex, color: new THREE.Color(hex).multiplyScalar(1.4), blending: THREE.AdditiveBlending, transparent: true, depthWrite: false }));
     s.scale.setScalar(size); return s;
   };
-  const edge = new THREE.MeshStandardMaterial({ color: 0xffffff, emissive: 0x777777 });
+  const edge = materials.photoPaper;
 
   const found = new Set();
   // Línea de visión: una pieza "escondida" solo se puede tomar si ningún objeto tapa el rayo cámara -> pieza.
@@ -430,7 +436,7 @@ export function buildRoom1989(ctx, room1) {
   let cabPiece = null;
   const pieces = spots.map(({ idx, pos, hiddenBy, gate, hidden }, n) => {
     const p = new THREE.Group(); p.position.set(...pos); g.add(p);
-    const top = new THREE.MeshStandardMaterial({ map: slices[idx], emissiveMap: slices[idx], emissive: new THREE.Color(0.7, 0.7, 0.7) });
+    const top = new THREE.MeshStandardMaterial({ map: slices[idx], emissiveMap: slices[idx], emissive: new THREE.Color(.25, .25, .25), roughness: .6, bumpMap: materials.props.fibers, bumpScale: .001 });
     const tile = new THREE.Mesh(new THREE.BoxGeometry(0.34, 0.04, 0.34), [edge, edge, top, edge, edge, edge]);
     tile.rotation.x = -0.6;
     p.add(tile, makeGlow(0xff7ad9, 1.0));
@@ -458,7 +464,7 @@ export function buildRoom1989(ctx, room1) {
   const sketch = new THREE.Group(); sketch.position.set(-4.76 - EXTRA, 1.9, 0.85 * K); sketch.rotation.y = Math.PI / 2; g.add(sketch);
   box(1.0, 1.0, 0.04, mat(0x07071a, { emissive: 0x1a0a2a }), 0, 0, 0, sketch);
   const sketchPic = new THREE.Mesh(new THREE.PlaneGeometry(0.88, 0.88), new THREE.MeshBasicMaterial({ map: sketchTex })); sketchPic.position.z = 0.025; sketch.add(sketchPic);
-  [1, -1].forEach((sg) => { addTube(sketch, 1.04, 0.03, 0.03, BLUE, 0, sg * 0.5, 0.03); addTube(sketch, 0.03, 1.04, 0.03, BLUE, sg * 0.5, 0, 0.03); });
+  [1, -1].forEach((sg) => { cityTube(sketch, 1.04, 0.03, 0.03, BLUE, 0, sg * 0.5, 0.03); cityTube(sketch, 0.03, 1.04, 0.03, BLUE, sg * 0.5, 0, 0.03); });
   ctx.interaction.add(sketch, {
     prompt: () => 'Presiona E para mirar el boceto.',
     onInteract: () => ctx.ui.toast('Un boceto borroso del cuadro final, dividido en cuatro: así van las piezas. El cielo arriba; la ciudad y la calle, abajo.', 8000),
@@ -466,8 +472,8 @@ export function buildRoom1989(ctx, room1) {
 
   // 3) Mesa central con 4 huecos (fila 0 = norte = arriba de la imagen)
   const TX = 0, TZ = -1.0 * K;
-  box(1.6, 0.08, 1.6, mat(0x2a2a52, { roughness: 0.4, metalness: 0.5 }), TX, 0.85, TZ);
-  [-0.7, 0.7].forEach((dx) => [-0.7, 0.7].forEach((dz) => box(0.08, 0.81, 0.08, mat(0x07071a), TX + dx, 0.405, TZ + dz)));
+  box(1.6, 0.08, 1.6, materials.paint(0x52687b), TX, 0.85, TZ);
+  [-0.7, 0.7].forEach((dx) => [-0.7, 0.7].forEach((dz) => box(0.08, 0.81, 0.08, materials.steel, TX + dx, 0.405, TZ + dz)));
   [-1, 1].forEach((s) => { tube(1.6, 0.03, 0.03, BLUE, TX, 0.85, TZ + s * 0.8); tube(0.03, 0.03, 1.6, BLUE, TX + s * 0.8, 0.85, TZ); });
   colBox(TX - 0.85, TX + 0.85, TZ - 0.85, TZ + 0.85);
 
@@ -510,7 +516,7 @@ export function buildRoom1989(ctx, room1) {
   let printed = false, printAt = 0;
   const POL_Y0 = 0.95, POL_Y1 = 1.75;
   const polaroid = new THREE.Group(); polaroid.visible = false; polaroid.position.set(CAMX, POL_Y0, CAMZ); polaroid.rotation.y = -Math.PI / 2; polaroid.scale.setScalar(1.3); g.add(polaroid);
-  const card = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.6, 0.015), new THREE.MeshStandardMaterial({ color: 0xf5f2ea, emissive: 0x55524a, roughness: 0.6 }));
+  const card = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.6, 0.015), materials.photoPaper);
   const pic = new THREE.Mesh(new THREE.PlaneGeometry(0.4, 0.4), new THREE.MeshBasicMaterial({ map: photoTex })); pic.position.set(0, 0.06, 0.009);
   polaroid.add(card, pic, makeGlow(PINK, 1.6));
   ctx.interaction.add(camera3, {
@@ -542,9 +548,9 @@ export function buildRoom1989(ctx, room1) {
   let fileMissing = false;
   const recordPlayer = new THREE.Group(); recordPlayer.position.set(RPX, 1.0, RPZ); g.add(recordPlayer);
   box(0.3, 0.07, 0.3, mat(0x1a1030, { roughness: 0.4, metalness: 0.5, emissive: 0x120a22 }), 0, 0.035, 0, recordPlayer);
-  addTube(recordPlayer, 0.31, 0.015, 0.015, PINK, 0, 0.07, 0.15); addTube(recordPlayer, 0.31, 0.015, 0.015, BLUE, 0, 0.07, -0.15);
+  cityTube(recordPlayer, 0.31, 0.015, 0.015, PINK, 0, 0.07, 0.15); cityTube(recordPlayer, 0.31, 0.015, 0.015, BLUE, 0, 0.07, -0.15);
   const platter = new THREE.Group(); platter.position.y = 0.085; recordPlayer.add(platter);
-  const vinyl = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.12, 0.012, 28), mat(0x050508, { roughness: 0.25, metalness: 0.6 }));
+  const vinyl = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.12, 0.012, 28), mat(0x777e89, { map: materials.props.vinyl, roughness: .35, metalness: .3 }));
   const label = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 0.014, 18), mat(PINK, { emissive: 0x551133 }));
   const groove = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.014, 0.008), mat(0x2a2a44));   // marca para ver que gira
   platter.add(vinyl, label, groove);
@@ -577,7 +583,7 @@ export function buildRoom1989(ctx, room1) {
     arm.rotation.y += ((playing ? 0.5 : 0) - arm.rotation.y) * Math.min(1, dt * 4);
     rpGlow.visible = playing; rpGlow.material.opacity = 0.6 + 0.4 * Math.sin(t * 8);
     if (playing && Math.random() < 0.05) ctx.particles.burst(wp(RPX, 1.2, RPZ), 2, { speed: 0.3, up: 0.8 });
-    ambient.intensity = 0.8 * mult;
+    ambient.intensity = 0.72 * mult;
     lp.forEach((o, i) => (o.l.intensity = o.base * mult * (0.9 + 0.1 * Math.sin(t * 1.5 + i * 1.7))));
     if (cam.z < -8) ctx.fx.bloom = true;                    // el neón necesita Bloom (queda activo desde aquí)
 
@@ -606,5 +612,5 @@ export function buildRoom1989(ctx, room1) {
     hallLight.intensity = hallBase * lights.mute;
   });
 
-  return { ...room, door, lights };
+  return { ...room, door, lights, materials, propsRoot: g };
 }

@@ -1,0 +1,74 @@
+{
+  "initial": {
+    "pieces": 4,
+    "locked": true,
+    "solved": 0,
+    "taxiPieceLocked": true,
+    "cabinetPieceHidden": true,
+    "wall": "1989-blue-concrete",
+    "floor": "1989-graphite-terrazzo",
+    "fearless": "fearless-ivory-paper-and-oak"
+  },
+  "solved": {
+    "solved": 1,
+    "allPiecesCollected": true,
+    "photoVisible": true,
+    "photoReady": true,
+    "collected": true,
+    "doorUnlocked": true
+  },
+  "transition": {
+    "muted1989": true,
+    "doorOpen": true
+  },
+  "errors": [],
+  "failedAssets": [],
+  "shots": [
+    {
+      "name": "entrada",
+      "x": 0,
+      "y": 1.7,
+      "z": -10.8,
+      "tx": 0,
+      "ty": 1.55,
+      "tz": -21
+    },
+    {
+      "name": "diagonal",
+      "x": -4.7,
+      "y": 1.7,
+      "z": -11.4,
+      "tx": 1,
+      "ty": 1.55,
+      "tz": -16.5
+    },
+    {
+      "name": "contraplano",
+      "x": 4.7,
+      "y": 1.7,
+      "z": -19.6,
+      "tx": -1,
+      "ty": 1.55,
+      "tz": -14.5
+    },
+    {
+      "name": "parada-materiales",
+      "x": 3.6,
+      "y": 1.7,
+      "z": -13.9,
+      "tx": 6.1,
+      "ty": 0.8,
+      "tz": -12.4
+    },
+    {
+      "name": "camara",
+      "x": 4.2,
+      "y": 1.7,
+      "z": -15.4,
+      "tx": 5.7,
+      "ty": 0.98,
+      "tz": -16.02
+    }
+  ],
+  "note": "Puzzle checked through its actual interaction callbacks, including taxi gate, line of sight, cabinet code and photo reward. Not a performance benchmark."
+}

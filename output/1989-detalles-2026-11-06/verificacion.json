@@ -1,0 +1,141 @@
+{
+  "initial": {
+    "pieces": 4,
+    "locked": true,
+    "solved": 0,
+    "taxiPieceLocked": true,
+    "cabinetPieceHidden": true,
+    "wall": "1989-blue-concrete",
+    "floor": "1989-graphite-terrazzo",
+    "fearless": "fearless-ivory-paper-and-oak"
+  },
+  "solved": {
+    "solved": 1,
+    "allPiecesCollected": true,
+    "photoVisible": true,
+    "photoReady": true,
+    "collected": true,
+    "doorUnlocked": true
+  },
+  "transition": {
+    "muted1989": true,
+    "doorOpen": true
+  },
+  "coverage": {
+    "physicalMaterials": 64,
+    "withoutColorTexture": []
+  },
+  "errors": [],
+  "failedAssets": [],
+  "shots": [
+    {
+      "name": "entrada",
+      "x": 0,
+      "y": 1.7,
+      "z": -10.8,
+      "tx": 0,
+      "ty": 1.55,
+      "tz": -21
+    },
+    {
+      "name": "diagonal",
+      "x": -4.7,
+      "y": 1.7,
+      "z": -11.4,
+      "tx": 1,
+      "ty": 1.55,
+      "tz": -16.5
+    },
+    {
+      "name": "contraplano",
+      "x": 4.7,
+      "y": 1.7,
+      "z": -19.6,
+      "tx": -1,
+      "ty": 1.55,
+      "tz": -14.5
+    },
+    {
+      "name": "parada-materiales",
+      "x": 3.6,
+      "y": 1.7,
+      "z": -13.9,
+      "tx": 6.1,
+      "ty": 0.8,
+      "tz": -12.4
+    },
+    {
+      "name": "camara",
+      "x": 5,
+      "y": 1.35,
+      "z": -15.95,
+      "tx": 5.7,
+      "ty": 0.97,
+      "tz": -16.02
+    },
+    {
+      "name": "taxi",
+      "x": -2.4,
+      "y": 1.45,
+      "z": -10.7,
+      "tx": -4.16,
+      "ty": 0.65,
+      "tz": -12.12
+    },
+    {
+      "name": "rueda",
+      "x": -2.9,
+      "y": 0.65,
+      "z": -11.2,
+      "tx": -3.66,
+      "ty": 0.26,
+      "tz": -11.42
+    },
+    {
+      "name": "edificios",
+      "x": -3.9,
+      "y": 2.1,
+      "z": -18.9,
+      "tx": -5.8,
+      "ty": 1.9,
+      "tz": -18.5
+    },
+    {
+      "name": "quiosco",
+      "x": 3.7,
+      "y": 1.6,
+      "z": -18.9,
+      "tx": 5.3,
+      "ty": 1.12,
+      "tz": -19.8
+    },
+    {
+      "name": "armario",
+      "x": 3.9,
+      "y": 1.5,
+      "z": -10.6,
+      "tx": 4.15,
+      "ty": 1.1,
+      "tz": -9.75
+    },
+    {
+      "name": "mesa-piezas",
+      "x": 0,
+      "y": 1.9,
+      "z": -15.7,
+      "tx": 0,
+      "ty": 0.9,
+      "tz": -16.8
+    },
+    {
+      "name": "gaviota",
+      "x": -2.8,
+      "y": 3.4,
+      "z": -19.6,
+      "tx": -3.9,
+      "ty": 3.42,
+      "tz": -19.92
+    }
+  ],
+  "note": "Puzzle checked through its actual interaction callbacks, including taxi gate, line of sight, cabinet code and photo reward. Not a performance benchmark."
+}
