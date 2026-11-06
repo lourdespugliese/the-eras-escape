@@ -1,0 +1,78 @@
+{
+  "initial": {
+    "locked": true,
+    "solved": 0,
+    "bounds": {
+      "minX": -5,
+      "maxX": 9,
+      "minZ": -5,
+      "maxZ": 5
+    },
+    "wall": "fearless-ivory-paper-and-oak"
+  },
+  "solved": {
+    "solved": 2,
+    "guitarVisible": true,
+    "guitarReady": true,
+    "wallTextureLoaded": true,
+    "collected": true,
+    "doorUnlocked": true
+  },
+  "entrance": {
+    "museumVisible": true,
+    "position": [
+      2,
+      1.7,
+      23.2
+    ]
+  },
+  "errors": [],
+  "failedAssets": [],
+  "shots": [
+    {
+      "name": "entrada",
+      "x": 2,
+      "y": 1.7,
+      "z": 3.2,
+      "tx": 2,
+      "ty": 1.55,
+      "tz": -4
+    },
+    {
+      "name": "diagonal",
+      "x": -3.2,
+      "y": 1.7,
+      "z": 2.6,
+      "tx": 3,
+      "ty": 1.55,
+      "tz": -1
+    },
+    {
+      "name": "contraplano",
+      "x": 7.2,
+      "y": 1.7,
+      "z": -2.6,
+      "tx": 1,
+      "ty": 1.55,
+      "tz": 1
+    },
+    {
+      "name": "libro",
+      "x": 3.1,
+      "y": 1.7,
+      "z": 2.7,
+      "tx": 2,
+      "ty": 1.05,
+      "tz": 2.8
+    },
+    {
+      "name": "piso-pared",
+      "x": 5.8,
+      "y": 1.7,
+      "z": -2.7,
+      "tx": 8.65,
+      "ty": 0.65,
+      "tz": -3.1
+    }
+  ]
+}

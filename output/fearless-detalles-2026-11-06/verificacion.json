@@ -1,0 +1,155 @@
+{
+  "initial": {
+    "locked": true,
+    "solved": 0,
+    "bounds": {
+      "minX": -5,
+      "maxX": 9,
+      "minZ": -5,
+      "maxZ": 5
+    },
+    "wall": "fearless-ivory-paper-and-oak"
+  },
+  "solved": {
+    "solved": 2,
+    "guitarVisible": true,
+    "guitarReady": true,
+    "wallTextureLoaded": true,
+    "collected": true,
+    "doorUnlocked": true
+  },
+  "entrance": {
+    "museumVisible": true,
+    "position": [
+      2,
+      1.7,
+      23.2
+    ]
+  },
+  "detailChecks": {
+    "physicalMaterials": 86,
+    "withoutColorTexture": [],
+    "flowerHeads": 24,
+    "clueButterflies": 4,
+    "swarmVisible": 3,
+    "petalAlphaTest": 0.45,
+    "wingLoaded": true,
+    "mirroredLeftWing": true
+  },
+  "errors": [],
+  "failedAssets": [],
+  "shots": [
+    {
+      "name": "entrada",
+      "x": 2,
+      "y": 1.7,
+      "z": 3.2,
+      "tx": 2,
+      "ty": 1.55,
+      "tz": -4
+    },
+    {
+      "name": "diagonal",
+      "x": -3.2,
+      "y": 1.7,
+      "z": 2.6,
+      "tx": 3,
+      "ty": 1.55,
+      "tz": -1
+    },
+    {
+      "name": "contraplano",
+      "x": 7.2,
+      "y": 1.7,
+      "z": -2.6,
+      "tx": 1,
+      "ty": 1.55,
+      "tz": 1
+    },
+    {
+      "name": "mariposa",
+      "x": -4.1,
+      "y": 1.7,
+      "z": -1.7,
+      "tx": -4.1,
+      "ty": 2.2,
+      "tz": -3
+    },
+    {
+      "name": "flores",
+      "x": 7.3,
+      "y": 1.35,
+      "z": -3.2,
+      "tx": 8.2,
+      "ty": 0.85,
+      "tz": -4.2
+    },
+    {
+      "name": "flor-detalle",
+      "flower": true
+    },
+    {
+      "name": "maceta",
+      "x": 7.55,
+      "y": 0.8,
+      "z": -3.6,
+      "tx": 8.2,
+      "ty": 0.25,
+      "tz": -4.2
+    },
+    {
+      "name": "libro",
+      "x": 2,
+      "y": 1.8,
+      "z": 3.5,
+      "tx": 2,
+      "ty": 1.05,
+      "tz": 2.8
+    },
+    {
+      "name": "guitarra",
+      "x": -2.9,
+      "y": 1.4,
+      "z": 2.65,
+      "tx": -4.05,
+      "ty": 1.2,
+      "tz": 2.8
+    },
+    {
+      "name": "baul",
+      "x": 1.45,
+      "y": 1.1,
+      "z": -3.25,
+      "tx": 2.6,
+      "ty": 0.42,
+      "tz": -4.2
+    },
+    {
+      "name": "chaqueta",
+      "x": 5.5,
+      "y": 1.35,
+      "z": 3.3,
+      "tx": 5.5,
+      "ty": 0.9,
+      "tz": 4
+    },
+    {
+      "name": "anillo",
+      "x": -2.65,
+      "y": 1.15,
+      "z": -2.9,
+      "tx": -3.3,
+      "ty": 0.95,
+      "tz": -3.4
+    },
+    {
+      "name": "estrella",
+      "x": -0.1,
+      "y": 1.15,
+      "z": 3.6,
+      "tx": -0.8,
+      "ty": 0.98,
+      "tz": 4.2
+    }
+  ]
+}
