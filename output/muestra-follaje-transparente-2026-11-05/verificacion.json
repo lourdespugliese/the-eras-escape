@@ -1,0 +1,30 @@
+{
+  "frameCount": 60,
+  "fps": 10,
+  "durationSeconds": 6,
+  "before": {
+    "groups": 5,
+    "render": {
+      "frame": 564,
+      "calls": 1,
+      "triangles": 1,
+      "points": 0,
+      "lines": 0
+    },
+    "textures": 192
+  },
+  "after": {
+    "render": {
+      "frame": 1466,
+      "calls": 1,
+      "triangles": 1,
+      "points": 0,
+      "lines": 0
+    },
+    "textures": 192,
+    "gifFrames": 24,
+    "textureVersion": 49
+  },
+  "errors": [],
+  "note": "Visual prototype, not a GPU timing benchmark. Original game source unchanged. Particle state is frozen to isolate canopy motion."
+}

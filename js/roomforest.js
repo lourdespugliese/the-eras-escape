@@ -26,6 +26,8 @@
 import * as THREE from 'three';
 import { createDoor, addWall, canvasTex, DOOR_H } from './rooms.js';
 import { createGlitter } from './glitter.js';
+import { createForestMaterials } from './forest-materials.js';
+import { roundedGeometry, physicalUV } from './surface-library.js';
 
 const W = 40, D = 32;                  // 1280 m² (la sala Lover mide 12 × 12 = 144 m²). Medidas pares: la rejilla de 1 m queda alineada
 const HALL = 4;                        // pasillo entre la puerta de Lover y el bosque (= HALL_OUT de roomlover.js)
@@ -243,10 +245,11 @@ export function buildRoomForest(ctx, room4) {
   const wpos = (x, y, z) => new THREE.Vector3(x, y, z + CZ);
   const colBox = (x0, x1, z0, z1) => { const c = { minX: x0, maxX: x1, minZ: CZ + z0, maxZ: CZ + z1 }; ctx.colliders.push(c); return c; };
   const colRound = (x, z, r) => colBox(x - r, x + r, z - r, z + r);
-  const mat = (color, o = {}) => new THREE.MeshStandardMaterial({ color, roughness: 0.85, ...o });
+  const materials=createForestMaterials();
+  const mat=materials.finish;
   const hit = (w, h, d, x, y, z) => { const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), new THREE.MeshBasicMaterial({ visible: false })); m.position.set(x, y, z); return m; };
-  const box = (w, h, d, m, x, y, z, p = g) => { const o = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), m); o.position.set(x, y, z); p.add(o); return o; };
-  const cyl = (rt, rb, h, m, x, y, z, seg = 10, p = g) => { const o = new THREE.Mesh(new THREE.CylinderGeometry(rt, rb, h, seg), m); o.position.set(x, y, z); p.add(o); return o; };
+  const box = (w, h, d, m, x, y, z, p = g) => { const o = new THREE.Mesh(roundedGeometry(w,h,d,.018), m); o.position.set(x, y, z); p.add(o); return o; };
+  const cyl = (rt, rb, h, m, x, y, z, seg = 10, p = g) => { const o = new THREE.Mesh(new THREE.CylinderGeometry(rt, rb, h, seg), m===materials.trunk?[m,materials.cutWood,materials.cutWood]:m); o.position.set(x, y, z); p.add(o); return o; };
   const reader = makeReader(), fade = makeFade();
   const { walk, X: cellX, Z: cellZ } = layout();
 
@@ -265,7 +268,7 @@ export function buildRoomForest(ctx, room4) {
   const sources = [];                                                                       // fuentes de luz posibles (farolas, lámpara de la cabaña, faroles del sauce)
 
   // ---------------- Suelo, cielo y paredes altas ----------------
-  const PPM = 32;
+  const PPM = 48;
   const groundTex = canvasTex(W * PPM, D * PPM, (c) => {
     const w = W * PPM, h = D * PPM, r2 = rng(77);
     const gr = c.createLinearGradient(0, 0, w, 0);
@@ -285,7 +288,7 @@ export function buildRoomForest(ctx, room4) {
       c.fillStyle = rr; c.fillRect(x - PPM, y - PPM, PPM * 2, PPM * 2);
     }
   });
-  const ground = new THREE.Mesh(new THREE.PlaneGeometry(W, D), new THREE.MeshStandardMaterial({ map: groundTex, roughness: 1 }));
+  const ground = new THREE.Mesh(new THREE.PlaneGeometry(W, D), materials.ground(groundTex,W,D));
   ground.rotation.x = -Math.PI / 2; g.add(ground);
   const sky = new THREE.Mesh(new THREE.PlaneGeometry(W, D), new THREE.MeshBasicMaterial({ color: 0x05080c })); sky.rotation.x = Math.PI / 2; sky.position.y = TALL; g.add(sky);
   const wallTex = canvasTex(256, 256, (c) => { const r2 = rng(5); c.fillStyle = '#16221a'; c.fillRect(0, 0, 256, 256); for (let i = 0; i < 900; i++) { c.fillStyle = r2() < 0.5 ? 'rgba(10,18,12,.6)' : 'rgba(40,60,44,.5)'; c.fillRect(r2() * 256, r2() * 256, 4 + r2() * 14, 4 + r2() * 14); } });
@@ -312,50 +315,59 @@ export function buildRoomForest(ctx, room4) {
     else if (east) { if (rand() < 0.9) pines.push({ x, z, s, c: pick(SNOW), t: 0x3a2f2a }); else leafs.push({ x, z, s, c: 0x5a5048, t: 0x3a3028 }); }
     else if (rand() < 0.62) pines.push({ x, z, s, c: pick(GREENS), t: 0x3a2a1c }); else leafs.push({ x, z, s, c: 0x2d4a2b, t: 0x3a2a1c });
   }
-  const trunkGeo = new THREE.CylinderGeometry(0.75, 1, 1, 6); trunkGeo.translate(0, 0.5, 0);
-  const coneGeo = new THREE.ConeGeometry(1, 1, 8); coneGeo.translate(0, 0.5, 0);
-  const blobGeo = new THREE.IcosahedronGeometry(1, 1);
-  const foliageMat = new THREE.MeshStandardMaterial({ roughness: 0.95, flatShading: true });
-  const inst = (geo, n) => { const m = new THREE.InstancedMesh(geo, foliageMat, Math.max(1, n)); m.count = n; m.frustumCulled = false; g.add(m); return m; };
-  const trunks = inst(trunkGeo, pines.length + leafs.length), coneA = inst(coneGeo, pines.length), coneB = inst(coneGeo, pines.length), coneC = inst(coneGeo, pines.length);
+  const trunkGeo = new THREE.CylinderGeometry(0.75, 1, 1, 10,3); trunkGeo.translate(0, 0.5, 0);
+  const coneGeo = new THREE.ConeGeometry(1, 1, 16,5,true);
+  const conePos=coneGeo.attributes.position;for(let i=0;i<conePos.count;i++){const x=conePos.getX(i),z=conePos.getZ(i),y=conePos.getY(i),a=Math.atan2(z,x),wave=1+.055*Math.sin(a*7+y*22);conePos.setXYZ(i,x*wave,y,z*wave);}coneGeo.computeVertexNormals(); coneGeo.translate(0, 0.5, 0);
+  const blobGeo = new THREE.SphereGeometry(1,12,8);
+  const foliageMat = materials.foliage;
+  const inst = (geo,n,material=foliageMat) => {const m=new THREE.InstancedMesh(geo,material,Math.max(1,n));m.count=n;m.frustumCulled=false;if(material===foliageMat)m.customDepthMaterial=materials.foliageDepth;else if(material===materials.pine)m.customDepthMaterial=materials.pineDepth;g.add(m);return m;};
+  const trunks = inst(trunkGeo, pines.length + leafs.length,materials.trunk), coneA = inst(coneGeo, pines.length,materials.pine), coneB = inst(coneGeo, pines.length,materials.pine), coneC = inst(coneGeo, pines.length,materials.pine);
   const blobA = inst(blobGeo, leafs.length), blobB = inst(blobGeo, leafs.length);
   const dummy = new THREE.Object3D(), tmpC = new THREE.Color();
   const put = (mesh, i, x, y, z, sx, sy, sz, ry, hex, v = 1) => { dummy.position.set(x, y, z); dummy.rotation.set(0, ry, 0); dummy.scale.set(sx, sy, sz); dummy.updateMatrix(); mesh.setMatrixAt(i, dummy.matrix); mesh.setColorAt(i, tmpC.set(hex).multiplyScalar(v)); };
   let ti = 0;
   pines.forEach((p, i) => {
     const v = 0.85 + rand() * 0.3, ry = rand() * 6.28, s = p.s;
-    put(trunks, ti++, p.x, 0, p.z, 0.2 * s, 2.6 * s, 0.2 * s, ry, p.t);
+    put(trunks, ti++, p.x, 0, p.z, 0.2 * s, 2.6 * s, 0.2 * s, ry, 0xc1b6a3);
     put(coneA, i, p.x, 1.3 * s, p.z, 1.5 * s, 2.7 * s, 1.5 * s, ry, p.c, v);
     put(coneB, i, p.x, 2.8 * s, p.z, 1.15 * s, 2.3 * s, 1.15 * s, ry, p.c, v);
     put(coneC, i, p.x, 4.1 * s, p.z, 0.8 * s, 1.9 * s, 0.8 * s, ry, p.c, v * 1.05);
   });
   leafs.forEach((p, i) => {
     const v = 0.85 + rand() * 0.3, ry = rand() * 6.28, s = p.s;
-    put(trunks, ti++, p.x, 0, p.z, 0.24 * s, 3.6 * s, 0.24 * s, ry, p.t);
+    put(trunks, ti++, p.x, 0, p.z, 0.24 * s, 3.6 * s, 0.24 * s, ry, 0xc1b6a3);
     put(blobA, i, p.x, 4.5 * s, p.z, 1.9 * s, 1.5 * s, 1.9 * s, ry, p.c, v);
     put(blobB, i, p.x + Math.cos(ry) * 0.9 * s, 5.4 * s, p.z + Math.sin(ry) * 0.9 * s, 1.4 * s, 1.2 * s, 1.4 * s, ry, p.c, v * 1.1);
   });
   [trunks, coneA, coneB, coneC, blobA, blobB].forEach((m) => { m.instanceMatrix.needsUpdate = true; if (m.instanceColor) m.instanceColor.needsUpdate = true; });
 
+  const shrubs=[];
+  for(let gz=1;gz<D-1;gz++)for(let gx=1;gx<W-1;gx++)if(!walk[gz][gx]&&near(gx,gz)&&rand()<.27&&cellX(gx)<5)shrubs.push({x:cellX(gx),z:cellZ(gz)});
+  const undergrowth=inst(new THREE.PlaneGeometry(.8,.65),shrubs.length);
+  shrubs.forEach((p,i)=>put(undergrowth,i,p.x,.31,p.z,1,1,1,rand()*6.28,p.x<-5?0x9e8040:0x5d7941));
+  undergrowth.instanceMatrix.needsUpdate=true;if(undergrowth.instanceColor)undergrowth.instanceColor.needsUpdate=true;
   // Gran árbol del cruce (centro del claro) y cartel con los tres caminos
   const BIG = { x: 0, z: 4 };
-  cyl(0.8, 1.15, 7, mat(0x4a3322), BIG.x, 3.5, BIG.z, 10); colRound(BIG.x, BIG.z, 1.2);
+  cyl(0.8, 1.15, 7, materials.trunk, BIG.x, 3.5, BIG.z, 10); colRound(BIG.x, BIG.z, 1.2);
   [[0, 8.2, 0, 3.3, 0x6b7a2f], [-2, 7.2, 1, 2.5, 0xb5701e], [2, 7.4, -1, 2.6, 0x3d5a30], [0.6, 6.6, -2, 2.4, 0xc9a227], [-0.8, 9.4, 0.4, 2.2, 0x5a6a2a]].forEach(([dx, y, dz, r, c]) => {
-    const b = new THREE.Mesh(blobGeo, mat(c, { flatShading: true })); b.scale.set(r, r * 0.8, r); b.position.set(BIG.x + dx, y, BIG.z + dz); g.add(b);
+    const b = new THREE.Mesh(blobGeo, materials.leafMaterial(0xffffff)); b.material.color.set(c);b.customDepthMaterial=materials.foliageDepth;b.scale.set(r, r * 0.8, r); b.position.set(BIG.x + dx, y, BIG.z + dz); g.add(b);
   });
+  [[-2,7.2,1],[2,7.4,-1],[.6,6.6,-2]].forEach(([x,y,z])=>{const a=new THREE.Vector3(0,4.6,4),b=new THREE.Vector3(x,y,z+4),delta=b.clone().sub(a);const branch=new THREE.Mesh(new THREE.CylinderGeometry(.1,.26,delta.length(),8),materials.trunk);branch.position.copy(a).add(b).multiplyScalar(.5);branch.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),delta.normalize());g.add(branch);});
   const crossSign = new THREE.Mesh(new THREE.PlaneGeometry(1.7, 1.0), new THREE.MeshBasicMaterial({ map: signTex(['Oeste · la cabaña', 'Este · el sendero helado', 'Norte · el sauce'], 512, 300, { font: 'bold 34px Georgia' }) }));
   crossSign.position.set(BIG.x, 1.8, BIG.z + 1.19); g.add(crossSign);                    // mira al sur: se ve al entrar
 
   // ---------------- Farolas (brillo falso + pool de luces reales) ----------------
   const postGeo = new THREE.CylinderGeometry(0.04, 0.06, 1, 6), lampGeo = new THREE.BoxGeometry(0.22, 0.3, 0.22), capGeo = new THREE.ConeGeometry(0.2, 0.16, 4);
-  const woodDark = mat(0x3a2818), lampMat = new THREE.MeshStandardMaterial({ color: 0xffe2a8, emissive: 0xffa84a, emissiveIntensity: 1.8, roughness: 0.4 });
+  const woodDark=mat(0x514b40,{metalness:.5,map:materials.maps.metal,roughness:.65}), lampMat=mat(0xffe2a8,{map:materials.maps.ribbedGlass,emissiveMap:materials.maps.ribbedGlass,emissive:0xffa84a,emissiveIntensity:1.35,roughness:.4});
+  const lanternCages=[];
   function addLantern(x, z, { h = 2.3, power = 1, solid = true } = {}) {
     const post = new THREE.Mesh(postGeo, woodDark); post.scale.set(1, h, 1); post.position.set(x, h / 2, z);
     const body = new THREE.Mesh(lampGeo, lampMat); body.position.set(x, h + 0.15, z);
     const cap = new THREE.Mesh(capGeo, woodDark); cap.position.set(x, h + 0.38, z); cap.rotation.y = Math.PI / 4;
-    const glow = makeGlow(0xffb35c, 2.4); glow.position.set(x, h + 0.15, z);
+    const glow = makeGlow(0xffb35c,1.65,.42); glow.position.set(x, h + 0.15, z);
+    lanternCages.push({x,y:h+.15,z,angle:0});
     g.add(post, body, cap, glow); if (solid) colRound(x, z, 0.16);
-    const s = { pos: wpos(x, h + 0.15, z), power, glow, glowBase: 0.8 }; sources.push(s); return s;
+    const s = { pos: wpos(x, h + 0.15, z), power, glow, glowBase: 0.42 }; sources.push(s); return s;
   }
   [[3.1, 1.0], [-3.1, 1.0], [3.4, 7.2], [-3.4, 7.2],                                          // claro del cruce
    [1.7, 10.6], [-1.7, 8.8], [1.7, 14.2], [-1.7, 12.6],                                                                  // entrada
@@ -369,7 +381,7 @@ export function buildRoomForest(ctx, room4) {
     const pos = new Float32Array(n * 3), ph = new Float32Array(n), sp = new Float32Array(n);
     for (let i = 0; i < n; i++) { pos[i * 3] = x0 + rand() * (x1 - x0); pos[i * 3 + 1] = rand() * top; pos[i * 3 + 2] = z0 + rand() * (z1 - z0); ph[i] = rand() * 6.28; sp[i] = speed * (0.6 + rand() * 0.8); }
     const geo = new THREE.BufferGeometry(); geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
-    const pts = new THREE.Points(geo, new THREE.PointsMaterial({ color, size, map: glowTex, transparent: true, depthWrite: false, opacity: 0.95 })); pts.frustumCulled = false; g.add(pts);
+    const pts = new THREE.Points(geo, new THREE.PointsMaterial({ color, size, map: x1<0?materials.fallingLeaf:glowTex, transparent: true, depthWrite: false, opacity: 0.95 })); pts.frustumCulled = false; g.add(pts);
     return (dt, t) => {
       for (let i = 0; i < n; i++) {
         pos[i * 3 + 1] -= sp[i] * dt;
@@ -403,8 +415,8 @@ export function buildRoomForest(ctx, room4) {
   // =====================================================================================================================
   const done = { cabin: false, lake: false, willow: false }, got = { cabin: false, lake: false };
   const CAB = { x0: -14, x1: -9, z0: -5, z1: -1, h: 2.7, doorX: -11.5, doorW: 1.6 };
-  const wood = mat(0x6b4a2a, { emissive: 0x1a1008 }), roofMat = mat(0x4a2a1a, { emissive: 0x1a0c06 }), plankMat = mat(0x8a6a42);
-  const cwall = (x0, x1, z0, z1, y0 = 0, y1 = CAB.h, solid = true) => { box(x1 - x0, y1 - y0, z1 - z0, wood, (x0 + x1) / 2, (y0 + y1) / 2, (z0 + z1) / 2); if (solid) colBox(x0, x1, z0, z1); };
+  const wood=materials.wood(0xa89477),roofMat=mat(0x8d765e,{map:materials.roof,roughness:.98,bumpMap:materials.roof,bumpScale:.016}),plankMat=materials.wood(0xb7a184);
+  const cwall = (x0, x1, z0, z1, y0 = 0, y1 = CAB.h, solid = true) => { box(x1 - x0, y1 - y0, z1 - z0, wood, (x0 + x1) / 2, (y0 + y1) / 2, (z0 + z1) / 2); physicalUV(g.children[g.children.length-1],1.3,1.3); if (solid) colBox(x0, x1, z0, z1); };
   cwall(CAB.x0, CAB.x1, CAB.z0 - 0.1, CAB.z0 + 0.1); cwall(CAB.x0 - 0.1, CAB.x0 + 0.1, CAB.z0, CAB.z1); cwall(CAB.x1 - 0.1, CAB.x1 + 0.1, CAB.z0, CAB.z1);
   cwall(CAB.x0, CAB.doorX - CAB.doorW / 2, CAB.z1 - 0.1, CAB.z1 + 0.1); cwall(CAB.doorX + CAB.doorW / 2, CAB.x1, CAB.z1 - 0.1, CAB.z1 + 0.1);
   cwall(CAB.doorX - CAB.doorW / 2, CAB.doorX + CAB.doorW / 2, CAB.z1 - 0.1, CAB.z1 + 0.1, 2.2, CAB.h, false);
@@ -412,11 +424,12 @@ export function buildRoomForest(ctx, room4) {
   [[1, slope], [-1, -slope]].forEach(([s, a]) => { const r = box(CAB.x1 - CAB.x0 + 0.5, 0.12, slab, roofMat, (CAB.x0 + CAB.x1) / 2, CAB.h + 0.5 - 0.02, ridgeZ + s * 1.15); r.rotation.x = a; });
   [CAB.x0, CAB.x1].forEach((xx) => {                                                       // triángulos de los extremos del tejado
     const sh = new THREE.Shape(); sh.moveTo(CAB.z0 - 0.2, CAB.h); sh.lineTo(CAB.z1 + 0.2, CAB.h); sh.lineTo(ridgeZ, CAB.h + 1.05); sh.closePath();
-    const m = new THREE.Mesh(new THREE.ShapeGeometry(sh), new THREE.MeshStandardMaterial({ color: 0x5a3a22, side: THREE.DoubleSide })); m.rotation.y = -Math.PI / 2; m.position.x = xx; g.add(m);
+    const m = new THREE.Mesh(new THREE.ShapeGeometry(sh), materials.wood(0x88755d,{side:THREE.DoubleSide})); m.rotation.y = -Math.PI / 2; m.position.x = xx; g.add(m);
   });
   const floorIn = box(CAB.x1 - CAB.x0, 0.04, CAB.z1 - CAB.z0, plankMat, (CAB.x0 + CAB.x1) / 2, 0.02, ridgeZ);
   const windowM = new THREE.MeshBasicMaterial({ color: 0xffc36a, side: THREE.DoubleSide });
   [[CAB.x1 + 0.12, -3.0, Math.PI / 2], [CAB.x0 - 0.12, -3.0, -Math.PI / 2]].forEach(([x, z, ry]) => { const w = new THREE.Mesh(new THREE.PlaneGeometry(0.9, 0.7), windowM); w.position.set(x, 1.5, z); w.rotation.y = ry; g.add(w); });
+  [[CAB.x1+.14,Math.PI/2],[CAB.x0-.14,-Math.PI/2]].forEach(([x,ry])=>{const frame=new THREE.Group();frame.position.set(x,1.5,-3);frame.rotation.y=ry;g.add(frame);[[0,.39,1.02,.08],[0,-.39,1.02,.08],[-.49,0,.08,.7],[.49,0,.08,.7],[0,0,.035,.7],[0,0,.9,.035]].forEach(([dx,dy,w,h])=>box(w,h,.06,wood,dx,dy,.01,frame));});
   const cabinSign = new THREE.Mesh(new THREE.PlaneGeometry(1.6, 0.4), new THREE.MeshBasicMaterial({ map: signTex(['Casa del farolero'], 512, 128, { font: 'bold 44px Georgia' }) }));
   cabinSign.position.set(CAB.doorX, 2.45, CAB.z1 + 0.13); g.add(cabinSign);
   // Cartel de advertencia junto a la puerta (acertijo 1): explica qué hay que hacer
@@ -426,12 +439,19 @@ export function buildRoomForest(ctx, room4) {
     plate.position.y = 1.5; grp.add(plate, hit(0.9, 0.6, 0.6, 0, 1.5, 0.2));
     ctx.interaction.add(grp, { prompt: () => 'Presiona E para leer el aviso.', onInteract: () => reader.toggle('signCabin', SIGN_CABIN.title, SIGN_CABIN.text) });
   }
-  const cabinLamp = (() => { cyl(0.012, 0.012, 0.5, woodDark, -11.5, 2.45, -2.8, 4); const b = box(0.26, 0.32, 0.26, lampMat, -11.5, 2.1, -2.8); const s = { pos: wpos(-11.5, 2.1, -2.8), power: 1.5, glow: makeGlow(0xffb35c, 2.8), glowBase: 0.8 }; s.glow.position.set(-11.5, 2.1, -2.8); g.add(s.glow); sources.push(s); return s; })();
+  const cabinLamp = (() => { cyl(0.012, 0.012, 0.5, woodDark, -11.5, 2.45, -2.8, 4); const b = box(0.26, 0.32, 0.26, lampMat, -11.5, 2.1, -2.8); const s = { pos: wpos(-11.5, 2.1, -2.8), power: 1.5, glow: makeGlow(0xffb35c,1.9,.48), glowBase: 0.8 }; s.glow.position.set(-11.5, 2.1, -2.8); g.add(s.glow); sources.push(s); return s; })();
 
   // mesa con las tres cartas
   box(1.5, 0.08, 0.9, wood, -12.6, 0.75, -2.6); [[-0.65, -0.35], [0.65, -0.35], [-0.65, 0.35], [0.65, 0.35]].forEach(([dx, dz]) => box(0.07, 0.72, 0.07, wood, -12.6 + dx, 0.36, -2.6 + dz));
   colBox(-13.4, -11.8, -3.1, -2.1);
-  const paperMat = (name) => new THREE.MeshBasicMaterial({ map: canvasTex(128, 96, (c) => { c.fillStyle = '#efe0b8'; c.fillRect(0, 0, 128, 96); c.fillStyle = '#6a4a1e'; c.font = 'italic 20px Georgia'; c.textAlign = 'center'; c.fillText(name, 64, 24); c.strokeStyle = '#a58a58'; c.lineWidth = 2; for (let y = 38; y < 90; y += 12) { c.beginPath(); c.moveTo(14, y); c.lineTo(114, y); c.stroke(); } }) });
+  const paperMat=(name)=>new THREE.MeshBasicMaterial({map:canvasTex(512,384,(c)=>{
+    c.scale(4,4);c.fillStyle='#e5d8b9';c.fillRect(0,0,128,96);
+    c.fillStyle='rgba(109,89,52,.08)';for(let i=0;i<900;i++)c.fillRect((i*37)%128,(i*19)%96,.5,.3);
+    c.fillStyle='#61503a';c.textAlign='left';c.font='italic 10px Georgia';c.fillText(name,10,15);
+    const text=LETTERS.find(l=>l.who===name).text.split('\n').filter(Boolean).join(' '),words=text.split(' ');let line='',y=29;c.font='5px Georgia';
+    for(const word of words){if(c.measureText(line+word).width>106){c.fillText(line,10,y);y+=7;line='';if(y>86)break;}line+=word+' ';}if(y<=86)c.fillText(line,10,y);
+    c.strokeStyle='rgba(112,85,44,.22)';c.lineWidth=.5;c.strokeRect(3,3,122,90);
+  })});
   const letters = LETTERS.map((L, i) => {
     const grp = new THREE.Group(); const x = -13.05 + i * 0.45, z = -2.75 + (i === 1 ? 0.3 : 0), ry = (i - 1) * 0.3;
     grp.position.set(x, 0.8, z); grp.rotation.y = ry; g.add(grp);
@@ -456,9 +476,9 @@ export function buildRoomForest(ctx, room4) {
     return grp;
   });
   const drawer = new THREE.Group(); g.add(drawer);                                          // se desliza hacia +z al abrirse
-  box(1.3, 0.3, 0.06, mat(0x7a5632), -11.5, 0.28, -4.33, drawer); box(1.2, 0.04, 0.42, mat(0x5a3c20), -11.5, 0.2, -4.55, drawer);
+  box(1.3, 0.3, 0.06, materials.wood(0xa28b6b), -11.5, 0.28, -4.33, drawer); box(1.2, 0.04, 0.42, materials.wood(0x93816b), -11.5, 0.2, -4.55, drawer);
   const note1 = new THREE.Group(); note1.position.set(-11.5, 0.27, -4.52); drawer.add(note1);
-  const rollM = new THREE.MeshStandardMaterial({ color: 0xefe0b8, roughness: 0.9, emissive: 0x3a3018 });
+  const rollM = mat(0xfff4d9,{map:materials.maps.paper,roughness:.96});
   const roll = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 0.34, 10), rollM); roll.rotation.z = Math.PI / 2; note1.add(roll, hit(0.5, 0.2, 0.3, 0, 0.05, 0));
   note1.visible = false;
   let drawerT = 0;
@@ -489,15 +509,14 @@ export function buildRoomForest(ctx, room4) {
     const steps = [];
     const line = (x0, z0, x1, z1) => { const n = Math.floor(Math.hypot(x1 - x0, z1 - z0) / 0.55); for (let i = 0; i < n; i++) { const t = i / n, s = i % 2 ? 1 : -1, dx = x1 - x0, dz = z1 - z0, l = Math.hypot(dx, dz); steps.push({ x: x0 + dx * t - (dz / l) * 0.17 * s, z: z0 + dz * t + (dx / l) * 0.17 * s, a: Math.atan2(dx, dz) }); } };
     line(8, 8.6, 8, 11.2); line(7.2, -2, 4.8, -2); line(13, 0.6, 13, 3.2);
-    const fm = new THREE.InstancedMesh(new THREE.PlaneGeometry(0.16, 0.3), new THREE.MeshBasicMaterial({ color: 0x4a5a70, transparent: true, opacity: 0.55, depthWrite: false }), steps.length);
+    const fm = new THREE.InstancedMesh(new THREE.PlaneGeometry(0.16, 0.3), new THREE.MeshBasicMaterial({ map:materials.footprint,color:0x4a5a70,transparent:true,opacity:.55,depthWrite:false,alphaTest:.2 }), steps.length);
     steps.forEach((s, i) => { dummy.position.set(s.x, 0.03, s.z); dummy.rotation.set(-Math.PI / 2, 0, s.a); dummy.scale.set(1, 1, 1); dummy.updateMatrix(); fm.setMatrixAt(i, dummy.matrix); });
     fm.frustumCulled = false; g.add(fm);
   }
   // CRUCE 2 · pista: troncos con musgo que mira hacia el camino correcto (este)
   [[6.9, -4.6], [8.2, -4.8], [9.5, -4.6], [10.6, -4.5]].forEach(([x, z]) => {
     cyl(0.3, 0.38, 3.4, mat(0x4a3a2c), x, 1.7, z, 8); colRound(x, z, 0.34);
-    const mossTex = canvasTex(64, 64, (c) => { const r2 = rng(Math.floor(x * 10)); c.fillStyle = '#3f7a34'; c.fillRect(0, 0, 64, 64); for (let i = 0; i < 80; i++) { c.fillStyle = r2() < 0.5 ? '#5aa046' : '#2d5a28'; c.fillRect(r2() * 64, r2() * 64, 3 + r2() * 7, 3 + r2() * 7); } });
-    const moss = new THREE.Mesh(new THREE.CylinderGeometry(0.36, 0.395, 1.7, 10, 1, true, Math.PI * 0.08, Math.PI * 0.84), new THREE.MeshStandardMaterial({ map: mossTex, side: THREE.DoubleSide, roughness: 1 }));
+    const moss = new THREE.Mesh(new THREE.CylinderGeometry(0.36, 0.395, 1.7, 10, 1, true, Math.PI * 0.08, Math.PI * 0.84), new THREE.MeshStandardMaterial({ map: materials.growth, side: THREE.DoubleSide, roughness: 1, bumpMap:materials.growth,bumpScale:.012 }));
     moss.position.set(x, 1.5, z); g.add(moss);                                             // θ=π/2 apunta a +x (este)
     const top = new THREE.Mesh(coneGeo, mat(0xcddbea, { flatShading: true })); top.scale.set(1.3, 2.4, 1.3); top.position.set(x, 3.2, z); g.add(top);
   });
@@ -554,7 +573,7 @@ export function buildRoomForest(ctx, room4) {
   let flyJar = () => {};
   {
     const X1 = 9.2, Z1 = 5.4, grp = new THREE.Group(); grp.position.set(X1, 0, Z1); g.add(grp);
-    cyl(0.28, 0.34, 0.5, mat(0x4a3a2a), 0, 0.25, 0, 10, grp); colRound(X1, Z1, 0.3);
+    cyl(0.28, 0.34, 0.5, materials.trunk, 0, 0.25, 0, 10, grp); colRound(X1, Z1, 0.3);
     grp.add(hit(1.4, 1.6, 1.4, 0, 0.8, 0));                                               // la zona de interacción cubre toda la órbita
     const fly = new THREE.Group(); g.add(fly);
     const fbody = new THREE.Mesh(new THREE.SphereGeometry(0.06, 10, 8), new THREE.MeshBasicMaterial({ color: 0xfff3a8, transparent: true }));
@@ -593,7 +612,7 @@ export function buildRoomForest(ctx, room4) {
   // CRUCE 3 · caja de música sobre un tocón (el canto lejano)
   {
     const X3 = 16.3, Z3 = -3.2, grp = new THREE.Group(); grp.position.set(X3, 0, Z3); g.add(grp);
-    cyl(0.28, 0.34, 0.5, mat(0x4a3a2a), 0, 0.25, 0, 10, grp); colRound(X3, Z3, 0.3);
+    cyl(0.28, 0.34, 0.5, materials.trunk, 0, 0.25, 0, 10, grp); colRound(X3, Z3, 0.3);
     box(0.3, 0.16, 0.22, mat(0xd4a017, { metalness: 0.7, roughness: 0.3, emissive: 0x3a2400 }), 0, 0.58, 0, grp);
     grp.add(hit(0.7, 0.9, 0.7, 0, 0.5, 0));
     clue(grp, 3, 'Presiona E para abrir la caja de música.', 'La caja de música canta la misma melodía que oías entre los árboles. La niebla de uno de los caminos se disuelve.', { x: 15, z: -5 });
@@ -603,7 +622,7 @@ export function buildRoomForest(ctx, room4) {
     const PL = { x: 15, z: -8.5 };
     makeGate(4, 13, 17, -12.4, -11.8);
     const ped = new THREE.Group(); ped.position.set(PL.x, 0, PL.z - 0.5); g.add(ped);       // tocón central con la inscripción
-    cyl(0.4, 0.5, 0.7, mat(0x4a3a2a), 0, 0.35, 0, 10, ped); box(0.5, 0.05, 0.36, mat(0xefe0b8, { emissive: 0x3a3018 }), 0, 0.72, 0, ped).rotation.y = 0.3;
+    cyl(0.4, 0.5, 0.7, materials.trunk, 0, 0.35, 0, 10, ped); box(0.5, 0.05, 0.36, mat(0xefe0b8, { emissive: 0x3a3018 }), 0, 0.72, 0, ped).rotation.y = 0.3;
     ped.add(hit(1.0, 0.9, 1.0, 0, 0.45, 0)); colRound(PL.x, PL.z - 0.5, 0.45);
     ctx.interaction.add(ped, { prompt: () => 'Presiona E para leer la inscripción.', onInteract: () => reader.toggle('signStones', SIGN_STONES.title, SIGN_STONES.text) });
     const STONE_ORDER = ['Raíz', 'Tronco', 'Rama', 'Hoja'];                                // orden que da el acertijo (las piedras están mezcladas)
@@ -611,7 +630,7 @@ export function buildRoomForest(ctx, room4) {
     const stLit = [false, false, false, false], stOrder = [];
     let stBusy = false, stDone = false;
     const stones = spots.map(([x, z, name], i) => {
-      const body = new THREE.MeshStandardMaterial({ color: 0x7a8088, emissive: 0x000000, roughness: 0.9 });
+      const body = mat(0x9ba4a8,{map:materials.maps.stone,roughness:.96,bumpMap:materials.maps.stone,bumpScale:.016});
       const grp = new THREE.Group(); grp.position.set(x, 0, z); grp.rotation.y = Math.atan2(PL.x - x, PL.z - z); g.add(grp);
       const slab = new THREE.Mesh(new THREE.BoxGeometry(0.55, 1.3, 0.3), body); slab.position.y = 0.65; grp.add(slab);
       const cap = new THREE.Mesh(new THREE.ConeGeometry(0.4, 0.3, 4), body); cap.position.y = 1.45; cap.rotation.y = Math.PI / 4; grp.add(cap);
@@ -632,12 +651,12 @@ export function buildRoomForest(ctx, room4) {
     }
   }
   // lago helado + caja
-  cyl(1.2, 1.2, 0.06, new THREE.MeshStandardMaterial({ color: 0xaed8f2, roughness: 0.08, metalness: 0.35, emissive: 0x1b3a52 }), LAKE.x, 0.03, LAKE.z, 40);
+  cyl(1.2, 1.2, 0.06, mat(0xc2dfeb,{map:materials.ice,roughness:.2,metalness:.32,emissive:0x122330}), LAKE.x, 0.03, LAKE.z, 40);
   colRound(LAKE.x, LAKE.z, 1.1);
   for (let i = 0; i < 9; i++) { const a = i * 0.7; box(0.05, 0.02, 0.8 + (i % 3) * 0.3, mat(0xf2fbff, { emissive: 0x335a78 }), LAKE.x + Math.cos(a) * 0.45, 0.07, LAKE.z + Math.sin(a) * 0.45).rotation.y = a; }   // grietas
   const CH = { x: 17.2, z: -14.4 };
   const chest = new THREE.Group(); chest.position.set(CH.x, 0, CH.z); chest.rotation.y = 0.15; g.add(chest);                     // de frente al sur: se abre desde el lado del camino
-  const iceM = mat(0x6f8fb0, { metalness: 0.5, roughness: 0.3, emissive: 0x17283a });
+  const iceM=mat(0x8faec7,{map:materials.ice,metalness:.38,roughness:.38,emissive:0x101822});
   box(0.9, 0.5, 0.6, iceM, 0, 0.25, 0, chest); box(0.94, 0.06, 0.64, mat(0xd4a017, { metalness: 0.8, roughness: 0.3 }), 0, 0.5, 0, chest);
   const lidHinge = new THREE.Group(); lidHinge.position.set(0, 0.52, -0.3); chest.add(lidHinge); box(0.92, 0.16, 0.62, iceM, 0, 0.08, 0.31, lidHinge);
   colRound(CH.x, CH.z, 0.55);
@@ -662,8 +681,8 @@ export function buildRoomForest(ctx, room4) {
   // NORTE · LA BARRERA, EL SAUCE Y LA LLAVE  (acertijo 3)
   // =====================================================================================================================
   const barrier = { z: -3.0, open: false, t: 0, col: colBox(-2.3, 2.3, -3.4, -2.6) };
-  const trunk = cyl(0.5, 0.55, 4.6, mat(0x3a2c20), 0, 0.55, barrier.z, 10); trunk.rotation.z = Math.PI / 2;
-  const roots = []; for (let i = 0; i < 5; i++) { const r = cyl(0.05, 0.14, 1.3, mat(0x2e2218), -2.2 + (i % 2) * 0.1, 0.55 + (i - 2) * 0.22, barrier.z + (i - 2) * 0.15, 5); r.rotation.z = Math.PI / 2 + (i - 2) * 0.3; roots.push(r); }
+  const trunk = cyl(0.5, 0.55, 4.6, materials.trunk, 0, 0.55, barrier.z, 10); trunk.rotation.z = Math.PI / 2;
+  const roots = []; for (let i = 0; i < 5; i++) { const r = cyl(0.05, 0.14, 1.3, materials.trunk, -2.2 + (i % 2) * 0.1, 0.55 + (i - 2) * 0.22, barrier.z + (i - 2) * 0.15, 5); r.rotation.z = Math.PI / 2 + (i - 2) * 0.3; roots.push(r); }
   const barrierHit = new THREE.Group(); barrierHit.position.set(0, 0, barrier.z); g.add(barrierHit); barrierHit.add(hit(4.6, 1.2, 1.0, 0, 0.6, 0));
   ctx.interaction.add(barrierHit, { prompt: () => 'Presiona E para examinar.', enabled: () => !barrier.open,
     onInteract: () => ctx.ui.toast('Una niebla espesa y un árbol caído cierran el camino al norte. Quizá los otros dos caminos guarden la manera de abrirlo.', 5000) });
@@ -672,11 +691,11 @@ export function buildRoomForest(ctx, room4) {
 
   // sauce llorón
   const WL = { x: 0, z: -8 };
-  const willowTrunk = cyl(0.7, 1.1, 5, mat(0x4a3a2a), WL.x, 2.5, WL.z, 10); willowTrunk.rotation.z = 0.05; colRound(WL.x, WL.z, 0.95);
-  [[1.9, 5.5, 0.2], [-1.8, 5.6, -0.3], [0.3, 5.7, 1.9], [0.2, 5.5, -1.9]].forEach(([dx, y, dz], i) => { const b = cyl(0.12, 0.3, 2.2, mat(0x4a3a2a), WL.x + dx / 2, 4.9, WL.z + dz / 2, 6); b.rotation.z = -Math.atan2(dx, 1.4); b.rotation.x = Math.atan2(dz, 1.4); });
-  [[0, 6.3, 0, 2.1], [1.5, 5.8, 0.6, 1.5], [-1.5, 5.9, -0.5, 1.6], [0.2, 5.8, 1.6, 1.4], [-0.4, 5.9, -1.6, 1.4]].forEach(([dx, y, dz, r]) => { const b = new THREE.Mesh(blobGeo, mat(0x5f7d3a, { flatShading: true, emissive: 0x1a2a10 })); b.scale.set(r, r * 0.55, r); b.position.set(WL.x + dx, y, WL.z + dz); g.add(b); });
-  const STR = 110, strGeo = new THREE.CylinderGeometry(0.02, 0.05, 1, 4); strGeo.translate(0, -0.5, 0);
-  const strMat = new THREE.MeshStandardMaterial({ roughness: 0.9, emissive: 0x000000 });
+  const willowTrunk = cyl(0.7, 1.1, 5, materials.trunk, WL.x, 2.5, WL.z, 10); willowTrunk.rotation.z = 0.05; colRound(WL.x, WL.z, 0.95);
+  [[1.9, 5.5, 0.2], [-1.8, 5.6, -0.3], [0.3, 5.7, 1.9], [0.2, 5.5, -1.9]].forEach(([dx, y, dz], i) => { const b = cyl(0.12, 0.3, 2.2, materials.trunk, WL.x + dx / 2, 4.9, WL.z + dz / 2, 6); b.rotation.z = -Math.atan2(dx, 1.4); b.rotation.x = Math.atan2(dz, 1.4); });
+  [[0, 6.3, 0, 2.1], [1.5, 5.8, 0.6, 1.5], [-1.5, 5.9, -0.5, 1.6], [0.2, 5.8, 1.6, 1.4], [-0.4, 5.9, -1.6, 1.4]].forEach(([dx, y, dz, r]) => { const b = new THREE.Mesh(blobGeo, materials.leafMaterial(0xffffff)); b.material.color.set(0x91a765);b.customDepthMaterial=materials.foliageDepth;b.scale.set(r, r * 0.55, r); b.position.set(WL.x + dx, y, WL.z + dz); g.add(b); });
+  const STR = 110, strGeo = new THREE.PlaneGeometry(.22,1,1,5); strGeo.translate(0, -0.5, 0);
+  const strMat = mat(0xffffff,{map:materials.willowLeaves,alphaTest:.5,side:THREE.DoubleSide,roughness:.96});
   const strands = new THREE.InstancedMesh(strGeo, strMat, STR); strands.frustumCulled = false; g.add(strands);
   const strData = Array.from({ length: STR }, (_, i) => { const a = rand() * 6.28, r = 0.9 + rand() * 2.2; return { x: WL.x + Math.cos(a) * r, y: 5.0 - r * 0.22 + rand() * 0.4, z: WL.z + Math.sin(a) * r, len: 2.6 + rand() * 1.6, ph: rand() * 6.28 }; });
   strData.forEach((s, i) => strands.setColorAt(i, tmpC.set(rand() < 0.5 ? 0x7d9a4a : 0x9ab25a).multiplyScalar(0.9 + rand() * 0.3)));
@@ -691,11 +710,11 @@ export function buildRoomForest(ctx, room4) {
     const a = ((90 + i * 72) * Math.PI) / 180, x = WL.x + Math.cos(a) * 2.4, z = WL.z + Math.sin(a) * 2.4;
     const grp = new THREE.Group(); grp.position.set(x, 0, z); g.add(grp);
     cyl(0.04, 0.06, 1.7, woodDark, 0, 0.85, 0, 6, grp);
-    const body = new THREE.MeshStandardMaterial({ color: 0xd9c9a0, emissive: 0x000000, roughness: 0.5 });
+    const body = mat(0xd9c9a0,{map:materials.maps.ribbedGlass,roughness:.5});
     const lamp = new THREE.Mesh(lampGeo, body); lamp.position.y = 1.85; grp.add(lamp);
     const cap = new THREE.Mesh(capGeo, woodDark); cap.position.y = 2.08; cap.rotation.y = Math.PI / 4; grp.add(cap);
     const plaque = new THREE.Mesh(new THREE.PlaneGeometry(0.4, 0.4), new THREE.MeshBasicMaterial({ map: symbolTex(sym, '#f3d38a') })); plaque.position.set(0, 1.25, 0.075); grp.add(plaque);
-    grp.rotation.y = Math.atan2(WL.x - x, WL.z - z) + Math.PI;                                // la placa mira hacia afuera del círculo
+    grp.rotation.y = Math.atan2(WL.x - x, WL.z - z) + Math.PI;lanternCages.push({x,y:1.85,z,angle:grp.rotation.y});                                // la placa mira hacia afuera del círculo
     const glow = makeGlow(0xffb35c, 2.6, 0); glow.position.y = 1.85; grp.add(glow);
     grp.add(hit(0.5, 2.2, 0.5, 0, 1.1, 0)); colRound(x, z, 0.16);
     const src = { pos: wpos(x, 1.85, z), power: 0, glow, glowBase: 0.85, ring: true };
@@ -720,7 +739,7 @@ export function buildRoomForest(ctx, room4) {
   // tocón con las notas
   {
     const grp = new THREE.Group(); grp.position.set(-2.4, 0, -5.8); g.add(grp);
-    cyl(0.38, 0.45, 0.55, mat(0x4a3a2a), 0, 0.27, 0, 10, grp); box(0.36, 0.06, 0.26, mat(0x8a2a2a), 0, 0.58, 0, grp).rotation.y = 0.4; grp.add(hit(0.9, 0.7, 0.9, 0, 0.4, 0));
+    cyl(0.38, 0.45, 0.55, materials.trunk, 0, 0.27, 0, 10, grp); box(0.36, 0.06, 0.26, mat(0x8a2a2a), 0, 0.58, 0, grp).rotation.y = 0.4; grp.add(hit(0.9, 0.7, 0.9, 0, 0.4, 0));
     colRound(-2.4, -5.8, 0.4);
     ctx.interaction.add(grp, { prompt: () => 'Presiona E para leer tus notas.', onInteract: () => {
       const part = (k, c) => got[k] ? `${c.title}\n${c.text}` : (k === 'cabin' ? 'Aún no has abierto el cajón de la cabaña (oeste).' : 'Aún no has abierto la caja del lago (este).');
@@ -730,7 +749,7 @@ export function buildRoomForest(ctx, room4) {
   // llave antigua sobre un pedestal
   const PEDK = { x: 0, z: -10.7 };
   cyl(0.3, 0.38, 0.9, mat(0x8a8a82, { roughness: 0.7 }), PEDK.x, 0.45, PEDK.z, 12); colRound(PEDK.x, PEDK.z, 0.4);
-  const keyMat = new THREE.MeshStandardMaterial({ color: 0xb07a3a, emissive: 0x6a4410, roughness: 0.4, metalness: 0.8 });
+  const keyMat = mat(0xbda274,{roughness:.36,metalness:.78,emissive:0x291e08});
   const key = new THREE.Group(); key.visible = false; g.add(key);
   const kr = new THREE.Mesh(new THREE.TorusGeometry(0.1, 0.03, 10, 24), keyMat); kr.position.y = 0.28; key.add(kr, new THREE.Mesh(new THREE.CylinderGeometry(0.025, 0.025, 0.55, 10), keyMat));
   [[-0.2, 0.09], [-0.3, 0.07]].forEach(([y, w]) => { const tt = new THREE.Mesh(new THREE.BoxGeometry(w * 1.6, 0.05, 0.04), keyMat); tt.position.set(w * 0.8 + 0.02, y, 0); key.add(tt); });
@@ -763,7 +782,7 @@ export function buildRoomForest(ctx, room4) {
   // =====================================================================================================================
   const doorZ = CZ - D / 2;
   const door = createDoor(ctx, { x: 0, z: doorZ, width: 3 });
-  door.mesh.material.color.set(0x6a4a2a); door.mesh.material.emissive.set(0x1a1008); door.mesh.material.metalness = 0.1;
+  door.mesh.material.map=materials.maps.metal;door.mesh.material.color.set(0x6a4a2a); door.mesh.material.emissive.set(0x1a1008); door.mesh.material.metalness = 0.1;
   const hallMat = mat(0x2a2a24, { roughness: 1 });
   addWall(ctx, abs, -1.6, doorZ - HALL / 2, 0.2, HALL, hallMat); addWall(ctx, abs, 1.6, doorZ - HALL / 2, 0.2, HALL, hallMat);
   const endCol = ctx.colliders.length;
@@ -826,6 +845,7 @@ export function buildRoomForest(ctx, room4) {
     // ---- lo demás solo se calcula cerca del bosque ----
     const active = z < doorZ4 + 0.5 && z > bounds.minZ - HALL - 2;
     if (!active) { pool.forEach((p) => (p.l.intensity = 0)); return; }
+    materials.wind.value=t;
     const flick = 0.92 + 0.08 * Math.sin(t * 7) * Math.sin(t * 3.1);
     lampMat.emissiveIntensity = 1.8 * flick;
     // pool de luces: las 5 fuentes más cercanas, con aparición/desaparición suave
@@ -867,5 +887,15 @@ export function buildRoomForest(ctx, room4) {
     }
   });
 
-  return { group: g, bounds, x: 0, z: CZ, w: W, d: D, door, lights, openHall };
+  // Twelve slim cage struts per lantern, all submitted in one instanced draw.
+  const cageFrames=new THREE.InstancedMesh(new THREE.BoxGeometry(1,1,1),woodDark,lanternCages.length*12);
+  const cageRoot=new THREE.Object3D(),part=new THREE.Object3D();let cageIndex=0;
+  lanternCages.forEach(cage=>{
+    cageRoot.position.set(cage.x,cage.y,cage.z);cageRoot.rotation.y=cage.angle;cageRoot.updateMatrix();
+    const strut=(x,y,z,sx,sy,sz)=>{part.position.set(x,y,z);part.scale.set(sx,sy,sz);part.rotation.set(0,0,0);part.updateMatrix();cageFrames.setMatrixAt(cageIndex++,new THREE.Matrix4().multiplyMatrices(cageRoot.matrix,part.matrix));};
+    for(const x of [-.112,.112])for(const z of [-.112,.112])strut(x,0,z,.014,.32,.014);
+    for(const y of [-.155,.155])for(const sign of [-1,1]){strut(0,y,sign*.112,.238,.014,.014);strut(sign*.112,y,0,.014,.014,.238);}
+  });
+  cageFrames.instanceMatrix.needsUpdate=true;cageFrames.name='forest-lantern-cages';g.add(cageFrames);
+  return { group: g, bounds, x: 0, z: CZ, w: W, d: D, door, lights, openHall, materials, propsRoot:g };
 }

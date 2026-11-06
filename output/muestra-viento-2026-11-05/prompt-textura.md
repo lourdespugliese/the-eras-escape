@@ -1,0 +1,5 @@
+# Textura de muestra
+
+Generada con la herramienta integrada de imágenes. Archivo: hojas.png. Textura estática; el movimiento del GIF lo genera el prototipo del shader sobre las copas del juego.
+
+Use case: stylized-concept. Asset type: seamless tiling opaque game texture for existing low-poly tree canopies. Generate a square neutral grayscale stylized foliage surface texture, softly hand-painted layered small pointed leaves and pine needle clusters, dense coverage with no gaps, medium-fine scale so individual leaves are small. Very restrained contrast, light warm gray leaf faces with medium gray underleaf shadows, no black, no green or colored pigments because the game multiplies this texture by per-tree green, autumn orange, or snowy-white colors. Even neutral diffuse lighting, no directional cast shadows, no lighting gradients, no perspective, no central motif, no branches, no trunks, no text, no borders. Flat albedo surface only, perfectly tileable edges. No photorealistic 3D scene. The texture should subtly suggest foliage on simple faceted cone and sphere geometry without changing their silhouettes.
