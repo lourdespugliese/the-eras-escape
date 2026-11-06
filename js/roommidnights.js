@@ -18,6 +18,8 @@
 import * as THREE from 'three';
 import { createDoor, addWall, canvasTex, DOOR_H } from './rooms.js';
 import { createGlitter } from './glitter.js';
+import { createMidnightsMaterials } from './midnights-materials.js';
+import { roundedGeometry, physicalUV } from './surface-library.js';
 
 const W = 30, D = 34;                  // 1020 m²
 const HALL = 4;                        // pasillo entre la puerta del bosque y esta sala (= HALL del bosque)
@@ -50,9 +52,10 @@ export function buildRoomMidnights(ctx, room5) {
   const wpos = (x, y, z) => new THREE.Vector3(x, y, z + CZ);
   const colBox = (x0, x1, z0, z1) => { const c = { minX: x0, maxX: x1, minZ: CZ + z0, maxZ: CZ + z1 }; ctx.colliders.push(c); return c; };
   const colRound = (x, z, r) => colBox(x - r, x + r, z - r, z + r);
-  const mat = (color, o = {}) => new THREE.MeshStandardMaterial({ color, roughness: 0.8, ...o });
+  const materials=createMidnightsMaterials();
+  const mat=materials.finish;
   const hit = (w, h, d, x, y, z) => { const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), new THREE.MeshBasicMaterial({ visible: false })); m.position.set(x, y, z); return m; };
-  const box = (w, h, d, m, x, y, z, p = g) => { const o = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), m); o.position.set(x, y, z); p.add(o); return o; };
+  const box = (w, h, d, m, x, y, z, p = g) => { const o = new THREE.Mesh(roundedGeometry(w,h,d), m); o.position.set(x, y, z); p.add(o); return o; };
   const cyl = (rt, rb, h, m, x, y, z, seg = 16, p = g) => { const o = new THREE.Mesh(new THREE.CylinderGeometry(rt, rb, h, seg), m); o.position.set(x, y, z); p.add(o); return o; };
 
   const glowTex = canvasTex(128, 128, (c) => {
@@ -68,16 +71,17 @@ export function buildRoomMidnights(ctx, room5) {
   const POOL = 5;
   const pool = Array.from({ length: POOL }, () => { const l = new THREE.PointLight(0xb9a4ff, 0, 13, 2); l.userData.noShadow = true; scene.add(l); return { l, src: null, level: 0 }; });
   const sources = [];                                                                       // fuentes de luz posibles (lámpara de pie, apliques)
-  function addSource(x, y, z, hex, power, glowSize = 2.2) {
+  function addSource(x, y, z, hex, power, glowSize = 1.65) {
     const glow = makeGlow(hex, glowSize); glow.position.set(x, y, z); g.add(glow);
-    const s = { pos: wpos(x, y, z), color: new THREE.Color(hex), power, glow, glowBase: 0.8 }; sources.push(s); return s;
+    const s = { pos: wpos(x, y, z), color: new THREE.Color(hex), power, glow, glowBase: 0.42 }; sources.push(s); return s;
   }
 
   // ---------------- Suelo con el reloj inscrito ----------------
   const PPM = 24, R = 7.5;
-  const floorTex = canvasTex(W * PPM, D * PPM, (c) => {
+  const drawFloor = (c) => {
+    c.save();c.scale(2,2);
     const w = W * PPM, h = D * PPM, r2 = rng(9), cx = w / 2, cy = h / 2;
-    c.fillStyle = '#0c0828'; c.fillRect(0, 0, w, h);
+    materials.drawFloorBase(c,w,h);
     const hz = c.createRadialGradient(cx, cy, 0, cx, cy, R * PPM * 1.6);                      // bruma lavanda alrededor del reloj
     hz.addColorStop(0, 'rgba(150,120,255,.38)'); hz.addColorStop(0.6, 'rgba(90,60,190,.16)'); hz.addColorStop(1, 'rgba(90,60,190,0)');
     c.fillStyle = hz; c.fillRect(0, 0, w, h);
@@ -96,8 +100,11 @@ export function buildRoomMidnights(ctx, room5) {
       const a = (k / 13) * Math.PI * 2 - Math.PI / 2, rr = (R + 1.7) * PPM; c.save(); c.translate(cx + Math.cos(a) * rr, cy + Math.sin(a) * rr); c.rotate(a);
       c.beginPath(); for (let i = 0; i < 8; i++) { const q = i % 2 ? 4 : 11, b = (i * Math.PI) / 4; c[i ? 'lineTo' : 'moveTo'](Math.cos(b) * q, Math.sin(b) * q); } c.closePath(); c.fill(); c.restore();
     }
-  });
-  const ground = new THREE.Mesh(new THREE.PlaneGeometry(W, D), new THREE.MeshStandardMaterial({ map: floorTex, roughness: 0.38, metalness: 0.25 }));
+    c.restore();
+  };
+  const floorTex=canvasTex(W*PPM*2,D*PPM*2,drawFloor);
+  materials.ready.then(ok=>{if(ok){const c=floorTex.image.getContext('2d');c.clearRect(0,0,floorTex.image.width,floorTex.image.height);drawFloor(c);floorTex.needsUpdate=true;}});
+  const ground = new THREE.Mesh(new THREE.PlaneGeometry(W, D), new THREE.MeshStandardMaterial({ map: floorTex, roughness: 0.42, metalness: 0.2 }));
   ground.rotation.x = -Math.PI / 2; g.add(ground);
 
   // ---------------- Techo estrellado, luna y estrellas fugaces ----------------
@@ -110,20 +117,13 @@ export function buildRoomMidnights(ctx, room5) {
     const pts = new THREE.Points(geo, mt); pts.frustumCulled = false; g.add(pts); return mt;
   }
   const starsA = makeStars(420, 0.18, 0.9), starsB = makeStars(420, 0.13, 0.5);
-  const moon = new THREE.Mesh(new THREE.CircleGeometry(2.1, 40), new THREE.MeshBasicMaterial({ color: 0xece8ff })); moon.rotation.x = Math.PI / 2; moon.position.set(-6, TALL - 0.05, -8); g.add(moon);
+  const moon = new THREE.Mesh(new THREE.CircleGeometry(2.1, 40), new THREE.MeshBasicMaterial({map:materials.moon,color:0xece8ff})); moon.rotation.x = Math.PI / 2; moon.position.set(-6, TALL - 0.05, -8); g.add(moon);
   const moonGlow = makeGlow(0xb9a4ff, 11, 0.45); moonGlow.position.set(-6, TALL - 0.6, -8); g.add(moonGlow);
   const shoot = { s: makeGlow(0xffffff, 0.7, 0), t: -6 - rand() * 4, dir: new THREE.Vector3(), from: new THREE.Vector3() }; g.add(shoot.s);
 
   // ---------------- Paredes (con puertas norte y sur) ----------------
-  const wallTex = canvasTex(256, 256, (c) => {
-    c.fillStyle = '#150e38'; c.fillRect(0, 0, 256, 256);
-    c.strokeStyle = 'rgba(185,164,255,.16)'; c.lineWidth = 2;
-    for (let i = -1; i <= 4; i++) for (let j = -1; j <= 4; j++) { const x = i * 64 + (j % 2 ? 32 : 0), y = j * 64; c.beginPath(); c.moveTo(x, y - 28); c.lineTo(x + 28, y); c.lineTo(x, y + 28); c.lineTo(x - 28, y); c.closePath(); c.stroke(); }
-    const r2 = rng(4); for (let i = 0; i < 60; i++) { c.fillStyle = 'rgba(224,195,106,.4)'; c.fillRect(r2() * 256, r2() * 256, 2, 2); }
-  });
-  wallTex.wrapS = wallTex.wrapT = THREE.RepeatWrapping; wallTex.repeat.set(8, 2.4);
-  const wallMat = new THREE.MeshStandardMaterial({ map: wallTex, roughness: 0.9, color: 0xcfc6ff });
-  const wallPiece = (x0, x1, z0, z1, y0 = 0, y1 = TALL, solid = true) => { const m = new THREE.Mesh(new THREE.BoxGeometry(x1 - x0, y1 - y0, z1 - z0), wallMat); m.position.set((x0 + x1) / 2, (y0 + y1) / 2, (z0 + z1) / 2); g.add(m); if (solid) colBox(x0, x1, z0, z1); };
+  const wallMat = materials.wall;
+  const wallPiece = (x0, x1, z0, z1, y0 = 0, y1 = TALL, solid = true) => { const m = new THREE.Mesh(new THREE.BoxGeometry(x1 - x0, y1 - y0, z1 - z0), wallMat); m.position.set((x0 + x1) / 2, (y0 + y1) / 2, (z0 + z1) / 2); g.add(m);physicalUV(m,3,3); if (solid) colBox(x0, x1, z0, z1); };
   const T = 0.2, DW = 1.5;                                                                  // semigrosor y semiancho de las aberturas (3 m)
   const IN = W / 2 - T, INZ = D / 2 - T;                                                    // cara INTERIOR de las paredes (x, z): todo lo que se cuelga de un muro va aquí
   wallPiece(-W / 2 - T, -W / 2 + T, -D / 2 - T, D / 2 + T); wallPiece(W / 2 - T, W / 2 + T, -D / 2 - T, D / 2 + T);
@@ -133,7 +133,8 @@ export function buildRoomMidnights(ctx, room5) {
   [[-W / 2 + T, 0, 0.3, D], [W / 2 - T, 0, 0.3, D]].forEach(([x, , w, d]) => box(w, 0.35, d, base, x, 0.175, 0));
 
   // ---------------- Ventanas a la noche (este y oeste) ----------------
-  const winTex = canvasTex(128, 256, (c) => {
+  const winTex = canvasTex(512, 1024, (c) => {
+    c.scale(4,4);
     const gr = c.createLinearGradient(0, 0, 0, 256); gr.addColorStop(0, '#0a0730'); gr.addColorStop(1, '#3a2275'); c.fillStyle = gr; c.fillRect(0, 0, 128, 256);
     const r2 = rng(21); for (let i = 0; i < 40; i++) { c.fillStyle = 'rgba(255,255,255,' + (0.4 + r2() * 0.5) + ')'; c.fillRect(r2() * 128, r2() * 200, 2, 2); }
     c.fillStyle = '#ece8ff'; c.beginPath(); c.arc(84, 60, 18, 0, Math.PI * 2); c.fill(); c.fillStyle = '#251660'; c.beginPath(); c.arc(94, 54, 16, 0, Math.PI * 2); c.fill();
@@ -157,25 +158,26 @@ export function buildRoomMidnights(ctx, room5) {
   // ---------------- Centro: bola de espejos, orbes del 13 y puntos de luz ----------------
   const BALL = { x: 0, y: 6.4, z: 0 };
   const rod = cyl(0.012, 0.012, TALL - BALL.y, mat(0xcccccc, { metalness: 1 }), BALL.x, (TALL + BALL.y) / 2, BALL.z, 4);
-  const ball = new THREE.Mesh(new THREE.IcosahedronGeometry(0.95, 2), new THREE.MeshStandardMaterial({ color: 0xdfe6ff, metalness: 1, roughness: 0.12, flatShading: true, emissive: 0x2a2060, emissiveIntensity: 0.8 }));
+  const ball = new THREE.Mesh(new THREE.SphereGeometry(.95,32,20),materials.disco);
   ball.position.set(BALL.x, BALL.y, BALL.z); g.add(ball);
   const ballGlow = makeGlow(0xdfe6ff, 5, 0.5); ballGlow.position.copy(ball.position); g.add(ballGlow);
   const orbs = Array.from({ length: 13 }, (_, i) => {
     const a = (i / 13) * Math.PI * 2 - Math.PI / 2, x = Math.cos(a) * (R + 2.4), z = Math.sin(a) * (R + 2.4);
     const sphere = new THREE.Mesh(new THREE.SphereGeometry(0.13, 14, 12), new THREE.MeshBasicMaterial({ color: 0xe9defc })); sphere.position.set(x, 1.6, z); g.add(sphere);
-    const gl = makeGlow(0xb9a4ff, 1.6, 0.85); gl.position.set(x, 1.6, z); g.add(gl);
+    const gl = makeGlow(0xb9a4ff,1.25,.55); gl.position.set(x, 1.6, z); g.add(gl);
     return { sphere, gl, ph: i * 0.9, y0: 1.5 + (i % 3) * 0.2 };
   });
-  const dots = Array.from({ length: 26 }, (_, i) => { const s = makeGlow([0xb9a4ff, 0xff8fd0, 0x8fe6ff][i % 3], 1.1, 0.55); g.add(s); return s; });
+  const dots = Array.from({ length: 26 }, (_, i) => { const s = makeGlow([0xb9a4ff, 0xff8fd0, 0x8fe6ff][i % 3], 1.1, 0.3); g.add(s); return s; });
   const fogTex = canvasTex(128, 128, (c) => { const r = c.createRadialGradient(64, 64, 0, 64, 64, 64); r.addColorStop(0, 'rgba(190,170,255,.9)'); r.addColorStop(1, 'rgba(190,170,255,0)'); c.fillStyle = r; c.fillRect(0, 0, 128, 128); });
   const haze = Array.from({ length: 24 }, () => {                                          // bruma lavanda baja que se desplaza
-    const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: fogTex, transparent: true, depthWrite: false, opacity: 0.14 })); sp.scale.setScalar(5.5 + rand() * 3);
+    const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: fogTex, transparent: true, depthWrite: false, opacity: 0.09 })); sp.scale.setScalar(5.5 + rand() * 3);
     sp.position.set((rand() - 0.5) * (W - 3), 0.4 + rand() * 0.6, (rand() - 0.5) * (D - 3)); sp.raycast = () => {}; g.add(sp); return { sp, x0: sp.position.x, ph: rand() * 6.28 };
   });
   createGlitter(ctx, { count: 110, size: { x: 26, y: 7, z: 30 }, center: [0, 0, CZ], color: 0xb9a4ff }).uniforms.uIntensity.value = 0.7;
 
   // ---------------- Norte: reloj gigante sobre la puerta (11:58) y cortinas ----------------
-  const clockFace = canvasTex(512, 512, (c) => {
+  const clockFace = canvasTex(1024, 1024, (c) => {
+    c.scale(2,2);
     c.fillStyle = '#120b34'; c.fillRect(0, 0, 512, 512);
     const r2 = rng(17); for (let i = 0; i < 70; i++) { c.fillStyle = 'rgba(224,195,106,.5)'; c.fillRect(r2() * 512, r2() * 512, 2, 2); }
     c.strokeStyle = GOLD; c.fillStyle = GOLD; c.textAlign = 'center'; c.textBaseline = 'middle'; c.font = 'bold 54px Georgia';
@@ -186,12 +188,12 @@ export function buildRoomMidnights(ctx, room5) {
   const clock = new THREE.Group(); clock.position.set(CK.x, CK.y, CK.z); g.add(clock);
   clock.add(new THREE.Mesh(new THREE.CircleGeometry(CK.r, 64), new THREE.MeshBasicMaterial({ map: clockFace })));
   const rim = new THREE.Mesh(new THREE.TorusGeometry(CK.r + 0.08, 0.13, 12, 64), frameMat); rim.position.z = 0.05; clock.add(rim);
-  const hand = (len, wd, color) => { const p = new THREE.Group(); p.position.z = 0.08; const m = new THREE.Mesh(new THREE.BoxGeometry(wd, len, 0.04), new THREE.MeshStandardMaterial({ color, emissive: color, emissiveIntensity: 0.5 })); m.position.y = len / 2 - 0.15; p.add(m); clock.add(p); return p; };
+  const hand = (len, wd, color) => { const p = new THREE.Group(); p.position.z = 0.08; const m = new THREE.Mesh(new THREE.BoxGeometry(wd, len, 0.04), mat(color,{metalness:.6,roughness:.4,emissive:color,emissiveIntensity:.18})); m.position.y = len / 2 - 0.15; p.add(m); clock.add(p); return p; };
   const hHour = hand(1.2, 0.2, 0xe0c36a), hMin = hand(1.8, 0.12, 0xe0c36a), hSec = hand(2.1, 0.05, 0xff8fd0);
   hHour.rotation.z = -((11 + 57 / 60) / 12) * Math.PI * 2; hMin.rotation.z = -(57 / 60) * Math.PI * 2;
-  const clockGlow = makeGlow(0xb9a4ff, 9, 0.28); clockGlow.position.set(CK.x, CK.y, CK.z + 0.3); g.add(clockGlow);
+  const clockGlow = makeGlow(0xb9a4ff,7,.15); clockGlow.position.set(CK.x, CK.y, CK.z + 0.3); g.add(clockGlow);
   [-5.2, 5.2].forEach((x) => {                                                              // cortinas junto a la puerta
-    const cur = new THREE.Mesh(new THREE.PlaneGeometry(1.6, TALL - 0.6), new THREE.MeshStandardMaterial({ color: 0x4a2a8a, emissive: 0x1a0c40, roughness: 1, side: THREE.DoubleSide }));
+    const cur = new THREE.Mesh(new THREE.PlaneGeometry(1.6, TALL - 0.6), materials.curtain);
     cur.position.set(x, (TALL - 0.6) / 2 + 0.3, -INZ + 0.03); g.add(cur);
   });
 
@@ -219,26 +221,33 @@ export function buildRoomMidnights(ctx, room5) {
 
   // ---------------- Oeste: el salón de las 3 a.m. ----------------
   const LG = { x: -9.5, z: 9.0 };
-  const rugTex = canvasTex(256, 256, (c) => { ['#6a4a9a', '#e9defc', '#8a6ad0', '#2a1a5a', '#b9a4ff'].forEach((col, i) => { c.fillStyle = col; c.beginPath(); c.arc(128, 128, 128 - i * 24, 0, Math.PI * 2); c.fill(); }); });
+  const rugTex=materials.rug;
   const rug = new THREE.Mesh(new THREE.CircleGeometry(3.0, 48), new THREE.MeshStandardMaterial({ map: rugTex, roughness: 1 })); rug.rotation.x = -Math.PI / 2; rug.position.set(LG.x, 0.015, LG.z); g.add(rug);
   const armchair = (x, z) => {
     const grp = new THREE.Group(); grp.position.set(x, 0, z); grp.rotation.y = Math.atan2(LG.x - x, LG.z - z); g.add(grp);
-    const m = mat(0xc4622a, { roughness: 0.9 }), m2 = mat(0x2a7a7a, { roughness: 0.9 });
+    const m=materials.chair(0xb86949),m2=materials.chair(0x39828b);
     box(1.0, 0.4, 0.9, m, 0, 0.35, 0, grp); box(1.0, 0.85, 0.2, m, 0, 0.8, -0.35, grp); box(0.2, 0.5, 0.9, m2, -0.5, 0.55, 0, grp); box(0.2, 0.5, 0.9, m2, 0.5, 0.55, 0, grp);
-    [[-0.4, -0.35], [0.4, -0.35], [-0.4, 0.35], [0.4, 0.35]].forEach(([dx, dz]) => cyl(0.04, 0.03, 0.2, mat(0x2a1a0c), dx, 0.1, dz, 6, grp));
+    [[-0.4, -0.35], [0.4, -0.35], [-0.4, 0.35], [0.4, 0.35]].forEach(([dx, dz]) => cyl(0.04, 0.03, 0.2, materials.timber(0x746047), dx, 0.1, dz, 6, grp));
+    box(.82,.12,.71,m,0,.58,.035,grp);box(.8,.62,.08,m,0,.84,-.22,grp);
+    const piping=materials.chair(0xc6987e);box(.015,.02,.69,piping,-.4,.65,.035,grp);box(.015,.02,.69,piping,.4,.65,.035,grp);
     colRound(x, z, 0.62);
   };
   armchair(-12.4, 7.2); armchair(-11.6, 11.4);
-  cyl(0.7, 0.7, 0.05, mat(0xe9defc, { roughness: 0.4 }), LG.x, 0.46, LG.z, 28); cyl(0.07, 0.07, 0.44, mat(0x2a1a0c), LG.x, 0.22, LG.z, 8); cyl(0.3, 0.3, 0.03, mat(0x2a1a0c), LG.x, 0.015, LG.z, 16);
+  cyl(0.7, 0.7, 0.05, mat(0xe9defc, { roughness: 0.4 }), LG.x, 0.46, LG.z, 28); cyl(0.07, 0.07, 0.44, materials.timber(0x746047), LG.x, 0.22, LG.z, 8); cyl(0.3, 0.3, 0.03, materials.timber(0x746047), LG.x, 0.015, LG.z, 16);
   colRound(LG.x, LG.z, 0.72);
   const phone = new THREE.Group(); phone.position.set(LG.x, 0.5, LG.z); g.add(phone);                       // teléfono de disco
   const blk = mat(0x14101c, { roughness: 0.3, metalness: 0.2 });
   box(0.34, 0.1, 0.26, blk, 0, 0.05, 0, phone); box(0.3, 0.06, 0.07, blk, 0, 0.14, -0.02, phone).rotation.z = 0;
-  cyl(0.085, 0.085, 0.03, mat(0xe9defc), 0, 0.11, 0.04, 16, phone);
+  const dialSide=mat(0xa7a293,{metalness:.5}),dialFace=mat(0xffffff,{map:materials.rotary,roughness:.4,metalness:.25});
+  cyl(.085,.085,.03,[dialSide,dialFace,dialSide],0,.11,.04,32,phone);
+  const receiverCurve=new THREE.CatmullRomCurve3([new THREE.Vector3(-.16,.16,.03),new THREE.Vector3(-.1,.205,-.015),new THREE.Vector3(.1,.205,-.015),new THREE.Vector3(.16,.16,.03)]);
+  phone.add(new THREE.Mesh(new THREE.TubeGeometry(receiverCurve,20,.022,8,false),blk));
+  const coil=[];for(let i=0;i<=180;i++){const t=i/180,a=t*Math.PI*36;coil.push(new THREE.Vector3(.17+Math.cos(a)*.014,.11-t*.14,.04+t*.18+Math.sin(a)*.014));}
+  phone.add(new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(coil),180,.0035,5,false),blk));
   [[-0.16, 0.16, 0.03], [0.16, 0.16, 0.03]].forEach(([x, y, z]) => cyl(0.045, 0.045, 0.07, blk, x, y, z, 10, phone));
   phone.add(hit(0.6, 0.4, 0.5, 0, 0.15, 0));
-  cyl(0.03, 0.04, 1.6, mat(0x2a1a0c), -12.6, 0.8, 5.0, 8);                                              // lámpara de pie
-  const shade = new THREE.Mesh(new THREE.ConeGeometry(0.34, 0.4, 16, 1, true), new THREE.MeshStandardMaterial({ color: 0xffc46a, emissive: 0xffa84a, emissiveIntensity: 1.2, side: THREE.DoubleSide }));
+  cyl(0.03, 0.04, 1.6, materials.timber(0x746047), -12.6, 0.8, 5.0, 8);                                              // lámpara de pie
+  const shade = new THREE.Mesh(new THREE.ConeGeometry(0.34, 0.4, 16, 1, true), materials.shade(0xdac4a1,0xffad68,.72));
   shade.position.set(-12.6, 1.8, 5.0); g.add(shade); colRound(-12.6, 5.0, 0.2);
   addSource(-12.6, 1.8, 5.0, 0xffc46a, 1.4, 2.8);
 
@@ -247,18 +256,20 @@ export function buildRoomMidnights(ctx, room5) {
   const boardTex = canvasTex(512, 512, (c) => { for (let i = 0; i < 8; i++) for (let j = 0; j < 8; j++) { c.fillStyle = (i + j) % 2 ? '#150e38' : '#b9a4ff'; c.fillRect(i * 64, j * 64, 64, 64); } });
   box(8 * BD.sq + 0.3, 0.12, 8 * BD.sq + 0.3, mat(0x2a1a5a, { metalness: 0.3 }), BD.x, 0.06, BD.z);
   const bt = new THREE.Mesh(new THREE.PlaneGeometry(8 * BD.sq, 8 * BD.sq), new THREE.MeshStandardMaterial({ map: boardTex, roughness: 0.35, metalness: 0.2 })); bt.rotation.x = -Math.PI / 2; bt.position.set(BD.x, 0.125, BD.z); g.add(bt);
-  const light = mat(0xe9defc, { roughness: 0.3, emissive: 0x2a2060 }), dark = mat(0x2a1a5a, { roughness: 0.3, emissive: 0x0c0830 });
+  const boardFrame=mat(0xb4a580,{metalness:.65,roughness:.42});
+  for(const sign of [-1,1]){box(6.7,.025,.045,boardFrame,BD.x,.13,BD.z+sign*3.32);box(.045,.025,6.7,boardFrame,BD.x+sign*3.32,.13,BD.z);}
+  const light = mat(0xe9defc, { map:materials.maps.stone,roughness:.3,emissive:0x12121c }), dark=mat(0x333953,{map:materials.maps.stone,roughness:.3,emissive:0x080b15});
   const sqx = (i) => BD.x + (i - 3.5) * BD.sq, sqz = (j) => BD.z + (j - 3.5) * BD.sq;
   // Las piezas del tablero las crea el acertijo (createMidnightsPuzzle): jaque mate en una jugada.
   addSource(BD.x, 2.8, BD.z + 3.6, 0xb9a4ff, 0.8);
 
   // ---------------- Acertijos (createMidnightsPuzzle, al final de este archivo) ----------------
-  const puzzle = createMidnightsPuzzle(ctx, { g, CZ, TALL, R, BD, phone, mat, box, cyl, hit, colBox, colRound, makeGlow, light, dark, sqx, sqz, ball, ballGlow, rod, BALL, orbs, hHour, hMin, hSec, clockGlow, addSource, onSolved: () => { door.unlock(); portal.activate(); } });
+  const puzzle = createMidnightsPuzzle(ctx, { g, materials, CZ, TALL, R, BD, phone, mat, box, cyl, hit, colBox, colRound, makeGlow, light, dark, sqx, sqz, ball, ballGlow, rod, BALL, orbs, hHour, hMin, hSec, clockGlow, addSource, onSolved: () => { door.unlock(); portal.activate(); } });
 
   // ---------------- Puerta norte + pasillo provisional hacia la siguiente era ----------------
   const doorZ = CZ - D / 2;
   const door = createDoor(ctx, { x: 0, z: doorZ, width: 3 });
-  door.mesh.material.color.set(0x2a1a5a); door.mesh.material.emissive.set(0x0a0620); door.mesh.material.metalness = 0.2;
+  door.mesh.material=mat(0x444a69,{map:materials.maps.metal,metalness:.5,roughness:.5,emissive:0x080a14});
   const hallMat = mat(0x16102e, { roughness: 1 });
   addWall(ctx, abs, -1.6, doorZ - HALL / 2, 0.2, HALL, hallMat); addWall(ctx, abs, 1.6, doorZ - HALL / 2, 0.2, HALL, hallMat);
   const endCol = ctx.colliders.length;
@@ -315,10 +326,10 @@ export function buildRoomMidnights(ctx, room5) {
     // ---- luces entre salas (igual que en las otras salas) ----
     room5.lights.mute = clamp((z - southZ) / HALL, 0.04, 1);                                // el bosque se apaga a lo largo del pasillo
     const k6 = clamp((doorZ5 - 1 - z) / 3, 0, 1), lightK = k6 * lights.mute;
-    ambient.intensity = 0.6 * lightK; hemi.intensity = 0.5 * lightK; moonL.intensity = 0.55 * lightK;
+    ambient.intensity = 0.68 * lightK; hemi.intensity = 0.62 * lightK; moonL.intensity = 0.55 * lightK;
     // ---- niebla: pasa del bosque a la noche violeta (se aplica después de la del bosque) ----
     const fog = scene.fog;
-    if (fog && k6 > 0) { fog.near = lerp(fog.near, 6, k6); fog.far = lerp(fog.far, 42, k6); fog.color.lerp(FOG_MID, k6); }
+    if (fog && k6 > 0) { fog.near = lerp(fog.near, 6, k6); fog.far = lerp(fog.far, 48, k6); fog.color.lerp(FOG_MID, k6); }
     hallBase = door.opening ? Math.min(8, hallBase + dt * 4) : hallBase; hallLight.intensity = hallBase * lights.mute;
     // ---- lo demás solo se calcula cerca de la sala ----
     const active = z < doorZ5 + 0.5 && z > bounds.minZ - HALL - 2;
@@ -356,7 +367,7 @@ export function buildRoomMidnights(ctx, room5) {
     if (!welcomed && z < southZ + 3) { welcomed = true; ctx.ui.toast('Es más de medianoche y esta sala nunca duerme: relojes, espejos, un tablero enorme y un teléfono que no suena.', 7000); }
   });
 
-  return { group: g, bounds, x: 0, z: CZ, w: W, d: D, door, lights, openHall, puzzle };
+  return { group: g, bounds, x: 0, z: CZ, w: W, d: D, door, lights, openHall, puzzle, materials, propsRoot:g };
 }
 
 // ============================================================================================================
@@ -389,8 +400,11 @@ const T_CHESS = { title: 'Reglas para la jugada', text: 'Solo queda un rey negro
 
 const T_NIGHT = { title: 'Nota sobre la mesa', text: 'Cinco relojes, todos detenidos. Cuatro se equivocan.\n\nSolo uno marca la hora en que una noche termina y otra empieza: aquella en que las dos manecillas se funden en una sola, apuntando al cielo.\n\nPresiona E sobre el reloj que dice la verdad.\n\nSi te equivocas, los relojes se desordenan.' };
 // Esfera de un reloj de mesa detenido a las hh:mm
-const deskClockTex = (hh, mm) => canvasTex(256, 256, (c) => {
+const deskClockTex = (hh, mm) => canvasTex(512, 512, (c) => {
+  c.scale(2,2);
   c.fillStyle = '#120b34'; c.fillRect(0, 0, 256, 256); c.translate(128, 128); c.lineCap = 'round';
+  c.strokeStyle='rgba(185,164,255,.16)';c.lineWidth=.7;for(let radius=10;radius<100;radius+=4){c.beginPath();c.arc(0,0,radius,0,TAU);c.stroke();}
+  c.fillStyle='#b1abc4';c.font='18px Georgia';c.textAlign='center';c.textBaseline='middle';[['12',0,-82],['3',82,0],['6',0,82],['9',-82,0]].forEach(([label,x,y])=>c.fillText(label,x,y));
   for (let k = 0; k < 12; k++) { const a = (k / 12) * TAU; c.strokeStyle = '#e0c36a'; c.lineWidth = k % 3 ? 4 : 9; c.beginPath(); c.moveTo(Math.sin(a) * 100, -Math.cos(a) * 100); c.lineTo(Math.sin(a) * 120, -Math.cos(a) * 120); c.stroke(); }
   const hand = (ang, len, w, col) => { c.strokeStyle = col; c.lineWidth = w; c.beginPath(); c.moveTo(0, 0); c.lineTo(Math.sin(ang) * len, -Math.cos(ang) * len); c.stroke(); };
   hand((((hh % 12) + mm / 60) / 12) * TAU, 62, 13, '#f2ecff'); hand((mm / 60) * TAU, 98, 7, '#b9a4ff');
@@ -460,7 +474,7 @@ function makeReader() {
 }
 
 function createMidnightsPuzzle(ctx, env) {
-  const { g, CZ, TALL, R, BD, phone, mat, box, cyl, hit, colBox, colRound, makeGlow, light, dark, sqx, sqz, ball, ballGlow, rod, BALL, orbs, hHour, hMin, hSec, clockGlow, addSource, onSolved } = env;
+  const { g, materials, CZ, TALL, R, BD, phone, mat, box, cyl, hit, colBox, colRound, makeGlow, light, dark, sqx, sqz, ball, ballGlow, rod, BALL, orbs, hHour, hMin, hSec, clockGlow, addSource, onSolved } = env;
   const reader = makeReader(), clamp = THREE.MathUtils.clamp, ease = (k) => 1 - Math.pow(1 - k, 3);
   const state = { call: false, clock: false, chess: false, night: false, gears: 0, placed: 0 };
   const finale = { on: false, t: 0, strikes: 0, ballDone: false, keyT: -1 };
@@ -559,6 +573,8 @@ function createMidnightsPuzzle(ctx, env) {
     else if (t === 'B') { cyl(0.14, 0.28, 0.95, m, 0, 0.6, 0, 12, gr); const s = new THREE.Mesh(new THREE.SphereGeometry(0.2, 14, 12), m); s.position.y = 1.2; s.scale.y = 1.3; gr.add(s); const k = new THREE.Mesh(new THREE.SphereGeometry(0.07, 10, 8), m); k.position.y = 1.58; gr.add(k); }
     else if (t === 'Q') { cyl(0.16, 0.3, 1.25, m, 0, 0.75, 0, 14, gr); cyl(0.36, 0.2, 0.2, m, 0, 1.47, 0, 14, gr); const s = new THREE.Mesh(new THREE.SphereGeometry(0.11, 10, 8), m); s.position.y = 1.7; gr.add(s); }
     else { cyl(0.18, 0.32, 1.35, m, 0, 0.8, 0, 14, gr); cyl(0.38, 0.26, 0.2, m, 0, 1.57, 0, 14, gr); box(0.1, 0.5, 0.1, m, 0, 1.9, 0, gr); box(0.36, 0.1, 0.1, m, 0, 1.95, 0, gr); }
+    cyl(.27,.29,.045,m,0,.17,0,24,gr);cyl(.245,.255,.035,m,0,.24,0,24,gr);
+    if(t==='Q')for(let i=0;i<8;i++){const a=i/8*TAU,tip=new THREE.Mesh(new THREE.SphereGeometry(.045,8,6),m);tip.position.set(Math.cos(a)*.28,1.63,Math.sin(a)*.28);gr.add(tip);}
     return { gr, m };
   }
   const board = { pcs: [], selected: null, locked: false, legal: new Set() };
@@ -626,7 +642,7 @@ function createMidnightsPuzzle(ctx, env) {
   box(1.12, 0.06, TB.len + 0.1, goldM(), TB.x, 0.93, TB.z);
   colBox(TB.x - 0.6, TB.x + 0.6, TB.z - TB.len / 2 - 0.05, TB.z + TB.len / 2 + 0.05);
   cyl(0.015, 0.015, TALL - 3.2, mat(0x9a90c8, { metalness: 0.8 }), TB.x - 0.2, (TALL + 3.2) / 2, TB.z, 4);                   // lámpara colgante
-  const lampShade = new THREE.Mesh(new THREE.ConeGeometry(0.55, 0.38, 20, 1, true), new THREE.MeshStandardMaterial({ color: 0xb9a4ff, emissive: 0x8f7ae0, emissiveIntensity: 1.3, side: THREE.DoubleSide }));
+  const lampShade = new THREE.Mesh(new THREE.ConeGeometry(0.55, 0.38, 20, 1, true), materials.shade(0xb9b1d9,0x8f7ae0,.8));
   lampShade.position.set(TB.x - 0.2, 3.1, TB.z); g.add(lampShade);
   addSource(TB.x - 0.2, 2.85, TB.z, 0xb9a4ff, 1.1, 3.2);
   const STOPPED = [[9, 15], [11, 55], [6, 0], [12, 0], [3, 30]];                          // de norte a sur; el de las 12:00 es el cuarto
@@ -653,7 +669,7 @@ function createMidnightsPuzzle(ctx, env) {
     const clk = { hh, mm, face: null };
     const grp = new THREE.Group(); grp.position.set(TB.x - 0.1, 1.5, TB.z + (i - 2) * 1.05); grp.rotation.y = -Math.PI / 2; g.add(grp);     // miran hacia el oeste (hacia la sala)
     clk.face = new THREE.Mesh(new THREE.CircleGeometry(0.42, 40), new THREE.MeshBasicMaterial({ map: deskClockTex(hh, mm) })); grp.add(clk.face); deskClocks.push(clk);
-    const back = new THREE.Mesh(new THREE.CircleGeometry(0.42, 24), new THREE.MeshBasicMaterial({ color: 0x120b34 })); back.rotation.y = Math.PI; back.position.z = -0.02; grp.add(back);
+    const back = new THREE.Mesh(new THREE.CircleGeometry(0.42, 24),materials.timber(0x70647a)); back.rotation.y = Math.PI; back.position.z = -0.02; grp.add(back);
     const rim = new THREE.Mesh(new THREE.TorusGeometry(0.44, 0.045, 10, 40), goldM()); rim.position.z = 0.01; grp.add(rim);
     cyl(0.06, 0.1, 0.22, goldM(), 0, -0.45, -0.04, 10, grp);
     grp.add(hit(0.95, 0.95, 0.4, 0, 0, 0.1));
@@ -691,7 +707,7 @@ function createMidnightsPuzzle(ctx, env) {
       if (state.placed >= 3) startFinale(); else ctx.ui.toast(state.placed === 1 ? 'Un engranaje encaja. Faltan dos.' : 'Dos engranajes encajan. Falta uno.', 4000);
     },
   });
-  const keyM = new THREE.MeshStandardMaterial({ color: 0x8a96ff, emissive: 0x4a56cc, roughness: 0.3, metalness: 0.9 });
+  const keyM = mat(0x9faed9,{emissive:0x28305d,roughness:.3,metalness:.85});
   const key = new THREE.Group(); key.visible = false; g.add(key);
   { const r = new THREE.Mesh(new THREE.TorusGeometry(0.1, 0.03, 10, 24), keyM); r.position.y = 0.28; key.add(r, new THREE.Mesh(new THREE.CylinderGeometry(0.025, 0.025, 0.55, 10), keyM));
     [[-0.2, 0.09], [-0.3, 0.07]].forEach(([y, w]) => { const tt = new THREE.Mesh(new THREE.BoxGeometry(w * 1.6, 0.05, 0.04), keyM); tt.position.set(w * 0.8 + 0.02, y, 0); key.add(tt); }); }
