@@ -1,0 +1,49 @@
+{
+  "rooms": {
+    "lover": {
+      "coverage": {
+        "physicalMaterials": 129,
+        "textures": 16,
+        "withoutColorTexture": []
+      },
+      "solved": {
+        "parts": {
+          "rainbow": true,
+          "chest": true
+        },
+        "secret": true,
+        "collected": true,
+        "doorUnlocked": true
+      }
+    }
+  },
+  "errors": [],
+  "failedAssets": [],
+  "clouds": {
+    "banks": 16,
+    "meshes": [
+      {
+        "instances": 6,
+        "vertices": 18620,
+        "thickness": 1.5451639890670776,
+        "width": 3.816863775253296,
+        "hasColorTexture": true
+      },
+      {
+        "instances": 5,
+        "vertices": 17842,
+        "thickness": 1.4020851254463196,
+        "width": 3.784075617790222,
+        "hasColorTexture": true
+      },
+      {
+        "instances": 5,
+        "vertices": 18560,
+        "thickness": 1.5594764947891235,
+        "width": 3.7316964864730835,
+        "hasColorTexture": true
+      }
+    ],
+    "flatCeilingHidden": true
+  }
+}

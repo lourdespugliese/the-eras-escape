@@ -1,0 +1,5 @@
+Use case: photorealistic-natural
+Asset type: seamless square 3D cloud material surface texture, 1024x1024.
+Input image is a STYLE REFERENCE only: reproduce the finely detailed cotton-like cloud surface visible in the ceiling, NOT the room.
+Create an orthographic close-up square patch filled edge-to-edge with soft fluffy cloud/cotton surface, gently folding and billowing, many organically interwoven tiny tufts and soft wisps, nested smaller billows, tactile fine irregular white cotton fibers. Cloud, not stone or crumpled paper. Surface structure at several scales, all soft. The patch depicts about 1.8 metres of a much larger cloud surface.
+Neutral near-white ivory colour with subtly pale lavender grey soft recesses. Low contrast, very diffused illumination, no directional light or cast shadows; the game supplies pink colour and warm backlight. Absolutely no sky, no transparency, no horizon, no large sphere-shaped bubbles, no regular grid, no room, no text, no border. Seamlessly tileable on all edges. Fine visible feathery detail across the entire square; no big empty featureless region.

@@ -1,0 +1,36 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><base href="/"><link rel="icon" href="data:,"><title>Lover cloud preview</title>
+<style>html,body{margin:0;overflow:hidden;background:#241724}canvas{display:block}</style>
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
+</head><body><script type="module">
+import * as THREE from 'three';
+import { buildRoomLover } from '/js/roomlover.js';
+import { setupLighting } from '/js/lighting.js';
+import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
+import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
+const scene=new THREE.Scene();scene.background=new THREE.Color(0x241724);
+const camera=new THREE.PerspectiveCamera(70,innerWidth/innerHeight,.1,100);
+// room3 north face=13 makes Lover's local and world centers both zero.
+camera.position.set(0,1.7,4.2);camera.lookAt(0,1.7,-4.8);
+const noop=()=>{},items=[];
+const ctx={scene,camera,colliders:[],rooms:[],updaters:[],fx:{bloom:false},game:{items:new Set(),solved:0},
+ interaction:{items,add(mesh,options){items.push({mesh,...options});}},ui:{toast:noop,setHeld:noop},particles:{burst:noop},
+ audio:new Proxy({trackPlaying:()=>false},{get(o,k){return o[k]||noop;}}),collect(id){this.game.items.add(id);}};
+const room=buildRoomLover(ctx,{bounds:{minZ:13},door:{opening:false},lights:{mute:1},removeHall:noop});
+if(!await room.materials.ready)throw Error('No se pudieron cargar los materiales de Lover');
+const renderer=new THREE.WebGLRenderer({antialias:false,preserveDrawingBuffer:true});
+renderer.setPixelRatio(1);renderer.setSize(innerWidth,innerHeight);renderer.info.autoReset=false;document.body.append(renderer.domElement);
+const target=new THREE.WebGLRenderTarget(innerWidth,innerHeight,{type:THREE.HalfFloatType,samples:4});
+const composer=new EffectComposer(renderer,target);
+composer.addPass(new RenderPass(scene,camera));
+composer.addPass(new UnrealBloomPass(new THREE.Vector2(innerWidth,innerHeight),.18,.5,1.6));
+composer.addPass(new OutputPass());
+setupLighting({renderer,scene,camera,ctx});
+for(const update of ctx.updaters)update(1/60,2);
+function render(){renderer.info.reset();composer.render();}
+await renderer.compileAsync(scene,camera);
+render();
+window.__preview={THREE,scene,camera,room,ctx,renderer,composer,render};
+</script></body></html>

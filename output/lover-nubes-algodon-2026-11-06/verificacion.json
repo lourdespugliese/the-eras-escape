@@ -1,0 +1,63 @@
+{
+  "rooms": {
+    "lover": {
+      "coverage": {
+        "physicalMaterials": 129,
+        "textures": 16,
+        "withoutColorTexture": []
+      },
+      "solved": {
+        "parts": {
+          "rainbow": true,
+          "chest": true
+        },
+        "secret": true,
+        "collected": true,
+        "doorUnlocked": true
+      }
+    }
+  },
+  "errors": [],
+  "failedAssets": [],
+  "clouds": {
+    "banks": 12,
+    "declaredBanks": 12,
+    "geometryVariants": 3,
+    "meshes": [
+      {
+        "name": "lover-solid-cloud-bank-0",
+        "instances": 4,
+        "vertices": 16140,
+        "triangles": 32276,
+        "thickness": 1.7327653765678406,
+        "width": 4.9328649044036865,
+        "hasColorTexture": true,
+        "loadedColorTexture": true,
+        "hasVertexColors": false
+      },
+      {
+        "name": "lover-solid-cloud-bank-1",
+        "instances": 4,
+        "vertices": 15930,
+        "triangles": 31856,
+        "thickness": 1.7000145316123962,
+        "width": 5.344208240509033,
+        "hasColorTexture": true,
+        "loadedColorTexture": true,
+        "hasVertexColors": false
+      },
+      {
+        "name": "lover-solid-cloud-bank-2",
+        "instances": 4,
+        "vertices": 16464,
+        "triangles": 32912,
+        "thickness": 1.7908406853675842,
+        "width": 5.133248329162598,
+        "hasColorTexture": true,
+        "loadedColorTexture": true,
+        "hasVertexColors": false
+      }
+    ],
+    "flatCeilingHidden": true
+  }
+}
