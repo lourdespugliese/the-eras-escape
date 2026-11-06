@@ -508,6 +508,7 @@ export function buildIntro(ctx, room1, { player, skip = false } = {}) {
     entrancePieces = [];
     removeColliders((c) => near(c.minZ, 4.8) && near(c.maxZ, 5.2) && c.maxX - c.minX < 7 && c.minX > -5.05 && c.maxX < 9.05);
     const full = new THREE.Mesh(new THREE.BoxGeometry(14, 4, 0.4), mat); full.position.set(2, 2, 5); g1.add(full);
+    room1.sealEntranceTrim?.();
     ctx.colliders.push({ minX: -5, maxX: 9, minZ: 4.8, maxZ: 5.2 });
     // 2) la moldura dorada vuelve a ser continua y 3) la foto del medio vuelve a su sitio original
     if (trimPieces.length) { trimPieces.forEach((o) => { g1.remove(o); o.geometry.dispose(); }); const t = new THREE.Mesh(new THREE.BoxGeometry(13.6, 0.08, 0.04), trimMat); t.position.set(2, 1.0, 4.77); g1.add(t); }

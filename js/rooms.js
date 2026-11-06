@@ -1,6 +1,7 @@
 // rooms.js — Funciones reutilizables (paredes, habitaciones, puertas, texturas, mariposas...)
 // y la construcción del escenario de la Habitación 1 (Fearless).
 import * as THREE from 'three';
+import { createFearlessMaterials } from './fearless-materials.js';
 
 export const WALL_H = 4, DOOR_H = 3.2, WALL_T = 0.4;
 const TAU = Math.PI * 2;
@@ -179,22 +180,25 @@ export function createDoor(ctx, { x, z, width = 3, onOpen = null }) {
   return door;
 }
 
-// Mariposa de círculos. Si recibe "symbolTex" muestra el símbolo grabado en las alas.
-export function makeButterfly(color, symbolTex = null) {
+// Fearless puede aportar alas recortadas; los símbolos se conservan en un disco separado.
+export function makeButterfly(color, symbolTex = null, appearance = null) {
   const group = new THREE.Group();
-  const mat = new THREE.MeshStandardMaterial({
-    color, emissive: new THREE.Color(color).multiplyScalar(0.3), side: THREE.DoubleSide, roughness: 0.5, metalness: 0.4,
-  });
-  const wingGeo = new THREE.CircleGeometry(0.25, 20);
+  const mat = appearance
+    ? new THREE.MeshStandardMaterial({ map: appearance.right, color: 0xffffff, alphaTest: .45, side: THREE.DoubleSide, roughness: .86, metalness: .02, emissive: 0x1a1000 })
+    : new THREE.MeshStandardMaterial({ color, emissive: new THREE.Color(color).multiplyScalar(.3), side: THREE.DoubleSide, roughness: .5, metalness: .4 });
+  if (appearance) { mat.name = 'fearless-butterfly-wing'; group.name = 'fearless-butterfly'; }
+  const leftMat = appearance ? mat.clone() : mat;
+  if (appearance) leftMat.map = appearance.left;
+  const wingGeo = appearance ? new THREE.PlaneGeometry(.5, .6) : new THREE.CircleGeometry(.25, 20);
   const left = new THREE.Group(), right = new THREE.Group();   // pivotes para aletear
-  const lw = new THREE.Mesh(wingGeo, mat); lw.position.x = -0.25; lw.scale.y = 1.2;
-  const rw = new THREE.Mesh(wingGeo, mat); rw.position.x = 0.25; rw.scale.y = 1.2;
+  const lw = new THREE.Mesh(wingGeo, leftMat); lw.position.set(appearance ? -.20 : -.25, appearance ? .055 : 0, 0); if (!appearance) lw.scale.y = 1.2;
+  const rw = new THREE.Mesh(wingGeo, mat); rw.position.set(appearance ? .20 : .25, appearance ? .055 : 0, 0); if (!appearance) rw.scale.y = 1.2;
   left.add(lw); right.add(rw);
-  const body = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, 0.4, 8), new THREE.MeshStandardMaterial({ color: 0x2a1a0a }));
+  const body = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, 0.4, 8), new THREE.MeshStandardMaterial({ map: appearance?.body || null, color: 0x2a1a0a, roughness: appearance ? .9 : 1 }));
   group.add(left, right, body);
   if (symbolTex) {
     const disc = new THREE.Mesh(new THREE.CircleGeometry(0.17, 24), new THREE.MeshBasicMaterial({ map: symbolTex }));
-    disc.position.z = 0.02;
+    disc.position.z = appearance ? .08 : .02;
     group.add(disc);
   }
   return { group, left, right };
@@ -207,13 +211,23 @@ export function flap(ctx, b, { speed = 6, amp = 0.5, phase = 0 } = {}) {
   });
 }
 
-export function makeGuitar(color = 0x9a6a30, emissive = 0x000000, metalness = 0.2) {
-  const mat = new THREE.MeshStandardMaterial({ color, emissive, roughness: 0.4, metalness });
-  const dark = new THREE.MeshStandardMaterial({ color: 0x2a1a0a });
+export function makeGuitar(color = 0x9a6a30, emissive = 0x000000, metalness = 0.2, appearance = null) {
+  const mat = new THREE.MeshStandardMaterial({ map: appearance?.body || null, color, emissive, roughness: 0.4, metalness });
+  const dark = new THREE.MeshStandardMaterial({ map: appearance?.neck || null, color: appearance ? 0xada18a : 0x2a1a0a, roughness: appearance ? .8 : 1 });
+  const side = appearance ? new THREE.MeshStandardMaterial({ map: appearance.side, color, emissive, roughness: .65, metalness }) : mat;
+  const upperFace = appearance ? new THREE.MeshStandardMaterial({ map: appearance.upper, color, emissive, roughness: .4, metalness }) : mat;
+  const holeMat = appearance ? new THREE.MeshStandardMaterial({ map: appearance.hole, color: 0x241b10, roughness: 1 }) : dark;
   const g = new THREE.Group();
-  const lower = new THREE.Mesh(new THREE.CylinderGeometry(0.28, 0.28, 0.1, 24), mat);
-  const upper = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.2, 0.1, 24), mat);
-  const hole = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.08, 0.11, 16), dark);
+  if (appearance) g.name = 'fearless-detailed-guitar';
+  const bodyMaterials = appearance ? [side, mat, mat] : mat;
+  const lower = new THREE.Mesh(new THREE.CylinderGeometry(0.28, 0.28, 0.1, 24), bodyMaterials);
+  const upper = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.2, 0.1, 24), appearance ? [side, upperFace, upperFace] : mat);
+  const hole = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.08, 0.11, 16), holeMat);
+  if (appearance) for (const [mesh, radius] of [[lower, .28], [upper, .2]]) {
+    const { position, normal, uv } = mesh.geometry.attributes;
+    for (let i = 0; i < position.count; i++) if (Math.abs(normal.getY(i)) > .5) uv.setXY(i, .5 + position.getX(i) / (2 * radius), .5 - position.getZ(i) / (2 * radius));
+    uv.needsUpdate = true;
+  }
   [lower, upper, hole].forEach((m) => (m.rotation.x = Math.PI / 2));
   upper.position.y = 0.38;
   const neck = new THREE.Mesh(new THREE.BoxGeometry(0.07, 0.8, 0.04), dark); neck.position.y = 0.95;
@@ -236,15 +250,15 @@ function makeGear(r, goldMat) {
 
 // ================= Habitación 1: Fearless =================
 export function buildFearlessRoom(ctx) {
-  const wallMat = new THREE.MeshStandardMaterial({ map: makeWoodTexture({ base: '#e2c48f', dark: '#c9a56d' }), roughness: 0.85 });
-  const floorTex = makeWoodTexture({ base: '#80603a', dark: '#5e4325', vertical: false });
-  floorTex.repeat.set(4, 4);
-  const floorMat = new THREE.MeshStandardMaterial({ map: floorTex, roughness: 0.8 });
-  const room = createRoom(ctx, { name: 'Habitación 1 — Fearless', x: 2, w: 14, d: 10, doorX: 0, wallMat, floorMat, ceilColor: 0x6b4a2a });
+  const materials = createFearlessMaterials();
+  const room = createRoom(ctx, { name: 'Habitación 1 — Fearless', x: 2, w: 14, d: 10, doorX: 0, wallMat: materials.wall, floorMat: materials.floor, ceilColor: 0x38291f });
   const g = room.group;
+  g.name = 'fearless-room';
+  const ceilingMesh = g.children.find(mesh => mesh.isMesh && mesh.geometry.type === 'PlaneGeometry' && mesh.position.y === WALL_H);
+  ceilingMesh.material.dispose(); ceilingMesh.material = materials.ceiling;
 
-  const gold = new THREE.MeshStandardMaterial({ color: 0xd4a017, metalness: 0.8, roughness: 0.3, emissive: 0x442e00 });
-  const wood = new THREE.MeshStandardMaterial({ color: 0x7a5230, roughness: 0.8 });
+  const gold = materials.brass;
+  const wood = materials.wood;
   const box = (w, h, d, mat, x, y, z) => {
     const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat); m.position.set(x, y, z); g.add(m); return m;
   };
@@ -255,16 +269,30 @@ export function buildFearlessRoom(ctx) {
   box(0.04, 0.08, 9.6, gold, 8.77, 1.0, 0);
   room.northSegments.forEach(([a, b]) => box(b - a, 0.08, 0.04, gold, (a + b) / 2, 1.0, -4.77));
 
+  // Remates finos del revestimiento. El zócalo deja libre la entrada del museo.
+  const trim = (length, x, z, side = false, base = true) => {
+    box(side ? 0.055 : length, 0.12, side ? length : 0.055, materials.darkWood, x, 3.9, z);
+    box(side ? 0.06 : length, 0.014, side ? length : 0.06, gold, x, 3.82, z);
+    if (base) box(side ? 0.055 : length, 0.14, side ? length : 0.055, materials.darkWood, x, 0.07, z);
+  };
+  trim(9.6, -4.76, 0, true); trim(9.6, 8.76, 0, true);
+  trim(13.6, 2, -4.76, false, false);
+  room.northSegments.forEach(([a, b]) => box(b - a, 0.14, 0.055, materials.darkWood, (a + b) / 2, 0.07, -4.76));
+  trim(13.6, 2, 4.76, false, false);
+  [[-4.8, -0.5], [4.5, 8.8]].forEach(([a, b]) => box(b - a, 0.14, 0.055, materials.darkWood, (a + b) / 2, 0.07, 4.76));
+  const entranceSkirting = box(5, 0.14, 0.055, materials.darkWood, 2, 0.07, 4.76);
+  entranceSkirting.visible = false;
+
   // --- Iluminación: ambiental cálida + sol del atardecer + 2 lámparas ---
-  const ambient = new THREE.AmbientLight(0xffe0b0, 0.8);
-  const sun = new THREE.DirectionalLight(0xffa850, 1.6); sun.position.set(-10, 3.5, -1);
-  const lamp1 = new THREE.PointLight(0xffd070, 18, 14); lamp1.position.set(-0.5, 3.4, 2.5);
-  const lamp2 = new THREE.PointLight(0xffd070, 18, 14); lamp2.position.set(5.5, 3.4, -1.5);
+  const ambient = new THREE.AmbientLight(0xffeed7, 0.72);
+  const sun = new THREE.DirectionalLight(0xffdfaf, 1.3); sun.position.set(-10, 3.5, -1);
+  const lamp1 = new THREE.PointLight(0xffdcaa, 16, 14); lamp1.position.set(-0.5, 3.4, 2.5);
+  const lamp2 = new THREE.PointLight(0xffdcaa, 16, 14); lamp2.position.set(5.5, 3.4, -1.5);
   g.add(ambient, sun, lamp1, lamp2);
   const lights = {   // el acertijo los usa para "iluminar la habitación" al resolverse
     k: 1, mute: 1,   // mute (0..1): lo usa la sala 2 para apagar estas luces cuando el jugador ya no está aquí
     set(k) { this.k = k; this.apply(); },
-    apply() { const m = this.k * this.mute; ambient.intensity = 0.8 * m; sun.intensity = 1.6 * m; lamp1.intensity = lamp2.intensity = 18 * m; },
+    apply() { const m = this.k * this.mute; ambient.intensity = 0.72 * m; sun.intensity = 1.3 * m; lamp1.intensity = lamp2.intensity = 16 * m; },
   };
 
   // --- Guirnaldas de luces en el techo (InstancedMesh = 1 sola draw call) ---
@@ -284,13 +312,13 @@ export function buildFearlessRoom(ctx) {
   // --- Ventana con paisaje (árboles que se mueven con el viento) ---
   const win = new THREE.Group(); win.position.set(-4.79, 2.1, -1.2); win.rotation.y = Math.PI / 2; g.add(win);
   win.add(new THREE.Mesh(new THREE.PlaneGeometry(1.8, 1.4), new THREE.MeshBasicMaterial({ map: makeSkyTexture() })));
-  const hill = new THREE.Mesh(new THREE.PlaneGeometry(1.8, 0.4), new THREE.MeshBasicMaterial({ color: 0x2f4a24 }));
+  const hill = new THREE.Mesh(new THREE.PlaneGeometry(1.8, 0.4), new THREE.MeshBasicMaterial({ map: materials.props.foliage, color: 0x8caa70 }));
   hill.position.set(0, -0.5, 0.005); win.add(hill);
   const trees = [];
   [-0.55, 0.05, 0.6].forEach((x, i) => {
     const tr = new THREE.Group(); tr.position.set(x, -0.45, 0.02); tr.scale.setScalar(0.8 + i * 0.15);
-    const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.04, 0.4, 6), new THREE.MeshBasicMaterial({ color: 0x3a2412 })); trunk.position.y = 0.2;
-    const leaves = new THREE.Mesh(new THREE.ConeGeometry(0.2, 0.6, 8), new THREE.MeshBasicMaterial({ color: 0x3d5a2a })); leaves.position.y = 0.6;
+    const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.04, 0.4, 6), new THREE.MeshBasicMaterial({ map: wood.map, color: 0x6a4c2b })); trunk.position.y = 0.2;
+    const leaves = new THREE.Mesh(new THREE.ConeGeometry(0.2, 0.6, 8), new THREE.MeshBasicMaterial({ map: materials.props.foliage, color: 0x8eaf77 })); leaves.position.y = 0.6;
     tr.add(trunk, leaves); win.add(tr); trees.push(tr);
   });
   ctx.updaters.push((dt, t) => trees.forEach((tr, i) => (tr.rotation.z = Math.sin(t * 1.5 + i) * 0.06)));
@@ -300,11 +328,11 @@ export function buildFearlessRoom(ctx) {
 
   // --- Pasillo hacia la siguiente habitación (con cartel iluminado y luz blanca) ---
   const doorZ = room.z - room.d / 2, len = 4;
-  const hallMat = new THREE.MeshStandardMaterial({ color: 0x5a4028, roughness: 1 });
+  const hallMat = materials.darkWood;
   addWall(ctx, g, room.doorX - 1.6, doorZ - len / 2, 0.2, len, hallMat);
   addWall(ctx, g, room.doorX + 1.6, doorZ - len / 2, 0.2, len, hallMat);
   // (sin pared al fondo: el pasillo desemboca en la Habitación 2)
-  const hallFloor = new THREE.Mesh(new THREE.PlaneGeometry(3, len), new THREE.MeshStandardMaterial({ color: 0x3a2a18 }));
+  const hallFloor = new THREE.Mesh(new THREE.PlaneGeometry(3, len), new THREE.MeshStandardMaterial({ map: makeWoodTexture({ base: '#80603a', dark: '#5e4325' }), color: 0x9c7852, roughness: .86 }));
   hallFloor.rotation.x = -Math.PI / 2; hallFloor.position.set(room.doorX, 0.005, doorZ - len / 2);
   const hallCeil = hallFloor.clone(); hallCeil.rotation.x = Math.PI / 2; hallCeil.position.y = WALL_H;
   const sign = new THREE.Mesh(new THREE.PlaneGeometry(2.8, 0.9), new THREE.MeshBasicMaterial({
@@ -321,6 +349,7 @@ export function buildFearlessRoom(ctx) {
 
   let hallBase = 0;
   const door = createDoor(ctx, { x: room.doorX, z: doorZ, width: room.doorWidth });
+  door.mesh.material = materials.darkWood;
   ctx.updaters.push((dt) => {
     if (!door.opening) return;
     if (door.mesh.visible) { gearL.rotation.z += dt * 1.2; gearR.rotation.z -= dt * 1.2; }
@@ -328,18 +357,18 @@ export function buildFearlessRoom(ctx) {
   });
 
   // ================= Decoración =================
-  const candleMat = new THREE.MeshStandardMaterial({ color: 0xfff2d0 });
-  const flameMat = new THREE.MeshBasicMaterial({ color: 0xffd060 });
-  const candleGeo = new THREE.CylinderGeometry(0.04, 0.04, 0.14, 8), flameGeo = new THREE.SphereGeometry(0.03, 8, 6);
+  const candleMat = materials.wax;
+  const flameMat = new THREE.SpriteMaterial({ map: materials.props.flame, transparent: true, depthWrite: false });
+  const candleGeo = new THREE.CylinderGeometry(0.04, 0.04, 0.14, 8);
   const candle = (x, y, z) => {
     const c = new THREE.Mesh(candleGeo, candleMat); c.position.set(x, y + 0.07, z);
-    const f = new THREE.Mesh(flameGeo, flameMat); f.position.set(x, y + 0.17, z); g.add(c, f);
+    const f = new THREE.Sprite(flameMat); f.scale.set(.07, .12, 1); f.position.set(x, y + .20, z); g.add(c, f);
   };
   for (let i = 0; i < 4; i++) candle(room.x + Math.cos(i * Math.PI / 2 + 0.78) * 1.0, 0, Math.sin(i * Math.PI / 2 + 0.78) * 1.0); // ronda del pedestal central
 
   // Baúl cerrado + velas
   const chestX = 2.6, chestZ = -4.2;
-  box(1.0, 0.45, 0.6, new THREE.MeshStandardMaterial({ color: 0x5a3a1c, roughness: 0.8 }), chestX, 0.225, chestZ);
+  box(1.0, 0.45, 0.6, materials.darkWood, chestX, 0.225, chestZ);
   box(1.02, 0.15, 0.62, wood, chestX, 0.525, chestZ);
   box(0.1, 0.62, 0.64, gold, chestX, 0.31, chestZ);
   addCollider(ctx, chestX, chestZ, 0.55);
@@ -351,7 +380,7 @@ export function buildFearlessRoom(ctx) {
   part(0.55, 0.06, 0.55, 0, 0.45, 0); part(0.55, 0.5, 0.05, 0, 0.73, -0.25);
   [[-0.23, -0.23], [0.23, -0.23], [-0.23, 0.23], [0.23, 0.23]].forEach(([x, z]) => part(0.05, 0.45, 0.05, x, 0.225, z));
   addCollider(ctx, -3.9, 2.8, 0.35);
-  const guitar = makeGuitar(); guitar.scale.setScalar(0.75);
+  const guitar = makeGuitar(0xcba36a, 0x000000, .08, materials.guitarStyle); guitar.scale.setScalar(0.75);
   guitar.position.set(-4.05, 0.7, 2.8); guitar.rotation.set(0, Math.PI / 2, 0.12); g.add(guitar);
   ctx.interaction.add(guitar, { prompt: () => 'Presiona E para interactuar.', onInteract: () => ctx.audio.chord() });
 
@@ -361,10 +390,10 @@ export function buildFearlessRoom(ctx) {
   const board = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.05, 0.5), wood); board.position.set(lecX, 1.05, lecZ); board.rotation.x = 0.5; g.add(board);
   addCollider(ctx, lecX, lecZ, 0.3);
   const book = new THREE.Group(); book.position.set(0, 0.05, 0); board.add(book);
-  const pageMat = new THREE.MeshStandardMaterial({ color: 0xf5ead0 });
+  const pageMat = materials.paper;
   const pageL = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.025, 0.4), pageMat); pageL.position.x = -0.15; pageL.rotation.z = 0.08;
   const pageR = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.025, 0.4), pageMat); pageR.position.x = 0.15; pageR.rotation.z = -0.08;
-  const cover = new THREE.Mesh(new THREE.BoxGeometry(0.64, 0.02, 0.44), new THREE.MeshStandardMaterial({ color: 0x7a2a2a })); cover.position.y = -0.015;
+  const cover = new THREE.Mesh(new THREE.BoxGeometry(0.64, 0.02, 0.44), materials.leather); cover.position.y = -0.015;
   book.add(pageL, pageR, cover);
   ctx.interaction.add(book, {
     prompt: () => 'Presiona E para leer.',
@@ -392,27 +421,37 @@ export function buildFearlessRoom(ctx) {
   });
 
   // Plantas con flores amarillas en las esquinas (interactivas: salen mariposas)
-  const potMat = new THREE.MeshStandardMaterial({ color: 0x8a4b2a, roughness: 0.9 });
-  const leafMat = new THREE.MeshStandardMaterial({ color: 0x4f8a3a });
-  const flowerMat = new THREE.MeshStandardMaterial({ color: 0xffd23a, emissive: 0x5a4000 });
+  const potMat = materials.pot;
+  const leafMat = materials.leaf;
+  const flowerMat = materials.flower;
+  const leafGeometry = new THREE.PlaneGeometry(.105, .34), flowerGeometry = new THREE.PlaneGeometry(.25, .25);
   let now = 0;
   ctx.updaters.push((dt, t) => (now = t));
   function addPlant(x, z) {
-    const p = new THREE.Group(); p.position.set(x, 0, z); g.add(p);
+    const p = new THREE.Group(); p.name = 'fearless-flower-pot'; p.position.set(x, 0, z); g.add(p);
     const pot = new THREE.Mesh(new THREE.CylinderGeometry(0.24, 0.18, 0.35, 12), potMat); pot.position.y = 0.175; p.add(pot);
+    const soil = new THREE.Mesh(new THREE.CircleGeometry(.215, 20), materials.soil); soil.rotation.x = -Math.PI / 2; soil.position.y = .353; p.add(soil);
+    const lip = new THREE.Mesh(new THREE.TorusGeometry(.228, .016, 6, 20), potMat); lip.rotation.x = -Math.PI / 2; lip.position.y = .35; p.add(lip);
     for (let i = 0; i < 6; i++) {
       const a = (i / 6) * TAU;
-      const leaf = new THREE.Mesh(new THREE.ConeGeometry(0.07, 0.7, 6), leafMat);
-      leaf.position.set(Math.cos(a) * 0.12, 0.7, Math.sin(a) * 0.12); leaf.rotation.set(Math.sin(a) * 0.4, 0, -Math.cos(a) * 0.4);
-      const fl = new THREE.Mesh(new THREE.SphereGeometry(0.07, 8, 6), flowerMat);
-      fl.position.set(Math.cos(a) * 0.3, 1.0 + (i % 2) * 0.15, Math.sin(a) * 0.3);
-      p.add(leaf, fl);
+      const leaf = new THREE.Mesh(leafGeometry, leafMat);
+      leaf.position.set(Math.cos(a) * .11, .58, Math.sin(a) * .11); leaf.rotation.set(Math.sin(a) * .3, a, -Math.cos(a) * .35);
+      const flowerY = 1 + (i % 2) * .15;
+      const fl = new THREE.Mesh(flowerGeometry, flowerMat); fl.name = 'fearless-flower-head';
+      fl.position.set(Math.cos(a) * .3, flowerY, Math.sin(a) * .3);
+      fl.rotation.set(-.18, Math.atan2(2 - x, -z) + (i - 2.5) * .1, (i - 2.5) * .06);
+      const behindPetals = new THREE.Vector3(0, 0, -.10).applyQuaternion(fl.quaternion).add(fl.position);
+      const stemDirection = behindPetals.clone().sub(new THREE.Vector3(0, .36, 0));
+      const stem = new THREE.Mesh(new THREE.CylinderGeometry(.009, .013, stemDirection.length(), 5), materials.stem);
+      stem.position.copy(stemDirection).multiplyScalar(.5); stem.position.y += .36;
+      stem.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), stemDirection.normalize());
+      p.add(leaf, stem, fl);
     }
     addCollider(ctx, x, z, 0.28);
 
     // 3 mariposas pequeñas, ocultas hasta que el jugador interactúa
     const swarm = [0, 1, 2].map((i) => {
-      const b = makeButterfly(0xffd36a);
+      const b = makeButterfly(0xffd36a, null, materials.butterflyStyle);
       const outer = new THREE.Group(); b.group.scale.setScalar(0.35); b.group.rotation.x = -Math.PI / 2;
       outer.add(b.group); outer.visible = false; g.add(outer);
       flap(ctx, b, { speed: 14, amp: 0.8, phase: i });
@@ -435,5 +474,5 @@ export function buildFearlessRoom(ctx) {
   }
   [[-4.2, -4.2], [8.2, -4.2], [-4.2, 4.2], [8.2, 4.2]].forEach(([x, z]) => addPlant(x, z));
 
-  return { ...room, door, lights };
+  return { ...room, door, lights, materials, sealEntranceTrim() { entranceSkirting.visible = true; } };
 }

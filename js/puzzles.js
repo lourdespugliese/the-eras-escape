@@ -37,21 +37,21 @@ const ITEMS = [
 ];
 
 // ---------- Modelos de los objetos (origen en la base, para apoyarlos en una superficie) ----------
-function makeRing() {
+function makeRing(materials) {
   const grp = new THREE.Group();
-  const goldM = new THREE.MeshStandardMaterial({ color: 0xffd36a, metalness: 0.9, roughness: 0.2, emissive: 0x553a00 });
-  const cushion = new THREE.Mesh(new THREE.CylinderGeometry(0.16, 0.18, 0.06, 16), new THREE.MeshStandardMaterial({ color: 0x8c2f39 }));
+  const goldM = materials.brass;
+  const cushion = new THREE.Mesh(new THREE.CylinderGeometry(0.16, 0.18, 0.06, 16), materials.cloth(0x8c2f39));
   cushion.position.y = 0.03;
   const ring = new THREE.Mesh(new THREE.TorusGeometry(0.09, 0.022, 10, 24), goldM); ring.position.y = 0.16;
-  const gem = new THREE.Mesh(new THREE.OctahedronGeometry(0.045), new THREE.MeshStandardMaterial({ color: 0xffffff, emissive: 0x88aaff, roughness: 0.1 }));
+  const gem = new THREE.Mesh(new THREE.OctahedronGeometry(0.045), new THREE.MeshStandardMaterial({ map: materials.props.gem, color: 0xffffff, emissive: 0x334455, roughness: 0.1 }));
   gem.position.y = 0.28;
   grp.add(cushion, ring, gem);
   return grp;
 }
-function makeJacket() {
+function makeJacket(materials) {
   const grp = new THREE.Group();
-  const red = new THREE.MeshStandardMaterial({ color: 0xa82a32, roughness: 0.8 });
-  const white = new THREE.MeshStandardMaterial({ color: 0xf2ead8, roughness: 0.8 });
+  const red = materials.cloth(0xa82a32);
+  const white = materials.cloth(0xf2ead8);
   const body = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.12, 0.4), red); body.position.y = 0.06;
   const sleeves = new THREE.Mesh(new THREE.BoxGeometry(0.52, 0.09, 0.13), white); sleeves.position.set(0, 0.13, 0.08);
   const collar = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.05, 0.08), white); collar.position.set(0, 0.145, -0.17);
@@ -62,9 +62,9 @@ function makeJacket() {
   grp.add(body, sleeves, collar, patch);
   return grp;
 }
-function makeStar() {
+function makeStar(materials) {
   const grp = new THREE.Group();
-  const goldM = new THREE.MeshStandardMaterial({ color: 0xffc83d, metalness: 0.8, roughness: 0.3, emissive: 0x6a4800 });
+  const goldM = materials.brass.clone(); goldM.color.set(0xffc83d); goldM.emissive.set(0x392609);
   const shape = new THREE.Shape();
   for (let i = 0; i < 10; i++) {
     const r = i % 2 ? 0.07 : 0.17, a = Math.PI / 2 + (i * Math.PI) / 5;
@@ -82,9 +82,9 @@ function makeStar() {
 
 export function createFearlessPuzzle(ctx, room) {
   const g = room.group, cam = ctx.camera.position, cx = room.x, cz = room.z;
-  const stone = new THREE.MeshStandardMaterial({ color: 0x8a7458, roughness: 0.9 });
-  const wood = new THREE.MeshStandardMaterial({ color: 0x7a5230, roughness: 0.8 });
-  const goldMat = new THREE.MeshStandardMaterial({ color: 0xd4a017, metalness: 0.8, roughness: 0.3, emissive: 0x442e00 });
+  const stone = room.materials.wood;
+  const wood = room.materials.wood;
+  const goldMat = room.materials.brass;
   const tmp = new THREE.Vector3();
   let now = 0;
   ctx.updaters.push((dt, t) => (now = t));
@@ -94,13 +94,15 @@ export function createFearlessPuzzle(ctx, room) {
   let orbitUntil = 0, emitUntil = 0, boost = 1, boostTarget = 1, rise = 0, ready = false;
 
   // Pedestal central + guitarra dorada (aparece solo cuando AMBOS acertijos están completos)
-  const pedMat = new THREE.MeshStandardMaterial({ color: 0x8a7458, roughness: 0.6, metalness: 0.2, emissive: 0x000000 });
+  const pedMat = room.materials.wood.clone();
   const centerPed = new THREE.Mesh(new THREE.CylinderGeometry(0.4, 0.5, 0.9, 20), pedMat);
   centerPed.position.set(cx, 0.45, cz); g.add(centerPed);
   addCollider(ctx, cx, cz, 0.5);
+  const centerRim = new THREE.Mesh(new THREE.TorusGeometry(0.4, 0.018, 6, 32), goldMat);
+  centerRim.rotation.x = -Math.PI / 2; centerRim.position.set(cx, 0.905, cz); g.add(centerRim);
   const pedLight = new THREE.PointLight(0xffd070, 2, 5); pedLight.position.set(cx, 1.6, cz); g.add(pedLight);
 
-  const goldGuitar = makeGuitar(0xffc83d, 0x7a5200, 0.8);
+  const goldGuitar = makeGuitar(0xffc83d, 0x7a5200, 0.8, room.materials.guitarStyle);
   goldGuitar.scale.setScalar(0.85); goldGuitar.position.set(cx, -0.4, cz); goldGuitar.visible = false;
   g.add(goldGuitar);
   ctx.interaction.add(goldGuitar, {
@@ -138,7 +140,7 @@ export function createFearlessPuzzle(ctx, room) {
 
   // ================= ACERTIJO 1: la melodía =================
   ANSWER.forEach((sym, i) => {
-    const b = makeButterfly(0xffc83d, makeSymbolTexture(sym));
+    const b = makeButterfly(0xffc83d, makeSymbolTexture(sym), room.materials.butterflyStyle);
     b.group.scale.setScalar(1.4);
     const home = new THREE.Vector3(cx - 6.1 + 1.6 * i, 2.2 + (i % 2) * 0.3, -3.0);
     b.group.position.copy(home);
@@ -167,6 +169,8 @@ export function createFearlessPuzzle(ctx, room) {
     const cap = new THREE.Mesh(new THREE.CircleGeometry(0.26, 24), new THREE.MeshStandardMaterial({ map: tex, emissiveMap: tex, emissive: DIM.clone() }));
     cap.rotation.x = -Math.PI / 2; cap.position.y = 0.81;
     p.add(base, cap);
+    const rim = new THREE.Mesh(new THREE.TorusGeometry(0.265, 0.014, 6, 24), goldMat);
+    rim.rotation.x = -Math.PI / 2; rim.position.y = 0.805; p.add(rim);
     addCollider(ctx, x, z, 0.33);
     const ped = { sym, cap, litUntil: 0, pos: new THREE.Vector3(x, 0.95, z) };
     ctx.interaction.add(p, {
@@ -218,7 +222,7 @@ export function createFearlessPuzzle(ctx, room) {
   const plinths = SONGS.map((song) => {
     const f = new THREE.Group(); f.position.set(FRAME_X, 2.5, song.z); f.rotation.y = -Math.PI / 2; g.add(f);
     const frame = new THREE.Mesh(new THREE.BoxGeometry(1.2, 1.5, 0.06), goldMat);
-    const inner = new THREE.Mesh(new THREE.PlaneGeometry(1.0, 1.3), new THREE.MeshStandardMaterial({ color: 0x1a1208, roughness: 1, emissive: 0x000000 }));
+    const inner = new THREE.Mesh(new THREE.PlaneGeometry(1.0, 1.3), new THREE.MeshStandardMaterial({ map: room.materials.props.paper, color: 0x1a1208, roughness: 1, emissive: 0x000000 }));
     inner.position.z = 0.035; f.add(frame, inner);
     // Imagen del cuadro (MeshBasicMaterial = se ve con sus colores originales, sin depender de la luz)
     const tex = loader.load(song.image);
@@ -254,7 +258,7 @@ export function createFearlessPuzzle(ctx, room) {
     g.add(col, top);
     addCollider(ctx, x, z, 0.3);
 
-    it.group = it.make(); it.state = 'home';
+    it.group = it.make(room.materials); it.state = 'home';
     g.add(it.group);
     sendHome(it);
     ctx.interaction.add(it.group, {
