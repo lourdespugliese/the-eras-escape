@@ -1,0 +1,153 @@
+{
+  "baseline": true,
+  "viewport": [
+    1280,
+    800
+  ],
+  "errors": [],
+  "failedAssets": [],
+  "warnings": [
+    "sigmaRadians, 0.045, is too large and will clip, as it requested 22 samples when the maximum is set to 20",
+    "sigmaRadians, 0.045, is too large and will clip, as it requested 22 samples when the maximum is set to 20",
+    "Canvas2D: Multiple readback operations using getImageData are faster with the willReadFrequently attribute set to true. See: https://html.spec.whatwg.org/multipage/canvas.html#concept-canvas-will-read-frequently",
+    "Canvas2D: Multiple readback operations using getImageData are faster with the willReadFrequently attribute set to true. See: https://html.spec.whatwg.org/multipage/canvas.html#concept-canvas-will-read-frequently",
+    "Canvas2D: Multiple readback operations using getImageData are faster with the willReadFrequently attribute set to true. See: https://html.spec.whatwg.org/multipage/canvas.html#concept-canvas-will-read-frequently"
+  ],
+  "views": {
+    "forest-entry": {
+      "frameMs": 73.88571428571429,
+      "calls": 1213.7714285714285,
+      "triangles": 435411.4,
+      "memory": {
+        "geometries": 1393,
+        "textures": 272
+      },
+      "heap": 325264868,
+      "visibility": {
+        "tracked": 2529,
+        "culled": 158,
+        "shadowRenders": 523
+      },
+      "programs": 244,
+      "lights": {
+        "PointLight": 8,
+        "PointLight*": 1,
+        "SpotLight": 0,
+        "RectAreaLight": 0,
+        "DirectionalLight": 1,
+        "DirectionalLight*": 1,
+        "HemisphereLight": 1
+      },
+      "pixelRatio": 1,
+      "shadowType": 2
+    },
+    "forest-cabin": {
+      "frameMs": 70.53999999995743,
+      "calls": 924.5142857142857,
+      "triangles": 422957.45714285714,
+      "memory": {
+        "geometries": 1393,
+        "textures": 272
+      },
+      "heap": 324561477,
+      "visibility": {
+        "tracked": 2529,
+        "culled": 158,
+        "shadowRenders": 602
+      },
+      "programs": 244,
+      "lights": {
+        "PointLight": 6,
+        "PointLight*": 0,
+        "SpotLight": 0,
+        "RectAreaLight": 0,
+        "DirectionalLight": 1,
+        "DirectionalLight*": 1,
+        "HemisphereLight": 1
+      },
+      "pixelRatio": 1,
+      "shadowType": 2
+    },
+    "forest-snow": {
+      "frameMs": 80.11428571428571,
+      "calls": 1103.4,
+      "triangles": 421073,
+      "memory": {
+        "geometries": 1393,
+        "textures": 272
+      },
+      "heap": 325086321,
+      "visibility": {
+        "tracked": 2529,
+        "culled": 158,
+        "shadowRenders": 695
+      },
+      "programs": 244,
+      "lights": {
+        "PointLight": 6,
+        "PointLight*": 0,
+        "SpotLight": 0,
+        "RectAreaLight": 0,
+        "DirectionalLight": 1,
+        "DirectionalLight*": 1,
+        "HemisphereLight": 1
+      },
+      "pixelRatio": 1,
+      "shadowType": 2
+    },
+    "midnights": {
+      "frameMs": 32.29714285710028,
+      "calls": 916.9142857142857,
+      "triangles": 433014.2571428571,
+      "memory": {
+        "geometries": 1393,
+        "textures": 272
+      },
+      "heap": 325567617,
+      "visibility": {
+        "tracked": 2529,
+        "culled": 158,
+        "shadowRenders": 953
+      },
+      "programs": 244,
+      "lights": {
+        "PointLight": 8,
+        "PointLight*": 0,
+        "SpotLight": 0,
+        "RectAreaLight": 0,
+        "DirectionalLight": 1,
+        "DirectionalLight*": 2,
+        "HemisphereLight": 2
+      },
+      "pixelRatio": 1,
+      "shadowType": 2
+    },
+    "fearless-return": {
+      "frameMs": 53.605714285799436,
+      "calls": 1924.3428571428572,
+      "triangles": 941046.9714285714,
+      "memory": {
+        "geometries": 1393,
+        "textures": 272
+      },
+      "heap": 328538373,
+      "visibility": {
+        "tracked": 2529,
+        "culled": 158,
+        "shadowRenders": 1057
+      },
+      "programs": 244,
+      "lights": {
+        "PointLight": 8,
+        "PointLight*": 1,
+        "SpotLight": 0,
+        "RectAreaLight": 0,
+        "DirectionalLight": 1,
+        "DirectionalLight*": 0,
+        "HemisphereLight": 0
+      },
+      "pixelRatio": 1,
+      "shadowType": 2
+    }
+  }
+}

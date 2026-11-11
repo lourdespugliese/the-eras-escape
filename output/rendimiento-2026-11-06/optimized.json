@@ -1,0 +1,265 @@
+{
+  "baseline": false,
+  "viewport": [
+    1280,
+    800
+  ],
+  "errors": [],
+  "failedAssets": [],
+  "warnings": [
+    "sigmaRadians, 0.045, is too large and will clip, as it requested 22 samples when the maximum is set to 20",
+    "sigmaRadians, 0.045, is too large and will clip, as it requested 22 samples when the maximum is set to 20",
+    "Canvas2D: Multiple readback operations using getImageData are faster with the willReadFrequently attribute set to true. See: https://html.spec.whatwg.org/multipage/canvas.html#concept-canvas-will-read-frequently",
+    "Canvas2D: Multiple readback operations using getImageData are faster with the willReadFrequently attribute set to true. See: https://html.spec.whatwg.org/multipage/canvas.html#concept-canvas-will-read-frequently",
+    "Canvas2D: Multiple readback operations using getImageData are faster with the willReadFrequently attribute set to true. See: https://html.spec.whatwg.org/multipage/canvas.html#concept-canvas-will-read-frequently"
+  ],
+  "views": {
+    "forest-entry": {
+      "frameMs": 36.6,
+      "calls": 1277.0285714285715,
+      "triangles": 425836.2,
+      "memory": {
+        "geometries": 920,
+        "textures": 197
+      },
+      "heap": 593969574,
+      "visibility": {
+        "tracked": 1833,
+        "culled": 0,
+        "shadowRenders": 1749
+      },
+      "streaming": {
+        "resident": [
+          "1989",
+          "Reputation",
+          "Lover",
+          "Folklore",
+          "Midnights"
+        ],
+        "sleeping": [
+          "Fearless",
+          "Vitrinas",
+          "Museo"
+        ],
+        "evictedGeometries": 672,
+        "evictedTextures": 136,
+        "evictedInstances": 1,
+        "evictedTargets": 2,
+        "transitions": 3
+      },
+      "programs": 244,
+      "lights": {
+        "PointLight": 8,
+        "PointLight*": 1,
+        "SpotLight": 0,
+        "RectAreaLight": 0,
+        "DirectionalLight": 0,
+        "DirectionalLight*": 1,
+        "HemisphereLight": 1
+      },
+      "pixelRatio": 1,
+      "shadowType": 2
+    },
+    "forest-cabin": {
+      "frameMs": 40.91714285718543,
+      "calls": 965.9714285714285,
+      "triangles": 310274.0857142857,
+      "memory": {
+        "geometries": 732,
+        "textures": 156
+      },
+      "heap": 611836871,
+      "visibility": {
+        "tracked": 1637,
+        "culled": 0,
+        "shadowRenders": 1859
+      },
+      "streaming": {
+        "resident": [
+          "Reputation",
+          "Lover",
+          "Folklore",
+          "Midnights"
+        ],
+        "sleeping": [
+          "Fearless",
+          "1989",
+          "Vitrinas",
+          "Museo"
+        ],
+        "evictedGeometries": 863,
+        "evictedTextures": 179,
+        "evictedInstances": 1,
+        "evictedTargets": 2,
+        "transitions": 4
+      },
+      "programs": 244,
+      "lights": {
+        "PointLight": 6,
+        "PointLight*": 0,
+        "SpotLight": 0,
+        "RectAreaLight": 0,
+        "DirectionalLight": 0,
+        "DirectionalLight*": 1,
+        "HemisphereLight": 1
+      },
+      "pixelRatio": 1,
+      "shadowType": 2
+    },
+    "forest-snow": {
+      "frameMs": 36.06571428584201,
+      "calls": 1140.4857142857143,
+      "triangles": 349881.17142857146,
+      "memory": {
+        "geometries": 732,
+        "textures": 156
+      },
+      "heap": 608783979,
+      "visibility": {
+        "tracked": 1637,
+        "culled": 0,
+        "shadowRenders": 1974
+      },
+      "streaming": {
+        "resident": [
+          "Reputation",
+          "Lover",
+          "Folklore",
+          "Midnights"
+        ],
+        "sleeping": [
+          "Fearless",
+          "1989",
+          "Vitrinas",
+          "Museo"
+        ],
+        "evictedGeometries": 863,
+        "evictedTextures": 179,
+        "evictedInstances": 1,
+        "evictedTargets": 2,
+        "transitions": 4
+      },
+      "programs": 244,
+      "lights": {
+        "PointLight": 6,
+        "PointLight*": 0,
+        "SpotLight": 0,
+        "RectAreaLight": 0,
+        "DirectionalLight": 0,
+        "DirectionalLight*": 1,
+        "HemisphereLight": 1
+      },
+      "pixelRatio": 1,
+      "shadowType": 2
+    },
+    "midnights": {
+      "frameMs": 10.574285714328289,
+      "calls": 912.7142857142857,
+      "triangles": 195896.42857142858,
+      "memory": {
+        "geometries": 841,
+        "textures": 158
+      },
+      "heap": 621133471,
+      "visibility": {
+        "tracked": 1833,
+        "culled": 0,
+        "shadowRenders": 2497
+      },
+      "streaming": {
+        "resident": [
+          "1989",
+          "Reputation",
+          "Lover",
+          "Folklore",
+          "Midnights"
+        ],
+        "sleeping": [
+          "Fearless",
+          "Vitrinas",
+          "Museo"
+        ],
+        "evictedGeometries": 863,
+        "evictedTextures": 179,
+        "evictedInstances": 1,
+        "evictedTargets": 2,
+        "transitions": 5
+      },
+      "programs": 244,
+      "lights": {
+        "PointLight": 8,
+        "PointLight*": 0,
+        "SpotLight": 0,
+        "RectAreaLight": 0,
+        "DirectionalLight": 0,
+        "DirectionalLight*": 2,
+        "HemisphereLight": 2
+      },
+      "pixelRatio": 1,
+      "shadowType": 2
+    },
+    "fearless-return": {
+      "frameMs": 14.257142857142858,
+      "calls": 2004,
+      "triangles": 941060,
+      "memory": {
+        "geometries": 1132,
+        "textures": 224
+      },
+      "heap": 619515475,
+      "visibility": {
+        "tracked": 2602,
+        "culled": 158,
+        "shadowRenders": 2723
+      },
+      "streaming": {
+        "resident": [
+          "Fearless",
+          "1989",
+          "Reputation",
+          "Lover",
+          "Folklore",
+          "Midnights",
+          "Vitrinas",
+          "Museo"
+        ],
+        "sleeping": [],
+        "evictedGeometries": 863,
+        "evictedTextures": 179,
+        "evictedInstances": 1,
+        "evictedTargets": 2,
+        "transitions": 8
+      },
+      "programs": 244,
+      "lights": {
+        "PointLight": 8,
+        "PointLight*": 1,
+        "SpotLight": 0,
+        "RectAreaLight": 0,
+        "DirectionalLight": 1,
+        "DirectionalLight*": 0,
+        "HemisphereLight": 0
+      },
+      "pixelRatio": 1,
+      "shadowType": 2
+    }
+  },
+  "regressions": {
+    "sharedResourcesProtected": true,
+    "exclusiveResourcesDisposedOnce": true,
+    "roomIdentityAndStateRetained": true,
+    "repeatedEviction": true,
+    "allInstanceTransformsAndColorsRetained": true
+  },
+  "restoration": {
+    "museumTeleport": true,
+    "inventoryRetained": true,
+    "doorStates": [
+      true,
+      true,
+      true,
+      true,
+      true
+    ]
+  }
+}

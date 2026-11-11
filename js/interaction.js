@@ -30,7 +30,16 @@ export class Interaction {
   // Se llama en cada frame.
   update() {
     this.raycaster.setFromCamera({ x: 0, y: 0 }, this.camera); // rayo al centro (la mira)
-    const active = this.items.filter((i) => i.mesh.visible && i.enabled());
+    const active = this.items.filter((i) => {
+      // Detached rooms and hidden parents cannot be interacted with. Invisible
+      // hitbox *materials* still work, as required by the puzzles.
+      let attached = false;
+      for (let o = i.mesh; o; o = o.parent) {
+        if (!o.visible) return false;
+        if (o.isScene) { attached = true; break; }
+      }
+      return attached && i.enabled();
+    });
     const hits = this.raycaster.intersectObjects(active.map((i) => i.mesh), true);
 
     let found = null;

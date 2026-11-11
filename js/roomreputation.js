@@ -588,6 +588,9 @@ export function buildRoomReputation(ctx, room2) {
     const base = k3 * lights.mute;
     ambient.intensity = 0.72 * base * (1 + redPop * 0.5);
     lp.forEach((o, i) => { o.l.intensity = o.base * base * (0.95 + 0.05 * Math.sin(t * 1.3 + i)) * (o.red ? 1 + redPop * 3 : goldBoost); });
+    if (door.opening) hallBase = Math.min(10, hallBase + dt * 4);
+    hallLight.intensity = hallBase * lights.mute;
+    if (ctx.streaming && !ctx.streaming.isActive(room.bounds)) return;
 
     // Detección de pasos: se evalúa al ENTRAR en un espejo (el centro del jugador dentro de la baldosa)
     tiles.forEach((tl) => {
@@ -649,8 +652,6 @@ export function buildRoomReputation(ctx, room2) {
     rpGlow.visible = mirrorBroken && playing; rpGlow.material.opacity = 0.6 + 0.4 * Math.sin(t * 8);
     if (mirrorBroken && playing && Math.random() < 0.05) ctx.particles.burst(wp(RPX, 1.5, RPZ), 2, { speed: 0.3, up: 0.8 });
 
-    if (door.opening) hallBase = Math.min(10, hallBase + dt * 4);
-    hallLight.intensity = hallBase * lights.mute;
     if (k3 > 0.9 && t > nextHiss) { nextHiss = t + 25 + Math.random() * 20; ctx.audio.hiss(); }   // siseo lejano ocasional
   });
 

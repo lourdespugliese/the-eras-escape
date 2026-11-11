@@ -41,3 +41,15 @@ Notas:
 - El progreso no se guarda: al recargar se vuelve a empezar.
 - Al construir una sala nueva, agrégala a la lista que recibe `jumpToRoom` en `main.js`
   (`[room1, room2, room3, room4, ...]`) y `?room=N` la reconocerá.
+
+## Rendimiento y memoria gráfica
+
+Las salas se registran en `js/streaming.js`. Las que quedan lejos se separan de la escena y liberan sus geometrías, texturas y buffers de instancias de la GPU; vuelven a conectarse antes de entrar en el alcance visible. Los recursos compartidos con salas presentes se conservan. Los objetos originales, las fuentes de las texturas en RAM y el progreso de los acertijos se mantienen, por lo que regresar no reinicia una sala ni requiere descargar sus imágenes otra vez. Las salas todavía se construyen al inicio: esta optimización no es carga de archivos por demanda.
+
+El alcance se calcula con la niebla y la cámara existentes, teniendo en cuenta las esquinas de la pantalla, más 4 m de precarga y 4 m de margen para evitar cargas repetidas al moverse sobre un límite. No se reducen resolución, texturas, antialiasing, bloom ni calidad de sombras. Las animaciones lejanas se suspenden conservando las transiciones globales de iluminación.
+
+La vegetación del bosque se agrupa en sectores de 8 m. Se conservan todas las instancias, sus transformaciones, colores, geometrías y materiales. Los sectores que quedan fuera de la cámara ya no se envían a dibujar; los límites incluyen margen para el viento.
+
+Para inspeccionar una sesión, abrir `?room=5&perf` y consultar `window.__perf.streaming.stats`, `window.__perf.renderer.info.memory` y `window.__perf.visibility.stats`. Los contadores de geometrías y texturas representan recursos residentes, no bytes de memoria.
+
+Las pruebas y los resultados se encuentran en `output/rendimiento-2026-11-06/`: `verify.cjs` compara vistas y verifica descarga/recuperación; `puzzles.cjs` resuelve Reputation, Lover, Folklore y Midnights con sus interacciones reales; `resources.cjs` comprueba en WebGL la liberación y recuperación de texturas y reflejos. Los scripts usan la instalación local de Playwright indicada en su primera línea.

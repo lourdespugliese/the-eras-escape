@@ -579,13 +579,16 @@ export function buildRoom1989(ctx, room1) {
     pop = Math.max(0, pop - dt * 0.5);
     const playing = ctx.audio.trackPlaying();                // el toca discos: el disco gira y las luces laten
     const mult = k2 * lights.mute * (1 + pop * 1.2 + (playing ? 0.18 * Math.pow(0.5 + 0.5 * Math.sin(t * Math.PI * 4), 2) : 0));
+    ambient.intensity = 0.72 * mult;
+    lp.forEach((o, i) => (o.l.intensity = o.base * mult * (0.9 + 0.1 * Math.sin(t * 1.5 + i * 1.7))));
+    if (cam.z < -8) ctx.fx.bloom = true;                    // el neón necesita Bloom (queda activo desde aquí)
+    if (door.opening) hallBase = Math.min(12, hallBase + dt * 4);
+    hallLight.intensity = hallBase * lights.mute;
+    if (ctx.streaming && !ctx.streaming.isActive(room.bounds)) return;
     platter.rotation.y += playing ? dt * 3.5 : 0;
     arm.rotation.y += ((playing ? 0.5 : 0) - arm.rotation.y) * Math.min(1, dt * 4);
     rpGlow.visible = playing; rpGlow.material.opacity = 0.6 + 0.4 * Math.sin(t * 8);
     if (playing && Math.random() < 0.05) ctx.particles.burst(wp(RPX, 1.2, RPZ), 2, { speed: 0.3, up: 0.8 });
-    ambient.intensity = 0.72 * mult;
-    lp.forEach((o, i) => (o.l.intensity = o.base * mult * (0.9 + 0.1 * Math.sin(t * 1.5 + i * 1.7))));
-    if (cam.z < -8) ctx.fx.bloom = true;                    // el neón necesita Bloom (queda activo desde aquí)
 
     flicker.forEach((f) => {
       const idle = f.idle && Math.sin(t * 23) * Math.sin(t * 7.3) > 0.92;
@@ -608,8 +611,6 @@ export function buildRoom1989(ctx, room1) {
     cabDoors[0].rotation.y += ((cabOpen ? -1.9 : 0) - cabDoors[0].rotation.y) * Math.min(1, dt * 3);
     cabDoors[1].rotation.y += ((cabOpen ? 1.9 : 0) - cabDoors[1].rotation.y) * Math.min(1, dt * 3);
     taxiDoor.rotation.y += ((taxiOpen ? 1.2 : 0) - taxiDoor.rotation.y) * Math.min(1, dt * 3);
-    if (door.opening) hallBase = Math.min(12, hallBase + dt * 4);
-    hallLight.intensity = hallBase * lights.mute;
   });
 
   return { ...room, door, lights, materials, propsRoot: g };

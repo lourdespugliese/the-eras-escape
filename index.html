@@ -19,7 +19,22 @@
   }
   </script>
 </head>
-<body>
+<body class="is-loading">
+  <!-- Visible desde el HTML, incluso mientras se descargan los módulos del juego. -->
+  <div id="loading-screen" aria-labelledby="loading-title" aria-busy="true">
+    <div class="loading-card">
+      <div class="loading-emblem" aria-hidden="true"><span>✦</span></div>
+      <p class="loading-eyebrow">CADA RECUERDO TIENE UNA HISTORIA</p>
+      <h1 id="loading-title">The Eras <em>Escape</em></h1>
+      <div class="loading-divider" aria-hidden="true"><i></i> ✦ <i></i></div>
+      <p id="loading-status" role="status" aria-live="polite">Preparando tu historia…</p>
+      <div class="loading-track" aria-hidden="true"><span></span></div>
+      <p id="loading-detail">El museo está por abrir sus puertas.</p>
+      <button id="loading-retry" type="button" hidden>VOLVER A INTENTAR</button>
+      <noscript>Activá JavaScript y recargá la página para entrar al museo.</noscript>
+    </div>
+    <p class="loading-footer" aria-hidden="true">SEIS ERAS <span>✦</span> UNA SALIDA</p>
+  </div>
   <canvas id="game"></canvas>
 
   <!-- HUD: interfaz sobre el canvas -->
@@ -36,7 +51,7 @@
   </div>
 
   <!-- Pantalla inicial / pausa -->
-  <div id="overlay">
+  <div id="overlay" inert>
     <!-- Las capas se insertan desde js/hub.js (assets/ui/hub). El título, el subtítulo y las teclas son imágenes: aquí va el texto accesible. -->
     <h1 class="sr-only">The Eras Escape</h1>
     <div id="hub-stage">
@@ -47,6 +62,6 @@
     </div>
   </div>
 
-  <script type="module" src="js/main.js"></script>
+  <script type="module" src="js/boot.js"></script>
 </body>
 </html>

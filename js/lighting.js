@@ -42,7 +42,7 @@ export function setupLighting({ renderer, scene, camera, ctx }) {
       o.receiveShadow = o.userData.noReceiveShadow !== true;
       if (solid) {
         box.setFromObject(o); box.getSize(size);
-        o.castShadow = o.userData.forceShadow === true || Math.max(size.x, size.z, size.y) <= MAX_CASTER;
+        o.castShadow = o.userData.noCastShadow !== true && (o.userData.forceShadow === true || Math.max(size.x, size.z, size.y) <= MAX_CASTER);
       }
     });
   }

@@ -162,6 +162,7 @@ export function createDoor(ctx, { x, z, width = 3, onOpen = null }) {
 
   const door = { mesh, locked: true, opening: false };
   door.unlock = () => {
+    if (!door.locked) return;
     door.locked = false; door.opening = true;
     ctx.colliders.splice(ctx.colliders.indexOf(collider), 1);
     ctx.audio.creak();

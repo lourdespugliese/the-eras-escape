@@ -36,6 +36,12 @@ export function setupVisibility({ scene, camera, zones, openings, shadowLights }
       for (let j = i; j < zones.length - 1 && open[j]; j++) mask |= 1 << (j + 1);
       for (let j = i; j > 0 && open[j - 1]; j--) mask |= 1 << (j - 1);
     }
+    // Opening a chain of doors must not keep distant shadow maps updating.
+    // Retain a conservative sphere around every corner of the current view.
+    const tan = Math.tan(THREE.MathUtils.degToRad(camera.fov * .5)) / camera.zoom;
+    const far = Math.min(camera.far, scene.fog?.isFog ? scene.fog.far : camera.far);
+    const reach = far * Math.sqrt(1 + tan * tan * (1 + camera.aspect * camera.aspect)) + NEAR;
+    zones.forEach((z, i) => { if (!(start & (1 << i)) && gap(z.bounds, p) > reach) mask &= ~(1 << i); });
     return mask;
   }
 
@@ -43,6 +49,12 @@ export function setupVisibility({ scene, camera, zones, openings, shadowLights }
   const tracked = [], seen = new WeakSet(), _v = new THREE.Vector3(), _size = new THREE.Vector3(), _box = new THREE.Box3();
   function underCamera(o) { for (let p = o.parent; p; p = p.parent) if (p.isCamera) return true; return false; }
   function scan() {
+    for (let i = tracked.length - 1; i >= 0; i--) {
+      const o = tracked[i].o;
+      let attached = false;
+      for (let p = o; p; p = p.parent) if (p === scene) { attached = true; break; }
+      if (!attached) { o.layers.mask = SHOWN; seen.delete(o); tracked.splice(i, 1); }
+    }
     scene.traverse((o) => {
       if (seen.has(o) || !(o.isMesh || o.isPoints || o.isLine || o.isSprite)) return;
       seen.add(o);
@@ -51,7 +63,7 @@ export function setupVisibility({ scene, camera, zones, openings, shadowLights }
       if (o.layers.mask !== SHOWN || underCamera(o)) return;                // objetos en la mano siguen a la cámara
       if (o.isInstancedMesh) o.computeBoundingBox();
       else if (o.geometry && !o.geometry.boundingBox) o.geometry.computeBoundingBox();
-      tracked.push({ o, zone: -1, matrix: new Float32Array(16) });
+      tracked.push({ o, zone: -1, matrix: new Float64Array(16) });
     });
   }
   function zoneOf(o) {
@@ -105,7 +117,7 @@ export function setupVisibility({ scene, camera, zones, openings, shadowLights }
     return false;
   }
 
-  const state = { cull: true, shadowsOnDemand: true, visible: all, current: 0, stats: { tracked: 0, culled: 0, shadowRenders: 0 } };
+  const state = { cull: true, shadowsOnDemand: true, visible: all, current: 0, stats: { tracked: 0, culled: 0, shadowRenders: 0 }, invalidate() { t = SCAN_EVERY; for (const L of lights) L.snap = null; } };
   let t = SCAN_EVERY, first = true;
   const clock = new THREE.Clock();
   // Primer frame: todos los mapas de sombras se dibujan una vez con todo visible (como antes), así ninguna luz queda sin mapa.

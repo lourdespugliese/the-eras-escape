@@ -61,6 +61,7 @@ export function createForestMaterials() {
   });
   const ground=(baseMap,w,d)=>{
     const m=lib.finish(0xffffff,{map:baseMap,roughness:1,bumpMap:lib.maps.grain,bumpScale:.008});
+    m.userData.streamingTextures=[earth,snow.texture];
     m.onBeforeCompile=shader=>{
       shader.uniforms.uForestEarth={value:earth};shader.uniforms.uForestSnow={value:snow.texture};shader.uniforms.uForestSize={value:new THREE.Vector2(w/3,d/3)};
       shader.fragmentShader=shader.fragmentShader.replace('#include <common>','#include <common>\nuniform sampler2D uForestEarth; uniform sampler2D uForestSnow; uniform vec2 uForestSize;');

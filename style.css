@@ -21,6 +21,51 @@ html, body { height: 100%; overflow: hidden; background: #000; color: #fff;
 #game { position: fixed; inset: 0; width: 100%; height: 100%; display: block; }
 .hidden { display: none !important; }
 
+/* La carga no necesita imágenes ni fuentes externas para verse completa. */
+.is-loading #overlay { visibility: hidden; }
+.is-loading .hub-enter, .is-loading .hub-pop, .is-loading .hub-swing { animation-play-state: paused; }
+#loading-screen { position: fixed; inset: 0; z-index: 1000; display: flex; align-items: center; justify-content: center;
+  padding: 40px 24px 90px; overflow: auto; color: #651d35; text-align: center; font-family: Georgia, "Times New Roman", serif;
+  background: radial-gradient(ellipse at 50% 38%, #fffaf0 0%, #f2e5d2 62%, #e5ceb6 100%); opacity: 1; transition: opacity .45s ease; }
+#loading-screen::before { content: ""; position: absolute; inset: 20px; border: 1px solid #b18d5960; pointer-events: none; }
+.loading-card { width: min(100%, 480px); margin: auto; }
+.loading-emblem { position: relative; display: grid; place-items: center; width: 88px; height: 88px; margin: 0 auto 30px; }
+.loading-emblem::before, .loading-emblem::after { content: ""; position: absolute; inset: 0; border: 1px solid #b18d5950; border-radius: 50%; }
+.loading-emblem::after { border-color: #7e2944 transparent transparent; animation: loadingOrbit 3s linear infinite; }
+.loading-emblem span { font-size: 46px; color: #8a3d50; animation: loadingGlow 2.4s ease-in-out infinite; }
+.loading-eyebrow { font: 10px/1.7 Georgia, serif; letter-spacing: .23em; color: #91694f; }
+#loading-title { margin-top: 18px; font: 400 clamp(34px, 7vw, 56px)/1.1 Georgia, serif; letter-spacing: -.035em; }
+#loading-title em { display: block; margin-top: 3px; font-weight: 400; }
+.loading-divider { display: flex; align-items: center; justify-content: center; gap: 15px; margin: 26px auto 23px; color: #ac8750; font-size: 14px; }
+.loading-divider i { width: 60px; height: 1px; background: linear-gradient(90deg, transparent, #ac875080); }
+.loading-divider i:last-child { transform: rotate(180deg); }
+#loading-status { min-height: 1.5em; font-size: clamp(16px, 3.5vw, 19px); line-height: 1.5; }
+.loading-track { width: min(240px, 80%); height: 3px; margin: 20px auto 15px; overflow: hidden; background: #651d3514; border-radius: 3px; }
+.loading-track span { display: block; width: 40%; height: 100%; background: linear-gradient(90deg, transparent, #893c50, #b28b50);
+  border-radius: inherit; animation: loadingTravel 1.8s ease-in-out infinite; }
+#loading-detail { min-height: 2.8em; font-size: 13px; line-height: 1.6; color: #856d5c; }
+.loading-footer { position: absolute; bottom: 38px; left: 24px; right: 24px; font-size: 10px; letter-spacing: .2em; color: #91694f; }
+.loading-footer span { margin: 0 12px; color: #ac8750; }
+#loading-retry { margin-top: 22px; padding: 13px 22px; border: 1px solid #651d35; border-radius: 3px; background: #651d35;
+  color: #fff6e9; font: 12px/1.5 Georgia, serif; letter-spacing: .1em; cursor: pointer; }
+#loading-retry:hover { background: #84314a; }
+#loading-retry:focus-visible { outline: 2px solid #ac8750; outline-offset: 4px; }
+#loading-screen.is-ready { opacity: 0; pointer-events: none; }
+#loading-screen.has-error .loading-track { display: none; }
+#loading-screen.has-error .loading-emblem::after, #loading-screen.has-error .loading-emblem span { animation: none; }
+#loading-screen noscript { display: block; margin-top: 20px; font-size: 14px; line-height: 1.6; }
+@keyframes loadingOrbit { to { transform: rotate(360deg); } }
+@keyframes loadingGlow { 50% { opacity: .45; transform: scale(.88); } }
+@keyframes loadingTravel { from { transform: translateX(-100%); } to { transform: translateX(350%); } }
+@media (max-height: 580px) {
+  #loading-screen { padding-top: 30px; padding-bottom: 65px; }
+  .loading-emblem { width: 52px; height: 52px; margin-bottom: 14px; }
+  .loading-emblem span { font-size: 30px; }
+  #loading-title { font-size: 34px; margin-top: 10px; }
+  .loading-divider { margin: 14px auto; }
+  .loading-footer { bottom: 22px; }
+}
+
 /* Pantalla inicial / pausa: lienzo de 1672 x 941 con las capas de assets/ui/hub (ver js/hub.js); --s lo escala a la ventana */
 #overlay { position: fixed; inset: 0; z-index: 10; overflow: hidden; background: #efe2cc url(assets/ui/hub/paper.jpg) center / cover; }
 .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
@@ -88,4 +133,7 @@ html, body { height: 100%; overflow: hidden; background: #000; color: #fff;
 
 @media (prefers-reduced-motion: reduce) {
   .hub-swing, .hub-enter, .hub-pop, #room-name.flash, #toast.show { animation: none; }
+  .loading-emblem::after, .loading-emblem span, .loading-track span { animation: none; }
+  .loading-track span { width: 100%; opacity: .6; }
+  #loading-screen { transition: none; }
 }

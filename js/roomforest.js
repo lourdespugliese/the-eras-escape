@@ -28,6 +28,7 @@ import { createDoor, addWall, canvasTex, DOOR_H } from './rooms.js';
 import { createGlitter } from './glitter.js';
 import { createForestMaterials } from './forest-materials.js';
 import { roundedGeometry, physicalUV } from './surface-library.js';
+import { partitionInstances } from './spatial-instances.js';
 
 const W = 40, D = 32;                  // 1280 m² (la sala Lover mide 12 × 12 = 144 m²). Medidas pares: la rejilla de 1 m queda alineada
 const HALL = 4;                        // pasillo entre la puerta de Lover y el bosque (= HALL_OUT de roomlover.js)
@@ -346,6 +347,7 @@ export function buildRoomForest(ctx, room4) {
   const undergrowth=inst(new THREE.PlaneGeometry(.8,.65),shrubs.length);
   shrubs.forEach((p,i)=>put(undergrowth,i,p.x,.31,p.z,1,1,1,rand()*6.28,p.x<-5?0x9e8040:0x5d7941));
   undergrowth.instanceMatrix.needsUpdate=true;if(undergrowth.instanceColor)undergrowth.instanceColor.needsUpdate=true;
+  [trunks, [coneA, coneB, coneC], [blobA, blobB], undergrowth].forEach(mesh => partitionInstances(mesh));
   // Gran árbol del cruce (centro del claro) y cartel con los tres caminos
   const BIG = { x: 0, z: 4 };
   cyl(0.8, 1.15, 7, materials.trunk, BIG.x, 3.5, BIG.z, 10); colRound(BIG.x, BIG.z, 1.2);
@@ -844,7 +846,12 @@ export function buildRoomForest(ctx, room4) {
     hallBase = door.opening ? Math.min(8, hallBase + dt * 4) : hallBase; hallLight.intensity = hallBase * lights.mute;
     // ---- lo demás solo se calcula cerca del bosque ----
     const active = z < doorZ4 + 0.5 && z > bounds.minZ - HALL - 2;
-    if (!active) { pool.forEach((p) => (p.l.intensity = 0)); return; }
+    if (!active) {
+      pool.forEach((p) => (p.l.intensity = 0));
+      if (snd) snd.gain.gain.setTargetAtTime(0, snd.c.currentTime, .2);
+      if (reader.open) { reader.hide(); readerAt = null; }
+      return;
+    }
     materials.wind.value=t;
     const flick = 0.92 + 0.08 * Math.sin(t * 7) * Math.sin(t * 3.1);
     lampMat.emissiveIntensity = 1.8 * flick;

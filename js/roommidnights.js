@@ -475,6 +475,7 @@ function makeReader() {
 
 function createMidnightsPuzzle(ctx, env) {
   const { g, materials, CZ, TALL, R, BD, phone, mat, box, cyl, hit, colBox, colRound, makeGlow, light, dark, sqx, sqz, ball, ballGlow, rod, BALL, orbs, hHour, hMin, hSec, clockGlow, addSource, onSolved } = env;
+  const animationBounds = { minX: -W / 2, maxX: W / 2, minZ: CZ - D / 2, maxZ: CZ + D / 2 };
   const reader = makeReader(), clamp = THREE.MathUtils.clamp, ease = (k) => 1 - Math.pow(1 - k, 3);
   const state = { call: false, clock: false, chess: false, night: false, gears: 0, placed: 0 };
   const finale = { on: false, t: 0, strikes: 0, ballDone: false, keyT: -1 };
@@ -723,6 +724,7 @@ function createMidnightsPuzzle(ctx, env) {
   const lightOrb = (o, big) => { o.lit = true; o.sphere.material.color.set(0xfff0b0); o.gl.material.color.set(0xffd36a); o.gl.scale.setScalar(big ? 3.2 : 2.3); };
   ctx.updaters.push((dt, t) => {
     // reloj del suelo: las manecillas giran suavemente hacia la hora marcada
+    if (ctx.streaming && !ctx.streaming.isActive(animationBounds)) return;
     shownMin += (totalMin - shownMin) * Math.min(1, dt * 6);
     fMin.rotation.y = -(shownMin / 60) * TAU; fHour.rotation.y = -(shownMin / 720) * TAU;
     if (hatchT >= 0 && hatchT < 1) { hatchT = Math.min(1, hatchT + dt / 1.2); hatch.scale.set(1 - ease(hatchT), 1, 1 - ease(hatchT)); gearA.visible = true; gearA.position.y = -0.3 + 1.7 * ease(hatchT); if (hatchT >= 1) { gearAUp = true; hatch.visible = false; } }

@@ -1,0 +1,76 @@
+{
+  "rooms": {
+    "reputation": {
+      "coverage": {
+        "physicalMaterials": 51,
+        "textures": 25,
+        "withoutColorTexture": []
+      },
+      "solved": {
+        "word": true,
+        "allSnakesDefeated": true,
+        "solved": 1,
+        "secret": true,
+        "collected": true,
+        "doorUnlocked": true,
+        "batHidden": true
+      }
+    },
+    "lover": {
+      "coverage": {
+        "physicalMaterials": 129,
+        "textures": 16,
+        "withoutColorTexture": []
+      },
+      "solved": {
+        "parts": {
+          "rainbow": true,
+          "chest": true
+        },
+        "secret": true,
+        "collected": true,
+        "doorUnlocked": true
+      }
+    },
+    "forest": {
+      "coverage": {
+        "physicalMaterials": 69,
+        "textures": 17,
+        "withoutColorTexture": []
+      },
+      "solved": {
+        "parts": {
+          "cabin": true,
+          "lake": true,
+          "willow": true
+        },
+        "gates": true,
+        "collected": true,
+        "doorUnlocked": true
+      }
+    },
+    "midnights": {
+      "coverage": {
+        "physicalMaterials": 91,
+        "textures": 15,
+        "withoutColorTexture": []
+      },
+      "solved": {
+        "state": {
+          "call": true,
+          "clock": true,
+          "chess": true,
+          "night": true,
+          "gears": 0,
+          "placed": 3
+        },
+        "orbsLit": 13,
+        "collected": true,
+        "doorUnlocked": true
+      }
+    }
+  },
+  "errors": [],
+  "failedAssets": [],
+  "note": "Puzzle checks use actual interaction callbacks and camera movement. Test-only closure access is injected by browser routes. No performance claim."
+}

@@ -54,7 +54,7 @@ export function setupLightBudget({ renderer, scene, camera, target = null, zone 
 
   const frustum = new THREE.Frustum(), m = new THREE.Matrix4(), sphere = new THREE.Sphere(), mirrored = new THREE.Sphere();
   const normal = new THREE.Vector3(), point = new THREE.Vector3(), mirrors = [];
-  function worldVisible(o) { for (let p = o; p; p = p.parent) if (!p.visible) return false; return true; }
+  function worldVisible(o) { for (let p = o; p; p = p.parent) { if (!p.visible) return false; if (p === scene) return true; } return false; }
   function reaches(l) {
     const range = l.isPointLight || l.isSpotLight ? l.distance : 0;
     if (!(range > 0)) return true;                                        // sin alcance límite: ilumina todo
@@ -126,7 +126,7 @@ export function setupLightBudget({ renderer, scene, camera, target = null, zone 
     }
   }
 
-  const state = { enabled: true, key: null, active: {}, tables, grown: 0, precompiled: [] };
+  const state = { enabled: true, ready: false, key: null, active: {}, tables, grown: 0, precompiled: [], invalidate() { t = SCAN_EVERY; } };
   let t = SCAN_EVERY, frames = 0;
   const clock = new THREE.Clock();
   const previous = scene.onBeforeRender;
@@ -135,7 +135,7 @@ export function setupLightBudget({ renderer, scene, camera, target = null, zone 
     if (cam !== camera) return;
     t += clock.getDelta();
     if (t >= SCAN_EVERY) { t = 0; scan(); }
-    if (++frames === 3) precompile().catch((e) => console.warn('[luces] precompilación:', e));
+    if (++frames === 3) precompile().catch((e) => console.warn('[luces] precompilación:', e)).finally(() => { state.ready = true; });
 
     if (!state.enabled) {                                                 // para comparar: todas las luces, como antes
       for (const K of kinds.values()) { K.lights.forEach((l) => { l.layers.mask = 1; }); K.dummies.forEach((l) => { l.layers.mask = 0; }); }

@@ -1,0 +1,24 @@
+{
+  "before": {
+    "geometries": 3,
+    "textures": 4
+  },
+  "sleeping": {
+    "geometries": 1,
+    "textures": 2
+  },
+  "restored": {
+    "geometries": 3,
+    "textures": 4
+  },
+  "pixel": [
+    0,
+    0,
+    255,
+    255
+  ],
+  "sharedResourcesProtected": true,
+  "repeatedReturn": true,
+  "reflectionTargetRestored": true,
+  "errors": []
+}

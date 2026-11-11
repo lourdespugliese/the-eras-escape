@@ -430,6 +430,7 @@ export function buildTrophyHall(ctx) {
   ctx.game.items.forEach((id) => markCollected(id));              // por si algo ya estaba recogido al construir
 
   ctx.updaters.push((dt, t) => {
+    if (!ctx.ending && ctx.streaming && !ctx.streaming.isActive(HALL)) return;
     const p = ctx.camera.position;
     const inHall = p.x > HALL.minX && p.x < HALL.maxX && p.z > HALL.minZ && p.z < HALL.maxZ;
     let delay = 0;

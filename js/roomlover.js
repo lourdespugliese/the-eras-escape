@@ -222,7 +222,7 @@ export function buildRoomLover(ctx, room3) {
   }
 
   // --- Acertijos de Lover (createLoverPuzzle, al final de este archivo): arcoíris de corazones + cofre de las eras + corazón amarillo bajo el cojín ---
-  createLoverPuzzle(ctx, { g, half, materials, mat, colBox, heartGeo, heartMat, makeGlow, rainbowCols, rainbowMeshes, neon, pinkDark: PINK_D, sofa, cushionLilac, cushionBlue, onSolved: () => door.unlock() });
+  createLoverPuzzle(ctx, { g, half, bounds: room.bounds, materials, mat, colBox, heartGeo, heartMat, makeGlow, rainbowCols, rainbowMeshes, neon, pinkDark: PINK_D, sofa, cushionLilac, cushionBlue, onSolved: () => door.unlock() });
 
   // --- Destellos pastel ---
   createGlitter(ctx, { count: 160, size: { x: 11, y: 3.6, z: 11 }, center: [0, 0, CZ], color: 0xff9ccd }).uniforms.uIntensity.value = 0.55;
@@ -264,6 +264,9 @@ export function buildRoomLover(ctx, room3) {
     if (door3.opening) tunnelOn = Math.min(1, tunnelOn + dt * 0.8);
     const beat = 0.8 + 0.2 * Math.pow(Math.sin(t * 3), 2), tl = clamp((z - (hallStart - TUNNEL - 3)) / 3, 0, 1);
     tLights.forEach((l) => (l.intensity = 16 * tunnelOn * tl * beat));
+    if (door.opening) hallBase = Math.min(10, hallBase + dt * 4);
+    hallLight.intensity = hallBase * lights.mute;
+    if (ctx.streaming && !ctx.streaming.isActive(room.bounds)) return;
     ribs.forEach((r) => r.m.color.set(PINK_D).multiplyScalar(2.2 * (0.35 + 0.65 * (0.5 + 0.5 * Math.sin(t * 3.5 - r.i * 0.9)))));   // pulso que avanza hacia la sala 4
     tHearts.forEach((o) => {
       o.y += o.sp * dt; if (o.y > 2.3) o.y = 0.6;
@@ -278,8 +281,6 @@ export function buildRoomLover(ctx, room3) {
       f.b.group.rotation.y = -a + (f.w > 0 ? 0 : Math.PI);
     });
 
-    if (door.opening) hallBase = Math.min(10, hallBase + dt * 4);
-    hallLight.intensity = hallBase * lights.mute;
   });
 
   // Abre el final del pasillo hacia la sala 5 (bosque): quita la pared del fondo y su cartel. El resto del pasillo se queda.
@@ -593,6 +594,7 @@ function createLoverPuzzle(ctx, env) {
   // ================= Animación =================
   ctx.updaters.push((dt, t) => {
     now = t;
+    if (ctx.streaming && !ctx.streaming.isActive(env.bounds)) return;
     // aviso al entrar a la sala por primera vez
     if (!hinted) {
       const p = ctx.camera.position;

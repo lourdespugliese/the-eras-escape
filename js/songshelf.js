@@ -95,6 +95,7 @@ export function buildSongShelf(ctx) {
   ctx.secrets?.onAdd((id, info) => { if (byId[id]) reveal(byId[id], info, true); });
 
   ctx.updaters.push((dt, t) => {
+    if (ctx.streaming?.entries.find(e => e.name === 'Vitrinas')?.resident === false) return;
     slots.forEach((s, i) => {
       if (!s.found) return;
       if (s.t < 1) { s.t = Math.min(1, s.t + dt / 1.1); s.holder.scale.setScalar(Math.max(0.01, ease(s.t))); } else s.holder.scale.setScalar(1);

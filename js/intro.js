@@ -545,6 +545,7 @@ export function buildIntro(ctx, room1, { player, skip = false } = {}) {
 
   function update(dt, t) {
     if (gone) { if (dbgEl && ++dbgN % 6 === 0) dbgEl.textContent = debugText(camera.position); return; }   // el lobby ya no existe
+    if (ctx.streaming?.entries.find(e => e.name === 'Museo')?.resident === false) return;
     // ----- Animaciones del mundo (siempre) -----
     const cam = camera.position;
     for (let i = 0; i < RN; i++) {                                                // lluvia

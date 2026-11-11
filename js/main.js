@@ -27,6 +27,10 @@ import { setupMuseumReflections } from './museum-materials.js';
 import { setupHallMaterials } from './museum-hall.js';
 import { setupVisibility } from './visibility.js';
 import { setupLightBudget } from './light-budget.js';
+import { loadingStage } from './loading.js';
+import { createRoomRegistry, setupStreaming } from './streaming.js';
+
+await loadingStage('Preparando el escenario…');
 
 // Diagnóstico: si algo falla mientras corre el juego, el error aparece en un cartel rojo arriba (clic para cerrarlo), además de la consola.
 const errBox = document.createElement('div');
@@ -80,15 +84,25 @@ const ctx = {
 // Misión secundaria: canciones secretas (panel lateral izquierdo + vitrina del hall). Debe crearse ANTES que las salas.
 // Cada easter egg musical llama a ctx.secrets.add(...). Si agregas más canciones, sube "total".
 ctx.secrets = createSecrets(ctx, { total: 3 });
+const registry = createRoomRegistry(ctx);
 
-const room1 = buildFearlessRoom(ctx);
-ctx.glitter = createGlitter(ctx);   // glitter por toda la sala
-createFearlessPuzzle(ctx, room1);
-const room2 = buildRoom1989(ctx, room1);      // Habitación 2 (sala + acertijo)
-const room3 = buildRoomReputation(ctx, room2);             // Habitación 3 (sala + acertijo)
-const room4 = buildRoomLover(ctx, room3);    // Habitación 4 (+ túnel de corazón)
-const room5 = buildRoomForest(ctx, room4);   // Habitación 5: bosque Folklore / Evermore (4 cruces, 3 acertijos)
-const room6 = buildRoomMidnights(ctx, room5); // Habitación 6: Midnights (4 acertijos + portal de regreso al museo)
+await loadingStage('Despertando Fearless…');
+const room1 = registry.build('Fearless', () => {
+  const room = buildFearlessRoom(ctx);
+  ctx.glitter = createGlitter(ctx);
+  createFearlessPuzzle(ctx, room);
+  return room;
+});
+await loadingStage('Viajando a 1989…');
+const room2 = registry.build('1989', () => buildRoom1989(ctx, room1));
+await loadingStage('Descubriendo Reputation…');
+const room3 = registry.build('Reputation', () => buildRoomReputation(ctx, room2));
+await loadingStage('Pintando el cielo de Lover…');
+const room4 = registry.build('Lover', () => buildRoomLover(ctx, room3));
+await loadingStage('Explorando el bosque de Folklore…');
+const room5 = registry.build('Folklore', () => buildRoomForest(ctx, room4));
+await loadingStage('Encendiendo las estrellas de Midnights…');
+const room6 = registry.build('Midnights', () => buildRoomMidnights(ctx, room5));
 
 // Introducción inmersiva (exterior, hall y luz guía). Debe crearse DESPUÉS de las salas.
 // Para saltarla mientras desarrollas, abre el juego con  http://localhost:8000/?skip
@@ -100,6 +114,7 @@ const room6 = buildRoomMidnights(ctx, room5); // Habitación 6: Midnights (4 ace
 const params = new URLSearchParams(location.search);
 const START_ROOM = parseInt(params.get('room'), 10) || 0;
 const FINALE = params.has('lobby') || params.has('finale');   // ?lobby (o ?finale): empiezas en el hall con los 6 trofeos recogidos (para probar la ceremonia final)
+await loadingStage('Preparando el museo…');
 const intro = buildIntro(ctx, room1, { player, skip: params.has('skip') || START_ROOM > 0 || FINALE });
 ctx.returnToMuseum = () => intro.returnToHall();   // portal de la sala 6 -> Hall principal
 
@@ -122,9 +137,13 @@ function jumpToRoom(n, list) {
 // <<< atajo ?room=N
 
 // Vitrinas del hall: cada trofeo recuperado (ctx.collect) aparece en su vitrina.
-buildTrophyHall(ctx);
-// Vitrina de canciones secretas del hall: cada canción hallada (ctx.secrets.add) aparece aquí con su objeto y su placa.
-buildSongShelf(ctx);
+registry.build('Vitrinas', () => {
+  buildTrophyHall(ctx);
+  // Las canciones y sus objetos se conservan al descargar las vitrinas.
+  buildSongShelf(ctx);
+  return { bounds: ctx.rooms.find(r => /^Hall/.test(r.name)).bounds };
+});
+await loadingStage('Iluminando los recuerdos…');
 const lighting = setupLighting({ renderer, scene, camera, ctx });   // tone mapping, reflejos en metales y sombras (después de crear todo)
 setupHallMaterials(renderer, scene, ctx);
 setupMuseumReflections(renderer, scene, camera, ctx);
@@ -138,7 +157,16 @@ const visibility = setupVisibility({
   shadowLights: lighting.shadowLights.map(({ light, room }) => ({ light, zone: room === 'exterior' ? 0 : chain.indexOf(room) })),
 });
 const lightBudget = setupLightBudget({ renderer, scene, camera, target: composer.readBuffer, zone: () => visibility.current });   // después de visibility: usa su zona y los reflejos activos
-if (params.has('perf')) window.__perf = { renderer, scene, camera, composer, ctx, player, visibility, lightBudget };
+// Museum and trophies share materials with the rooms. The streaming manager
+// protects shared resources and restores the existing objects when returning.
+const museumGroup = new THREE.Group(); museumGroup.name = 'stream-museum';
+scene.add(museumGroup); museumGroup.add(ctx.museum.root);
+registry.entries.push({ name: 'Museo', group: museumGroup, bounds: { minX: -40, maxX: 40, minZ: 5, maxZ: 240 }, resident: true });
+ctx.streaming = setupStreaming({ scene, camera, renderer, entries: registry.entries,
+  ready: () => lightBudget.ready,
+  invalidate: () => { visibility.invalidate(); lightBudget.invalidate(); },
+});
+if (params.has('perf')) window.__perf = { renderer, scene, camera, composer, ctx, player, visibility, lightBudget, streaming: ctx.streaming };
 
 ui.onStart(() => { audio.start(); player.lock(); });   // el audio necesita un click del usuario
 let devJumped = false;
@@ -167,6 +195,8 @@ function animate() {
     if (r) ui.setRoom(r.name);
   }
   ctx.updaters.forEach((fn) => fn(dt, t));
+  // After updaters: teleports and the final return to the museum happen here.
+  ctx.streaming.update(dt);
   ctx.particles.update(dt);
   const bk = Math.min(1, dt * 3), full = ctx.fx.bloom;   // transición suave; en modo base solo brillan las luces muy intensas
   bloomPass.strength += ((full ? BLOOM_FULL : BLOOM_BASE) - bloomPass.strength) * bk;
