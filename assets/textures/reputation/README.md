@@ -2,8 +2,8 @@
 
 Sala 3: paredes carbón con los abanicos y rombos art déco originales en latón apagado; bandas de peltre, piedra oscura satinada, terciopelo vino y escamas plateadas.
 
-- `honed-charcoal.jpg`: albedo de piedra generado con ImageGen, reducido a 1024 × 1024, JPEG calidad 88. Repite cada 3 m. Rugosidad .43, metalicidad .12.
-- `wine-velvet.jpg`: albedo de terciopelo generado con ImageGen, reducido a 1024 × 1024, JPEG calidad 88. Se compone una vez con pliegues para cortinas y costuras/botones para tapicería. Rugosidad .96–.97.
+- `honed-charcoal.webp`: albedo de piedra generado con ImageGen, reducido a 1024 × 1024, WebP calidad 85. Repite cada 3 m. Rugosidad .43, metalicidad .12.
+- `wine-velvet.webp`: albedo de terciopelo generado con ImageGen, reducido a 1024 × 1024, WebP calidad 85. Se compone una vez con pliegues para cortinas y costuras/botones para tapicería. Rugosidad .96–.97.
 - `js/reputation-materials.js`: mapas estáticos reproducibles de metal cepillado, micrograno, escamas superpuestas, placas ventrales, iris, porcelana pintada, cinta del mango y surcos del vinilo. El bate reutiliza una franja del roble de Fearless.
 - `js/roomreputation.js`: conserva los motivos, los símbolos y el recorrido original; las paredes usan UV en metros, incluidos los dinteles. Materiales del bate independientes para que su dibujo sobre la cámara no cambie la profundidad de los muebles.
 

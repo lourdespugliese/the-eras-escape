@@ -150,7 +150,7 @@ function maps(kind) {
   const result = { map: texture(base, true), normalMap: texture(normal), bumpMap: texture(height), roughnessMap: texture(rough) };
   const source = { paving: 'weathered-paving', plaster: 'warm-plaster', wood: 'walnut' }[kind] || kind;
   if (['limestone', 'ivory-marble', 'dark-marble', 'paving', 'plaster', 'wood'].includes(kind)) {
-    pending.push(new Promise(resolve => new THREE.TextureLoader().load(`assets/textures/museum/${source}.png`, t => {
+    pending.push(new Promise(resolve => new THREE.TextureLoader().load(`assets/textures/museum/${source}.webp`, t => {
       b.drawImage(t.image, 0, 0, SIZE, SIZE); result.map.needsUpdate = true;
       if (['limestone', 'paving', 'plaster', 'wood'].includes(kind)) {
         // La altura sigue las juntas de la textura, sin desplazar vértices.

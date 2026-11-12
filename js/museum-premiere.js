@@ -112,10 +112,10 @@ export function buildMuseumPremiere({ root, colliders, centerX = 2, ground = -1.
   BANNERS.forEach((def, index) => {
     const holder = new THREE.Group(); holder.name = `banner-${def.id}`;
     holder.position.set(centerX + def.x, 4.45, 27.1); group.add(holder);
-    // Las fotos permanecen intactas en disco: el encuadre del banner se define en las UVs.
+    // El encuadre de cada banner se define en las UVs.
     let map;
     pending.push(new Promise((resolve, reject) => {
-      map = loader.load(`assets/banners/${def.id}.jpg`, texture => {
+      map = loader.load(`assets/banners/${def.id}.webp`, texture => {
         const aspect = texture.image.width / texture.image.height;
         const width = Math.min(1, WIDTH / HEIGHT * def.height / aspect);
         texture.repeat.set(width, def.height);

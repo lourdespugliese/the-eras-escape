@@ -17,8 +17,8 @@ Los cambios de alas se activan sólo al pasar la apariencia de Fearless a `makeB
 
 ## Texturas y preparación
 
-- `butterfly-wing.png`: una sola ala derecha, generada con la herramienta integrada de imágenes y preparada a 512 × 512 con alfa.
-- `golden-flower.png`: una cabeza de flor, generada del mismo modo y preparada a 512 × 512 con alfa.
+- `butterfly-wing.webp`: una sola ala derecha, generada con la herramienta integrada de imágenes y preparada a 512 × 512 con alfa.
+- `golden-flower.webp`: una cabeza de flor, generada del mismo modo y preparada a 512 × 512 con alfa.
 - `js/fearless-props.js`: prepara una vez los mapas compartidos de fibra, cuero, tejido, terracota, hojas, tierra, cera, llama, metal y guitarra.
 - `js/fearless-materials.js`: comparte los mapas y materiales entre los objetos.
 

@@ -2,10 +2,10 @@
 
 La segunda pasada de mariposas, flores y objetos está documentada en [OBJECTS.md](OBJECTS.md), con las imágenes nuevas y su verificación.
 
-Texturas creadas para la primera sala a partir de la dirección de `output/propuesta-salas-2026-11-01/propuesta-conceptual.png`. Se generaron con la herramienta integrada de imágenes y se prepararon como JPEG de 1024 × 1024; ambas suman aproximadamente 413 KiB de descarga.
+Texturas creadas para la primera sala a partir de la dirección de `output/propuesta-salas-2026-11-01/propuesta-conceptual.png`. Se generaron con la herramienta integrada de imágenes y se prepararon como WebP de 1024 × 1024; ambas suman aproximadamente 214 KiB de descarga.
 
-- `oak-albedo.jpg`: roble miel, ocho tablas por módulo de 1.6 m.
-- `ivory-wallpaper.jpg`: papel marfil con ramas tenues.
+- `oak-albedo.webp`: roble miel, ocho tablas por módulo de 1.6 m.
+- `ivory-wallpaper.webp`: papel marfil con ramas tenues.
 
 `js/fearless-materials.js` compone un único mapa para las paredes: papel arriba y madera en el metro inferior. Su escala depende de la posición en la sala, por lo que se conserva cuando la introducción abre o sella la entrada. El piso utiliza tablas de unos 20 cm. Los muebles reutilizan una tabla del roble, y los detalles de latón, papel y cuero comparten un mapa pequeño de microrelieve.
 

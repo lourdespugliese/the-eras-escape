@@ -90,8 +90,8 @@ export function createSurfaceLibrary(era) {
     }));
     return surface.texture;
   }
-  if(era!=='forest')loadInto(fabric,'assets/textures/world/silver-linen.jpg');
-  loadInto(wood,'assets/textures/fearless/oak-albedo.jpg',(c,w,h,image)=>{c.drawImage(image,80,0,210,image.height,0,0,w,h);});
+  if(era!=='forest')loadInto(fabric,'assets/textures/world/silver-linen.webp');
+  loadInto(wood,'assets/textures/fearless/oak-albedo.webp',(c,w,h,image)=>{c.drawImage(image,80,0,210,image.height,0,0,w,h);});
   function imageMap(name,url,size=1024,color='#777',after) {
     const s=make(name,size,(c,w,h)=>{c.fillStyle=color;c.fillRect(0,0,w,h);});loadInto(s,url,after);return s.texture;
   }

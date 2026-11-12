@@ -77,9 +77,9 @@ export function createReputationMaterials(size) {
   const batGrip=finish(0x25262b,{map:grip.texture,roughness:.95,bumpMap:grip.texture,bumpScale:.001});
   const loader=new THREE.TextureLoader();
   const ready=Promise.all([
-    loader.loadAsync('assets/textures/reputation/honed-charcoal.jpg'),
-    loader.loadAsync('assets/textures/reputation/wine-velvet.jpg'),
-    loader.loadAsync('assets/textures/fearless/oak-albedo.jpg'),
+    loader.loadAsync('assets/textures/reputation/honed-charcoal.webp'),
+    loader.loadAsync('assets/textures/reputation/wine-velvet.webp'),
+    loader.loadAsync('assets/textures/fearless/oak-albedo.webp'),
   ]).then(([s,v,o])=>{
     stone.g.drawImage(s.image,0,0,1024,1024);
     stone.g.fillStyle='rgba(118,127,140,.065)';stone.g.fillRect(0,0,1024,1024);

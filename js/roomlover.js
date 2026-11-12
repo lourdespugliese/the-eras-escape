@@ -210,11 +210,11 @@ export function buildRoomLover(ctx, room3) {
   [-1,1].forEach(sign=>box(.025,.04,.75,pipe,sign*.92,.65,.015,sofa));
   colBox(-5.7, -4.8, 2.35, 4.45);
 
-  // --- Cuadro con la foto de Lover (pared este = la de la derecha al entrar). Archivo: assets/images/lover.jpg ---
+  // --- Cuadro con la foto de Lover (pared este = la de la derecha al entrar). Archivo: assets/images/lover.webp ---
   {
     const f = new THREE.Group(); f.position.set(half - 0.37, 1.9, 3.9); f.rotation.y = -Math.PI / 2; g.add(f);     // pegado a la cara interior (5.8); mira hacia la sala
     box(1.85, 1.85, 0.06, mat(0xffc2dc, { roughness: 0.35, emissive: 0x6a2a48 }), 0, 0, 0, f);
-    const tex = new THREE.TextureLoader().load('assets/images/lover.jpg');
+    const tex = new THREE.TextureLoader().load('assets/images/lover.webp');
     tex.colorSpace = THREE.SRGBColorSpace; tex.anisotropy = 8;
     const pic = new THREE.Mesh(new THREE.PlaneGeometry(1.65, 1.65), new THREE.MeshBasicMaterial({ map: tex }));   // MeshBasic = colores originales de la foto
     pic.position.z = 0.035; f.add(pic);

@@ -1,8 +1,8 @@
 # Banners y reflectores del museo
 
-Los seis archivos JPG son fotografías de Taylor Swift seleccionadas para Fearless, 1989, Reputation, Lover, Folklore y Midnights. Sus autores, licencias y páginas originales están en [SOURCES.md](SOURCES.md) y `sources.json`.
+Los seis archivos WebP son fotografías de Taylor Swift seleccionadas para Fearless, 1989, Reputation, Lover, Folklore y Midnights. Sus autores, licencias y páginas originales están en [SOURCES.md](SOURCES.md) y `sources.json`.
 
-`js/museum-premiere.js` monta las imágenes entre los ocho pilares existentes: tres banners a cada lado y el espacio central libre para la puerta. Las fotos se encuadran con UVs, sin modificar los JPG. Cada tela mide 2,64 × 7,15 unidades, tiene bordes dorados y una ondulación leve.
+`js/museum-premiere.js` monta las imágenes entre los ocho pilares existentes: tres banners a cada lado y el espacio central libre para la puerta. Las fotos se encuadran con UVs. Cada tela mide 2,64 × 7,15 unidades, tiene bordes dorados y una ondulación leve.
 
 Los cuatro reflectores se sitúan dentro del patio, a ambos lados del recorrido. Sus carcasas tienen colisión. Los haces usan un shader de volumen aproximado, barrido lento y reflejos en el pavimento existente; dos luces locales iluminan el suelo. No añaden mapas de sombras por reflector.
 

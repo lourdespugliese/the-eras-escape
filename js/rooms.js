@@ -408,7 +408,7 @@ export function buildFearlessRoom(ctx) {
     'Los mejores comienzos suelen parecer un salto al vacío.',
   ];
   const loader = new THREE.TextureLoader();
-  const photoFiles = ['assets/images/foto1.jpg', 'assets/images/foto2.jpg', 'assets/images/foto3.jpg'];
+  const photoFiles = ['assets/images/foto1.webp', 'assets/images/foto2.webp', 'assets/images/foto3.webp'];
   [-3.6, 2, 6.0].forEach((x, i) => {
     const ph = new THREE.Group(); ph.position.set(x, 2.5, 4.77); ph.rotation.y = Math.PI; g.add(ph);
     const frame = new THREE.Mesh(new THREE.BoxGeometry(1.2, 1.5, 0.06), gold);

@@ -85,7 +85,7 @@ export function createFearlessPropTextures() {
   const wingLeft = wing.clone(); wingLeft.repeat.x = -1; wingLeft.offset.x = 1;
   const flower = new THREE.Texture(); flower.colorSpace = THREE.SRGBColorSpace; flower.anisotropy = 4;
   const loader = new THREE.TextureLoader();
-  const ready = Promise.all([loader.loadAsync('assets/textures/fearless/butterfly-wing.png'), loader.loadAsync('assets/textures/fearless/golden-flower.png')]).then(([wingSource, flowerSource]) => {
+  const ready = Promise.all([loader.loadAsync('assets/textures/fearless/butterfly-wing.webp'), loader.loadAsync('assets/textures/fearless/golden-flower.webp')]).then(([wingSource, flowerSource]) => {
     wing.image = wingSource.image; wingLeft.image = wingSource.image; flower.image = flowerSource.image;
     [wing, wingLeft, flower].forEach(map => { map.needsUpdate = true; });
     wingSource.dispose(); flowerSource.dispose(); return true;

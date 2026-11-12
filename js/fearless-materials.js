@@ -71,8 +71,8 @@ export function createFearlessMaterials() {
 
   const loader = new THREE.TextureLoader();
   const ready = Promise.all([
-    loader.loadAsync('assets/textures/fearless/oak-albedo.jpg'),
-    loader.loadAsync('assets/textures/fearless/ivory-wallpaper.jpg'),
+    loader.loadAsync('assets/textures/fearless/oak-albedo.webp'),
+    loader.loadAsync('assets/textures/fearless/ivory-wallpaper.webp'),
     props.ready,
   ]).then(([oak, wallpaper, detailsLoaded]) => {
     if (!detailsLoaded) throw new Error('No se cargaron las texturas de mariposas y flores');

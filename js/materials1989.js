@@ -86,8 +86,8 @@ export function create1989Materials(size) {
   const taxiSide = new THREE.MeshStandardMaterial({ map: props.taxiSide, roughness: .48, metalness: .16, bumpMap: grain.texture, bumpScale: .002 }); taxiSide.name = '1989-taxi-livery';
   const loader = new THREE.TextureLoader();
   const ready = Promise.all([
-    loader.loadAsync('assets/textures/1989/blue-concrete.jpg'),
-    loader.loadAsync('assets/textures/1989/graphite-terrazzo.jpg'),
+    loader.loadAsync('assets/textures/1989/blue-concrete.webp'),
+    loader.loadAsync('assets/textures/1989/graphite-terrazzo.webp'),
     props.ready,
   ]).then(([wallSource, floorSource, propsLoaded]) => {
     if (!propsLoaded) throw new Error('No se cargaron los mapas de objetos');

@@ -3,8 +3,8 @@ import { createSurfaceLibrary, canvasSurface, randomGenerator, stitchedMap } fro
 
 export function createMidnightsMaterials() {
   const lib=createSurfaceLibrary('midnights'),r=randomGenerator(1313);
-  const navy=lib.imageMap('jacquard','assets/textures/world/midnight-jacquard.jpg',1024,'#23304d');
-  const terrazzo=lib.imageMap('terrazzo','assets/textures/1989/graphite-terrazzo.jpg',1024,'#212938');
+  const navy=lib.imageMap('jacquard','assets/textures/world/midnight-jacquard.webp',1024,'#23304d');
+  const terrazzo=lib.imageMap('terrazzo','assets/textures/1989/graphite-terrazzo.webp',1024,'#212938');
   const drape=canvasSurface(512,1024,(c,w,h)=>{c.fillStyle='#9292a2';c.fillRect(0,0,w,h);});
   const upholstery=stitchedMap(null);
   const disco=lib.make('disco',512,(c,w,h)=>{

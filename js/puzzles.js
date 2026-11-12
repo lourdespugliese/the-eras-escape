@@ -19,11 +19,11 @@ const FRAME_X = 8.77, PLINTH_X = 8.25, PLINTH_TOP = 0.95, TABLE_TOP = 0.74;
 // Cada cuadro vacío lleva una placa con el nombre de la canción; "item" es el objeto correcto.
 // "image" = imagen del cuadro (ya recortada a 1000x1300 px, la proporción del marco 1.0 x 1.3 m).
 const SONGS = [
-  { title: 'Love Story', item: 'ring', z: -3, image: 'assets/images/historia1.jpg', jingle: 0,
+  { title: 'Love Story', item: 'ring', z: -3, image: 'assets/images/historia1.webp', jingle: 0,
     clip: { url: 'assets/audio/Love Story.mp3', start: 0, dur: 7, volume: 1 } },
-  { title: 'You Belong With Me', item: 'jacket', z: 0, image: 'assets/images/historia2.jpg', jingle: 1,
+  { title: 'You Belong With Me', item: 'jacket', z: 0, image: 'assets/images/historia2.webp', jingle: 1,
     clip: { url: 'assets/audio/You Belong With Me.mp3', start: 0, dur: 7, volume: 0.8 } },
-  { title: 'Fearless', item: 'star', z: 3, image: 'assets/images/historia3.jpg', jingle: 2,
+  { title: 'Fearless', item: 'star', z: 3, image: 'assets/images/historia3.webp', jingle: 2,
     clip: { url: 'assets/audio/Fearless.mp3', start: 0, dur: 7, volume: 0.7 } },
 ];
 // true  = los cuadros empiezan vacíos y las imágenes aparecen al completar la historia.

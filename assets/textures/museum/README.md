@@ -2,11 +2,11 @@
 
 Rama: `retexturizado`. Texturas de color generadas con la herramienta integrada image_gen. Los mapas normal, altura (bump) y rugosidad se construyen en `js/museum-materials.js`; no se desplazan vértices ni se cambian colisiones. La piedra deriva su altura de la textura de color; el mármol usa microrelieve independiente para que las vetas no se conviertan en grietas.
 
-- `limestone.png`: fachada y bloques de piedra, repetición de 4 × 3 metros.
-- `ivory-marble.png`: damero, pedestales, columnas interiores y estatua existente.
-- `dark-marble.png`: damero y pedestal central.
-- `walnut.png`, `warm-plaster.png`: nogal y revoque mineral. Prompts en `prompts-pass2.md`.
-- `weathered-paving.png`: pavimento activo con juntas desgastadas y losas de 1,2 × 0,5 metros. Prompt en `weathered-paving.PROMPT.md`. `wet-paving.png` conserva la primera variante.
+- `limestone.webp`: fachada y bloques de piedra, repetición de 4 × 3 metros.
+- `ivory-marble.webp`: damero, pedestales, columnas interiores y estatua existente.
+- `dark-marble.webp`: damero y pedestal central.
+- `walnut.webp`, `warm-plaster.webp`: nogal y revoque mineral. Prompts en `prompts-pass2.md`.
+- `weathered-paving.webp`: pavimento activo con juntas desgastadas y losas de 1,2 × 0,5 metros. Prompt en `weathered-paving.PROMPT.md`. `wet-paving.webp` conserva la primera variante.
 - Normal, altura y rugosidad: mapas en canvas, con detalle alineado a las texturas de piedra, madera y revoque. La rugosidad varía suavemente en la superficie.
 - El damero conserva el tamaño de las baldosas y usa un atlas de 1024 px con vetas giradas para reducir la repetición.
 - Reflejos planos del exterior y hall: Reflector de Three.js r160, un reflejo activo según la zona, resolución 1024 × 576. Mantiene las texturas del piso mediante mezcla transparente. El reflejo usa distorsión normal, rugosidad y un filtro de nueve muestras para suavizar la imagen. Referencia de implementación: https://github.com/mrdoob/three.js/blob/r160/examples/jsm/objects/Reflector.js

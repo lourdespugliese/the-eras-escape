@@ -22,7 +22,7 @@ La prueba `output/1989-detalles-2026-11-06/verificar.cjs` revisa las interaccion
 
 ## Archivos y origen
 
-- `enamel-detail.jpg` y `brushed-steel.jpg`: generados con la herramienta integrada de imágenes y preparados como JPEG de 512 × 512.
+- `enamel-detail.webp` y `brushed-steel.webp`: generados con la herramienta integrada de imágenes y preparados como WebP de 512 × 512.
 - `js/props1989.js`: prepara los patrones de papel, goma, llantas, tapizado, vidrio, lente, difusores, plumas, vinilo, paneles y rótulos mediante el mismo sistema de texturas canvas usado en el juego.
 - `js/materials1989.js`: comparte los mapas y materiales; `js/room1989.js` los asigna a los elementos de la sala.
 

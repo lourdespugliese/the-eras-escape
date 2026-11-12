@@ -117,7 +117,7 @@ export function create1989PropTextures() {
     c.fillStyle = '#84713b'; c.fillRect(160, 135, 42, 8); c.fillRect(365, 135, 42, 8);
   });
   const loader = new THREE.TextureLoader();
-  const ready = Promise.all([loader.loadAsync('assets/textures/1989/enamel-detail.jpg'), loader.loadAsync('assets/textures/1989/brushed-steel.jpg')]).then(([enamel, brushed]) => {
+  const ready = Promise.all([loader.loadAsync('assets/textures/1989/enamel-detail.webp'), loader.loadAsync('assets/textures/1989/brushed-steel.webp')]).then(([enamel, brushed]) => {
     const c = paint.image.getContext('2d'); c.drawImage(enamel.image, 0, 0, 512, 512); panel(c, 512);
     const m = steel.image.getContext('2d'); m.drawImage(brushed.image, 0, 0, 512, 512); m.fillStyle = 'rgba(255,255,255,.3)'; m.fillRect(0, 0, 512, 512);
     paint.needsUpdate = steel.needsUpdate = true; enamel.dispose(); brushed.dispose(); return true;

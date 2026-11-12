@@ -22,7 +22,7 @@ const SIZE = 12;                                         // lado de la sala (las
 const HALL = 4;                                          // largo del pasillo entre salas
 const WORD = 'REPUTATION';
 const RED = 0xd01828;
-const COVER_URL = 'assets/images/reputation.png';        // portada del álbum (copiar el archivo a esa ruta)
+const COVER_URL = 'assets/images/reputation.webp';        // portada del álbum (copiar el archivo a esa ruta)
 const clamp = THREE.MathUtils.clamp;
 // Combate con el bate (se pueden ajustar)
 const HITS_PER_SNAKE = 2;       // golpes que aguanta cada serpiente

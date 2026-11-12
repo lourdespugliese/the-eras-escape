@@ -2,10 +2,10 @@
 
 La segunda pasada de detalle de todos los objetos está documentada en [OBJECTS.md](OBJECTS.md), con las texturas adicionales, materiales y capturas de comprobación.
 
-Dirección visual basada en `output/propuesta-salas-2026-11-01/propuesta-conceptual.png`: ciudad nocturna con neón rosa y cian, superficies minerales y mobiliario de acero y esmalte. Las dos texturas se crearon con la herramienta integrada de imágenes y se prepararon como JPEG de 1024 × 1024; suman aproximadamente 461 KiB.
+Dirección visual basada en `output/propuesta-salas-2026-11-01/propuesta-conceptual.png`: ciudad nocturna con neón rosa y cian, superficies minerales y mobiliario de acero y esmalte. Las dos texturas se crearon con la herramienta integrada de imágenes y se prepararon como WebP de 1024 × 1024; suman aproximadamente 285 KiB.
 
-- `blue-concrete.jpg`: concreto azul grisáceo de poro fino. El módulo de pared cubre 2 m, con juntas muy discretas dibujadas al cargar.
-- `graphite-terrazzo.jpg`: terrazo grafito. El módulo cubre 2.4 m y contiene cuatro baldosas de 60 cm por lado.
+- `blue-concrete.webp`: concreto azul grisáceo de poro fino. El módulo de pared cubre 2 m, con juntas muy discretas dibujadas al cargar.
+- `graphite-terrazzo.webp`: terrazo grafito. El módulo cubre 2.4 m y contiene cuatro baldosas de 60 cm por lado.
 
 `js/materials1989.js` prepara mapas compartidos y materiales de acero cepillado, acero oscuro, esmalte satinado y papel de periódico. Las coordenadas de las paredes se calculan una vez en metros para mantener la escala en paredes y dinteles. Las texturas no se actualizan durante el juego.
 

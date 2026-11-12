@@ -67,7 +67,7 @@ html, body { height: 100%; overflow: hidden; background: #000; color: #fff;
 }
 
 /* Pantalla inicial / pausa: lienzo de 1672 x 941 con las capas de assets/ui/hub (ver js/hub.js); --s lo escala a la ventana */
-#overlay { position: fixed; inset: 0; z-index: 10; overflow: hidden; background: #efe2cc url(assets/ui/hub/paper.jpg) center / cover; }
+#overlay { position: fixed; inset: 0; z-index: 10; overflow: hidden; background: #efe2cc url(assets/ui/hub/paper.webp) center / cover; }
 .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 #hub-stage { position: absolute; left: 50%; top: 50%; width: 1672px; height: 941px; margin: -470.5px 0 0 -836px;
   transform: scale(var(--s, 1)); transform-origin: center; z-index: 2; font-family: Georgia, "Times New Roman", serif; }

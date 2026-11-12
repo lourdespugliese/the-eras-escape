@@ -4,9 +4,9 @@ import { createSurfaceLibrary, canvasSurface, randomGenerator, stitchedMap } fro
 
 export function createLoverMaterials(size) {
   const lib=createSurfaceLibrary('lover'),random=randomGenerator(2019);
-  const plaster=lib.imageMap('plaster','assets/textures/world/pearl-plaster.jpg',1024,'#ead5dd');
-  const nacre=lib.imageMap('nacre','assets/textures/lover/nacre-mosaic.jpg',1024,'#e7cbdc');
-  const cloudTexture=lib.imageMap('cloudCotton','assets/textures/lover/cloud-cotton.jpg',1024,'#eee5e9');
+  const plaster=lib.imageMap('plaster','assets/textures/world/pearl-plaster.webp',1024,'#ead5dd');
+  const nacre=lib.imageMap('nacre','assets/textures/lover/nacre-mosaic.webp',1024,'#e7cbdc');
+  const cloudTexture=lib.imageMap('cloudCotton','assets/textures/lover/cloud-cotton.webp',1024,'#eee5e9');
   const wall=canvasSurface(768,1024,(c,w,h)=>{
     const gr=c.createLinearGradient(0,0,0,h);gr.addColorStop(0,'#bfcadd');gr.addColorStop(.4,'#d9c4d8');gr.addColorStop(1,'#e0b0c6');c.fillStyle=gr;c.fillRect(0,0,w,h);
     c.strokeStyle='rgba(255,242,234,.07)';c.lineWidth=1;

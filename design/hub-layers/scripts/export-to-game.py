@@ -2,13 +2,13 @@
 
 Uso (desde la raíz del proyecto):  python design/hub-layers/scripts/export-to-game.py
 
-- Recorta cada PNG a su caja de contenido (el alfa) y lo guarda en assets/ui/hub/.
-- El papel de fondo se guarda como JPG (no tiene transparencia útil y pesa 10x menos).
-- Los SVG se recortan cambiando su viewBox a la misma caja, así se colocan igual que los PNG.
+- Recorta las capas ráster por su canal alfa y las exporta como WebP en assets/ui/hub/.
+- El papel de fondo se exporta en WebP RGB con el tamaño completo del lienzo.
+- Los SVG se recortan cambiando su viewBox a la misma caja que las capas ráster.
 - Escribe js/hub-layout.js con la posición, el tamaño y el orden de cada capa (lo usa js/hub.js).
 No usa las capas de texto del botón ni del progreso: esas se dibujan con HTML para poder cambiarlas.
 """
-import json, re, shutil
+import json, re
 from pathlib import Path
 from PIL import Image
 
@@ -17,6 +17,7 @@ SRC = ROOT / 'design' / 'hub-layers'
 OUT = ROOT / 'assets' / 'ui' / 'hub'
 OUT.mkdir(parents=True, exist_ok=True)
 PAD = 4
+WEBP_OPTIONS = dict(quality=85, method=4, exact=True)
 
 EXPORT = {  # id del manifiesto -> PNG de exports/png (mismo orden que el kit)
  'paper': '01-paper', 'decor-tl': '02-decor-tl', 'decor-tr': '03-decor-tr', 'decor-bl': '04-decor-bl', 'decor-br': '05-decor-br',
@@ -36,8 +37,9 @@ for lid, exp in EXPORT.items():
     m = manifest[lid]
     im = Image.open(SRC / 'exports' / 'png' / f'{exp}.png').convert('RGBA')
     if lid == 'paper':
-        im.convert('RGB').save(OUT / 'paper.jpg', quality=88, optimize=True)
-        layout.append(dict(id=lid, src='paper.jpg', x=0, y=0, w=W, h=H, z=m['z'])); continue
+        im.convert('RGB').save(OUT / 'paper.webp', **WEBP_OPTIONS)
+        layout.append(dict(id=lid, src='paper.webp', x=0, y=0, w=W, h=H, z=m['z']))
+        continue
     x0, y0, x1, y1 = im.getchannel('A').getbbox()
     x0, y0, x1, y1 = max(0, x0 - PAD), max(0, y0 - PAD), min(W, x1 + PAD), min(H, y1 + PAD)
     if m['type'] == 'svg':
@@ -46,7 +48,8 @@ for lid, exp in EXPORT.items():
                      lambda g: f'<svg {g.group(1)}width="{x1 - x0}" height="{y1 - y0}" viewBox="{x0} {y0} {x1 - x0} {y1 - y0}"', svg, count=1)
         (OUT / f'{lid}.svg').write_text(svg, encoding='utf-8'); src = f'{lid}.svg'
     else:
-        im.crop((x0, y0, x1, y1)).save(OUT / f'{lid}.png', optimize=True); src = f'{lid}.png'
+        src = f'{lid}.webp'
+        im.crop((x0, y0, x1, y1)).save(OUT / src, **WEBP_OPTIONS)
     layout.append(dict(id=lid, src=src, x=x0, y=y0, w=x1 - x0, h=y1 - y0, z=m['z'],
                        pivot=m['pivot'] if m.get('animation') == 'swing' else None))
 

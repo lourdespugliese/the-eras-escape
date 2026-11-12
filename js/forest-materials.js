@@ -3,10 +3,10 @@ import { createSurfaceLibrary, canvasSurface, randomGenerator } from './surface-
 
 export function createForestMaterials() {
   const lib=createSurfaceLibrary('forest'),r=randomGenerator(77),wind={value:0};
-  const bark=lib.imageMap('bark','assets/textures/world/forest-bark.jpg',1024,'#8b8071');
-  const earth=lib.imageMap('earth','assets/textures/world/forest-earth.jpg',1024,'#68533d');
-  const leaves=lib.imageMap('leaves','assets/textures/world/leaf-cluster.png',512,'#aaa');
-  const needles=lib.imageMap('needles','assets/textures/world/pine-spray.png',512,'#bbb');
+  const bark=lib.imageMap('bark','assets/textures/world/forest-bark.webp',1024,'#8b8071');
+  const earth=lib.imageMap('earth','assets/textures/world/forest-earth.webp',1024,'#68533d');
+  const leaves=lib.imageMap('leaves','assets/textures/world/leaf-cluster.webp',512,'#aaa');
+  const needles=lib.imageMap('needles','assets/textures/world/pine-spray.webp',512,'#bbb');
   leaves.repeat.set(3,2);needles.repeat.set(4,3);
   const willowLeaves=leaves.clone();willowLeaves.repeat.set(1,10);
   const snow=lib.make('snow',512,(c,w,h)=>{

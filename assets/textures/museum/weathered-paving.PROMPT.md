@@ -1,6 +1,6 @@
 # Pavimento de piedra gastada
 
-Archivo: `weathered-paving.png`. Generado con la herramienta integrada image_gen a partir de la referencia artística del exterior suministrada por el usuario.
+Archivo: `weathered-paving.webp`. Generado con la herramienta integrada image_gen a partir de la referencia artística del exterior suministrada por el usuario.
 
 ## Prompt
 

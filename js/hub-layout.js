@@ -4,7 +4,7 @@ export const HUB_SIZE = { w: 1672, h: 941 };
 export const HUB_LAYERS = [
  {
   "id": "paper",
-  "src": "paper.jpg",
+  "src": "paper.webp",
   "x": 0,
   "y": 0,
   "w": 1672,
@@ -13,7 +13,7 @@ export const HUB_LAYERS = [
  },
  {
   "id": "decor-tl",
-  "src": "decor-tl.png",
+  "src": "decor-tl.webp",
   "x": 0,
   "y": 0,
   "w": 793,
@@ -23,7 +23,7 @@ export const HUB_LAYERS = [
  },
  {
   "id": "decor-tr",
-  "src": "decor-tr.png",
+  "src": "decor-tr.webp",
   "x": 1165,
   "y": 0,
   "w": 507,
@@ -33,7 +33,7 @@ export const HUB_LAYERS = [
  },
  {
   "id": "decor-bl",
-  "src": "decor-bl.png",
+  "src": "decor-bl.webp",
   "x": 0,
   "y": 511,
   "w": 640,
@@ -43,7 +43,7 @@ export const HUB_LAYERS = [
  },
  {
   "id": "decor-br",
-  "src": "decor-br.png",
+  "src": "decor-br.webp",
   "x": 1473,
   "y": 348,
   "w": 199,
@@ -53,7 +53,7 @@ export const HUB_LAYERS = [
  },
  {
   "id": "confetti",
-  "src": "confetti.png",
+  "src": "confetti.webp",
   "x": 37,
   "y": 30,
   "w": 1593,
@@ -63,7 +63,7 @@ export const HUB_LAYERS = [
  },
  {
   "id": "bracelet",
-  "src": "bracelet.png",
+  "src": "bracelet.webp",
   "x": 709,
   "y": 85,
   "w": 810,
@@ -73,7 +73,7 @@ export const HUB_LAYERS = [
  },
  {
   "id": "envelope",
-  "src": "envelope.png",
+  "src": "envelope.webp",
   "x": 678,
   "y": 271,
   "w": 140,
@@ -86,7 +86,7 @@ export const HUB_LAYERS = [
  },
  {
   "id": "1989",
-  "src": "1989.png",
+  "src": "1989.webp",
   "x": 1221,
   "y": 147,
   "w": 165,
@@ -99,7 +99,7 @@ export const HUB_LAYERS = [
  },
  {
   "id": "fearless",
-  "src": "fearless.png",
+  "src": "fearless.webp",
   "x": 929,
   "y": 44,
   "w": 188,
@@ -112,7 +112,7 @@ export const HUB_LAYERS = [
  },
  {
   "id": "forest",
-  "src": "forest.png",
+  "src": "forest.webp",
   "x": 996,
   "y": 580,
   "w": 152,
@@ -125,7 +125,7 @@ export const HUB_LAYERS = [
  },
  {
   "id": "lover",
-  "src": "lover.png",
+  "src": "lover.webp",
   "x": 1260,
   "y": 578,
   "w": 167,
@@ -138,7 +138,7 @@ export const HUB_LAYERS = [
  },
  {
   "id": "midnights",
-  "src": "midnights.png",
+  "src": "midnights.webp",
   "x": 734,
   "y": 435,
   "w": 151,
@@ -151,7 +151,7 @@ export const HUB_LAYERS = [
  },
  {
   "id": "reputation",
-  "src": "reputation.png",
+  "src": "reputation.webp",
   "x": 1414,
   "y": 341,
   "w": 140,
@@ -304,7 +304,7 @@ export const HUB_LAYERS = [
  },
  {
   "id": "rose",
-  "src": "rose.png",
+  "src": "rose.webp",
   "x": 49,
   "y": 309,
   "w": 137,

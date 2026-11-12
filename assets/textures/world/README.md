@@ -4,13 +4,13 @@ Albedos generados con ImageGen integrado. Prompts exactos en [prompts.json](prom
 
 | Archivo | Resolución | Uso |
 | --- | --- | --- |
-| `pearl-plaster.jpg` | 1024² | Microtextura del papel pintado de Lover, techo y objetos perlados |
-| `silver-linen.jpg` | 1024² | Fuente de trama para sofás, cojines, sillones y telas; se compone a 512² con pespuntes |
-| `forest-bark.jpg` | 1024² | Corteza de troncos, ramas, tocones y árbol caído |
-| `forest-earth.jpg` | 1024² | Detalle repetido de tierra y hojarasca sobre el mapa estacional del bosque |
-| `leaf-cluster.png` | 512² RGBA | Copas, sotobosque y hojas colgantes del sauce, con huecos transparentes |
-| `pine-spray.png` | 512² RGBA | Agujas y ramas finas de pinos, con recorte alfa |
-| `midnight-jacquard.jpg` | 1024² | Paredes de Midnights y base de sus cortinas |
+| `pearl-plaster.webp` | 1024² | Microtextura del papel pintado de Lover, techo y objetos perlados |
+| `silver-linen.webp` | 1024² | Fuente de trama para sofás, cojines, sillones y telas; se compone a 512² con pespuntes |
+| `forest-bark.webp` | 1024² | Corteza de troncos, ramas, tocones y árbol caído |
+| `forest-earth.webp` | 1024² | Detalle repetido de tierra y hojarasca sobre el mapa estacional del bosque |
+| `leaf-cluster.webp` | 512² RGBA | Copas, sotobosque y hojas colgantes del sauce, con huecos transparentes |
+| `pine-spray.webp` | 512² RGBA | Agujas y ramas finas de pinos, con recorte alfa |
+| `midnight-jacquard.webp` | 1024² | Paredes de Midnights y base de sus cortinas |
 
 JPEG calidad 88 para superficies opacas. PNG conserva transparencia real en follaje. Color en sRGB; micrograno de relieve en espacio de datos. Las texturas de corteza, hojas y agujas se distinguen de la madera cortada y del tejido.
 

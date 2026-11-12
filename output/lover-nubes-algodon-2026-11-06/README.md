@@ -20,7 +20,7 @@ Revisión del techo siguiendo la imagen adjunta del usuario. Se conservaron los 
 
 ## Recursos y comprobación
 
-Textura: `assets/textures/lover/cloud-cotton.jpg` (1024 × 1024). Prompt exacto: `assets/textures/lover/cloud-cotton-prompt.txt`. Ambos están en el repositorio de trabajo.
+Textura: `assets/textures/lover/cloud-cotton.webp` (1024 × 1024). Prompt exacto: `assets/textures/lover/cloud-cotton-prompt.txt`. Ambos están en el repositorio de trabajo.
 
 `verificacion.json` contiene el resultado de la prueba del juego completo: acertijos del arcoíris y del cofre, corazón oculto, secreto, premio, puerta, carga de texturas y errores de consola. El script reproducible es `verificar.cjs`; los accesos de prueba no se agregan al código de producción.
 
