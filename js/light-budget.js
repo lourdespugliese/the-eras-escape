@@ -129,7 +129,7 @@ export function setupLightBudget({ renderer, scene, camera, target = null, zone 
     try { compilation = renderer.compileAsync(scene, camera); }
     finally { renderer.setRenderTarget(previous); }
     await compilation;
-    apply(sizes, light => root && light.intensity !== 0);
+    apply(sizes, light => root && light.intensity !== 0 && reaches(light));
     warm(root ? overview(root) : (warmCam ||= overview(scene)), !!root);
   }
 

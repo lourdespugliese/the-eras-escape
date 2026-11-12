@@ -258,12 +258,19 @@ export function buildRoomForest(ctx, { entryZ, exitZ: southZ }) {
   });
   const makeGlow = (hex, size, op = 0.8) => { const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: glowTex, color: hex, blending: THREE.AdditiveBlending, transparent: true, depthWrite: false, opacity: op })); s.scale.setScalar(size); s.raycast = () => {}; return s; };
 
-  // ---------------- Luces: pocas luces reales (pool) + muchos brillos falsos ----------------
-  const ambient = new THREE.AmbientLight(0x8a7a66, 0), hemi = new THREE.HemisphereLight(0x9fb2c8, 0x4a3422, 0), moon = new THREE.DirectionalLight(0x9db4d4, 0);
+  // Cada farol mantiene su posición. El presupuesto de luces descarta los que quedan fuera de la vista.
+  const ambient = new THREE.AmbientLight(0x8a7a66, 0.55), hemi = new THREE.HemisphereLight(0x9fb2c8, 0x4a3422, 0.55), moon = new THREE.DirectionalLight(0x9db4d4, 0.5);
   moon.position.set(-4, 12, 6); moon.userData.shadowRoom = 'Folklore'; scene.add(ambient, hemi, moon);   // shadowRoom: lighting.js le añade sombras a esta luz
-  const POOL = 5;
-  const pool = Array.from({ length: POOL }, () => { const l = new THREE.PointLight(0xffb066, 0, 11, 2); l.userData.noShadow = true; scene.add(l); return { l, src: null, level: 0 }; });
-  const sources = [];                                                                       // fuentes de luz posibles (farolas, lámpara de la cabaña, faroles del sauce)
+  const sources = [];
+  function addLightSource(x, y, z, power, glow, glowBase, ring = false) {
+    const light = new THREE.PointLight(0xffb066, 20 * power, 8.5, 2);
+    light.position.set(x, y, z);
+    light.userData.noShadow = true;
+    g.add(light);
+    const source = { light, power, glow, glowBase, ring };
+    sources.push(source);
+    return source;
+  }
 
   // ---------------- Suelo, cielo y paredes altas ----------------
   const PPM = 48;
@@ -355,7 +362,7 @@ export function buildRoomForest(ctx, { entryZ, exitZ: southZ }) {
   const crossSign = new THREE.Mesh(new THREE.PlaneGeometry(1.7, 1.0), new THREE.MeshBasicMaterial({ map: signTex(['Oeste · la cabaña', 'Este · el sendero helado', 'Norte · el sauce'], 512, 300, { font: 'bold 34px Georgia' }) }));
   crossSign.position.set(BIG.x, 1.8, BIG.z + 1.19); g.add(crossSign);                    // mira al sur: se ve al entrar
 
-  // ---------------- Farolas (brillo falso + pool de luces reales) ----------------
+  // ---------------- Farolas ----------------
   const postGeo = new THREE.CylinderGeometry(0.04, 0.06, 1, 6), lampGeo = new THREE.BoxGeometry(0.22, 0.3, 0.22), capGeo = new THREE.ConeGeometry(0.2, 0.16, 4);
   const woodDark=mat(0x514b40,{metalness:.5,map:materials.maps.metal,roughness:.65}), lampMat=mat(0xffe2a8,{map:materials.maps.ribbedGlass,emissiveMap:materials.maps.ribbedGlass,emissive:0xffa84a,emissiveIntensity:1.35,roughness:.4});
   const lanternCages=[];
@@ -366,7 +373,7 @@ export function buildRoomForest(ctx, { entryZ, exitZ: southZ }) {
     const glow = makeGlow(0xffb35c,1.65,.42); glow.position.set(x, h + 0.15, z);
     lanternCages.push({x,y:h+.15,z,angle:0});
     g.add(post, body, cap, glow); if (solid) colRound(x, z, 0.16);
-    const s = { pos: wpos(x, h + 0.15, z), power, glow, glowBase: 0.42 }; sources.push(s); return s;
+    addLightSource(x, h + 0.15, z, power, glow, 0.42);
   }
   [[3.1, 1.0], [-3.1, 1.0], [3.4, 7.2], [-3.4, 7.2],                                          // claro del cruce
    [1.7, 10.6], [-1.7, 8.8], [1.7, 14.2], [-1.7, 12.6],                                                                  // entrada
@@ -438,7 +445,11 @@ export function buildRoomForest(ctx, { entryZ, exitZ: southZ }) {
     plate.position.y = 1.5; grp.add(plate, hit(0.9, 0.6, 0.6, 0, 1.5, 0.2));
     ctx.interaction.add(grp, { prompt: () => 'Presiona E para leer el aviso.', onInteract: () => reader.toggle('signCabin', SIGN_CABIN.title, SIGN_CABIN.text) });
   }
-  const cabinLamp = (() => { cyl(0.012, 0.012, 0.5, woodDark, -11.5, 2.45, -2.8, 4); const b = box(0.26, 0.32, 0.26, lampMat, -11.5, 2.1, -2.8); const s = { pos: wpos(-11.5, 2.1, -2.8), power: 1.5, glow: makeGlow(0xffb35c,1.9,.48), glowBase: 0.8 }; s.glow.position.set(-11.5, 2.1, -2.8); g.add(s.glow); sources.push(s); return s; })();
+  cyl(0.012, 0.012, 0.5, woodDark, -11.5, 2.45, -2.8, 4);
+  box(0.26, 0.32, 0.26, lampMat, -11.5, 2.1, -2.8);
+  const cabinGlow = makeGlow(0xffb35c, 1.9, 0.48);
+  cabinGlow.position.set(-11.5, 2.1, -2.8); g.add(cabinGlow);
+  addLightSource(-11.5, 2.1, -2.8, 1.5, cabinGlow, 0.8);
 
   // mesa con las tres cartas
   box(1.5, 0.08, 0.9, wood, -12.6, 0.75, -2.6); [[-0.65, -0.35], [0.65, -0.35], [-0.65, 0.35], [0.65, 0.35]].forEach(([dx, dz]) => box(0.07, 0.72, 0.07, wood, -12.6 + dx, 0.36, -2.6 + dz));
@@ -694,7 +705,7 @@ export function buildRoomForest(ctx, { entryZ, exitZ: southZ }) {
   [[1.9, 5.5, 0.2], [-1.8, 5.6, -0.3], [0.3, 5.7, 1.9], [0.2, 5.5, -1.9]].forEach(([dx, y, dz], i) => { const b = cyl(0.12, 0.3, 2.2, materials.trunk, WL.x + dx / 2, 4.9, WL.z + dz / 2, 6); b.rotation.z = -Math.atan2(dx, 1.4); b.rotation.x = Math.atan2(dz, 1.4); });
   [[0, 6.3, 0, 2.1], [1.5, 5.8, 0.6, 1.5], [-1.5, 5.9, -0.5, 1.6], [0.2, 5.8, 1.6, 1.4], [-0.4, 5.9, -1.6, 1.4]].forEach(([dx, y, dz, r]) => { const b = new THREE.Mesh(blobGeo, materials.leafMaterial(0xffffff)); b.material.color.set(0x91a765);b.customDepthMaterial=materials.foliageDepth;b.scale.set(r, r * 0.55, r); b.position.set(WL.x + dx, y, WL.z + dz); g.add(b); });
   const STR = 110, strGeo = new THREE.PlaneGeometry(.22,1,1,5); strGeo.translate(0, -0.5, 0);
-  const strMat = mat(0xffffff,{map:materials.willowLeaves,alphaTest:.5,side:THREE.DoubleSide,roughness:.96});
+  const strMat = materials.leafMaterial(0xffffff, materials.willowLeaves);
   const strands = new THREE.InstancedMesh(strGeo, strMat, STR); strands.frustumCulled = false; g.add(strands);
   const strData = Array.from({ length: STR }, (_, i) => { const a = rand() * 6.28, r = 0.9 + rand() * 2.2; return { x: WL.x + Math.cos(a) * r, y: 5.0 - r * 0.22 + rand() * 0.4, z: WL.z + Math.sin(a) * r, len: 2.6 + rand() * 1.6, ph: rand() * 6.28 }; });
   strData.forEach((s, i) => strands.setColorAt(i, tmpC.set(rand() < 0.5 ? 0x7d9a4a : 0x9ab25a).multiplyScalar(0.9 + rand() * 0.3)));
@@ -716,8 +727,7 @@ export function buildRoomForest(ctx, { entryZ, exitZ: southZ }) {
     grp.rotation.y = Math.atan2(WL.x - x, WL.z - z) + Math.PI;lanternCages.push({x,y:1.85,z,angle:grp.rotation.y});                                // la placa mira hacia afuera del círculo
     const glow = makeGlow(0xffb35c, 2.6, 0); glow.position.y = 1.85; grp.add(glow);
     grp.add(hit(0.5, 2.2, 0.5, 0, 1.1, 0)); colRound(x, z, 0.16);
-    const src = { pos: wpos(x, 1.85, z), power: 0, glow, glowBase: 0.85, ring: true };
-    sources.push(src);
+    const src = addLightSource(x, 1.85, z, 0, glow, 0.85, true);
     const L = { sym, body, glow, src };
     ctx.interaction.add(grp, {
       prompt: () => `Presiona E para encender el farol de la ${SYMBOL_NAMES[sym]}.`,
@@ -828,9 +838,12 @@ export function buildRoomForest(ctx, { entryZ, exitZ: southZ }) {
 
   ctx.updaters.push((dt, t) => {
     const z = cam.z, x = cam.x;
-    // ---- luces entre salas (igual que en las otras salas) ----
-    const k5 = clamp((entryZ - 1 - z) / 3, 0, 1), base = k5 * lights.mute;
+    // Los faroles iluminan a plena potencia desde la cámara de transición.
+    const active = z < entryZ + 0.5 && z > bounds.minZ - HALL - 2;
+    const base = active ? lights.mute : 0;
+    const flick = 0.96 + 0.04 * Math.sin(t * 7) * Math.sin(t * 3.1);
     ambient.intensity = 0.55 * base; hemi.intensity = 0.55 * base; moon.intensity = 0.5 * base;
+    for (const { light, power } of sources) light.intensity = 20 * power * base * flick;
     // ---- niebla global: se espesa al entrar al bosque ----
     const fog = scene.fog;
     if (fog) {
@@ -841,21 +854,13 @@ export function buildRoomForest(ctx, { entryZ, exitZ: southZ }) {
     }
     hallBase = door.opening ? Math.min(8, hallBase + dt * 4) : hallBase; hallLight.intensity = hallBase * lights.mute;
     // ---- lo demás solo se calcula cerca del bosque ----
-    const active = z < entryZ + 0.5 && z > bounds.minZ - HALL - 2;
     if (!active) {
-      pool.forEach((p) => (p.l.intensity = 0));
       if (snd) snd.gain.gain.setTargetAtTime(0, snd.c.currentTime, .2);
       if (reader.open) { reader.hide(); readerAt = null; }
       return;
     }
     materials.wind.value=t;
-    const flick = 0.92 + 0.08 * Math.sin(t * 7) * Math.sin(t * 3.1);
     lampMat.emissiveIntensity = 1.8 * flick;
-    // pool de luces: las 5 fuentes más cercanas, con aparición/desaparición suave
-    const order5 = sources.filter((s) => s.power > 0).map((s) => ({ s, d: s.pos.distanceToSquared(cam) })).sort((a, b) => a.d - b.d).slice(0, POOL).map((o) => o.s);
-    pool.forEach((p) => { const keep = p.src && order5.includes(p.src); p.level = clamp(p.level + (keep ? 3 : -3) * dt, 0, 1); if (p.level <= 0.01 && !keep) p.src = null; });
-    order5.forEach((s) => { if (pool.some((p) => p.src === s)) return; const free = pool.find((p) => !p.src); if (free) { free.src = s; free.level = 0; } });
-    pool.forEach((p) => { if (p.src) { p.l.position.copy(p.src.pos); p.l.intensity = 20 * p.src.power * p.level * base * flick; } else p.l.intensity = 0; });
     sources.forEach((s, i) => { if (s.ring) return; s.glow.material.opacity = s.glowBase * (0.85 + 0.15 * Math.sin(t * 2.3 + i)); });
     // partículas
     falls.forEach((f) => f(dt, t)); fireflies(t); flyJar(t, dt);

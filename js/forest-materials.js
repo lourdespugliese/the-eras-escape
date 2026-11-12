@@ -45,14 +45,37 @@ export function createForestMaterials() {
         float foliageFlex=smoothstep(-0.6,1.0,position.y);
         transformed.x+=sin(uFoliageTime*0.7+foliageAnchor.x*.41+foliageAnchor.z*.27)*.028*foliageFlex;
         transformed.z+=cos(uFoliageTime*.54+foliageAnchor.z*.31)*.018*foliageFlex;`);
+      if (material.isMeshStandardMaterial) {
+        // La cara visible de una hoja también recibe luz transmitida desde el reverso.
+        shader.fragmentShader = shader.fragmentShader.replace('#include <lights_physical_pars_fragment>', `
+          #include <lights_physical_pars_fragment>
+          void RE_Direct_ForestLeaf(const in IncidentLight light, const in vec3 position,
+            const in vec3 normal, const in vec3 viewDirection, const in vec3 clearcoatNormal,
+            const in PhysicalMaterial surface, inout ReflectedLight reflected) {
+            RE_Direct_Physical(light, position, normal, viewDirection, clearcoatNormal, surface, reflected);
+            float backlight = max(-dot(normal, light.direction), 0.0);
+            reflected.directDiffuse += light.color * BRDF_Lambert(surface.diffuseColor) * (0.12 + 0.60 * backlight);
+          }
+          #undef RE_Direct
+          #define RE_Direct RE_Direct_ForestLeaf
+        `).replace('#include <emissivemap_fragment>', `
+          #include <emissivemap_fragment>
+          totalEmissiveRadiance += diffuseColor.rgb * 0.11;
+        `);
+      }
     };
     material.onBeforeCompile=inject;material.customProgramCacheKey=()=>key;return material;
   }
-  const foliage=sway(lib.finish(0xffffff,{map:leaves,alphaTest:.5,side:THREE.DoubleSide,roughness:.96,bumpScale:0,emissive:0x050704}),'forest-leaf-wind-v1');foliage.name='forest-cutout-leaves';
-  const pine=sway(lib.finish(0xffffff,{map:needles,alphaTest:.45,side:THREE.DoubleSide,roughness:.97,emissive:0x040604,bumpMap:needles,bumpScale:.005}),'forest-pine-wind-v1');pine.name='forest-pine-needles';
+  const foliage=sway(lib.finish(0xffffff,{map:leaves,alphaTest:.5,side:THREE.DoubleSide,roughness:.96,bumpScale:0,emissive:0x050704}),'forest-leaf-wind-v2');foliage.name='forest-cutout-leaves';
+  const pine=sway(lib.finish(0xffffff,{map:needles,alphaTest:.45,side:THREE.DoubleSide,roughness:.97,emissive:0x040604,bumpMap:needles,bumpScale:.005}),'forest-pine-wind-v2');pine.name='forest-pine-needles';
   const foliageDepth=sway(new THREE.MeshDepthMaterial({depthPacking:THREE.RGBADepthPacking,map:leaves,alphaTest:.5,side:THREE.DoubleSide}),'forest-leaf-depth-v1');
   const pineDepth=sway(new THREE.MeshDepthMaterial({depthPacking:THREE.RGBADepthPacking,map:needles,alphaTest:.45,side:THREE.DoubleSide}),'forest-pine-depth-v1');
-  const leafMaterial=color=>{const m=sway(foliage.clone(),'forest-leaf-wind-v1');m.color.set(color);return m;};
+  const leafMaterial = (color, map = leaves) => {
+    const material = sway(foliage.clone(), 'forest-leaf-wind-v2');
+    material.color.set(color);
+    material.map = map;
+    return material;
+  };
   const wood=(color=0x9c8b76,o={})=>lib.timber(color,o);
   const trunk=lib.finish(0xffffff,{map:bark,roughness:.98,bumpMap:bark,bumpScale:.025});trunk.name='forest-oak-bark';
   const cut=lib.make('endGrain',256,(c,w,h)=>{
