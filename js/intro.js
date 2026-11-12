@@ -269,8 +269,12 @@ export function buildIntro(ctx, room1, { player, skip = false } = {}) {
   for (let i = 0; i < 500; i++) { const a = Math.random() * TAU, e = 0.12 + Math.random() * 1.4, r = 320; starPos[i * 3] = HCX + Math.cos(a) * Math.cos(e) * r; starPos[i * 3 + 1] = Math.sin(e) * r; starPos[i * 3 + 2] = 20 + Math.sin(a) * Math.cos(e) * r; }
   const starsGeo = new THREE.BufferGeometry(); starsGeo.setAttribute('position', new THREE.BufferAttribute(starPos, 3));
   root.add(new THREE.Points(starsGeo, new THREE.PointsMaterial({ color: 0xcfd8ff, size: 1.6, sizeAttenuation: false, transparent: true, opacity: 0.55, fog: false })));
-  const moon = new THREE.Sprite(new THREE.SpriteMaterial({ map: glowTexture('190,205,255'), transparent: true, opacity: 0.5, fog: false, depthWrite: false }));
-  moon.scale.setScalar(70); moon.position.set(110, 150, -120); root.add(moon);
+  const moonMap = new THREE.TextureLoader().load('assets/textures/museum/full-moon.webp', () => { moon.visible = true; });
+  moonMap.colorSpace = THREE.SRGBColorSpace;
+  const moon = new THREE.Sprite(new THREE.SpriteMaterial({ map: moonMap, transparent: true, alphaTest: 0.05, fog: false, toneMapped: false }));
+  moon.name = 'museum-moon';
+  moon.visible = false;
+  moon.scale.setScalar(48); moon.position.set(110, 150, -120); root.add(moon);
   const cityPos = new Float32Array(260 * 3);
   for (let i = 0; i < 260; i++) { const cl = i % 4; cityPos[i * 3] = HCX - 170 + cl * 90 + (Math.random() - 0.5) * 70; cityPos[i * 3 + 1] = GROUND + 1 + Math.random() * 14; cityPos[i * 3 + 2] = 190 + Math.random() * 90; }
   const cityGeo = new THREE.BufferGeometry(); cityGeo.setAttribute('position', new THREE.BufferAttribute(cityPos, 3));
