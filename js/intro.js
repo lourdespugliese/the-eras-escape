@@ -348,9 +348,13 @@ export function buildIntro(ctx, room1, { player, skip = false } = {}) {
   for (let x = HX0 + 3; x < HX1; x += 5) slab(x - 0.25, x + 0.25, HALL_H - 0.6, HALL_H, HZ0, FZ, hallBeam);   // vigas
   slab(HX0 - 0.2, HX0 + 0.2, 0, HALL_H, 5.2, FZ + 0.2, hallWall, true);                                            // pared oeste
   slab(HX1 - 0.2, HX1 + 0.2, 0, HALL_H, 4.8, FZ + 0.2, hallWall, true);                                            // pared este
-  slab(HX0 - 0.2, -5.2, 0, HALL_H, 4.8, 5.2, hallWall, true);                                                       // pared norte (izquierda, junto a la sala 1)
-  slab(9.2, HX1 + 0.2, 0, HALL_H, 4.8, 5.2, hallWall, true);                                                        // pared norte (derecha)
-  slab(-5.2, 9.2, 4, HALL_H, 4.8, 5.2, hallWall);                                                                   // pared norte sobre la sala 1
+  // En el regreso desde Midnights ya no existe la pared sur de Fearless.
+  // El hall reconstruido aporta sus propios muros y colisiones hasta el marco.
+  const northLeft = room1 ? -5.2 : FD_L;
+  const northRight = room1 ? 9.2 : FD_R;
+  slab(HX0 - 0.2, northLeft, 0, HALL_H, 4.8, 5.2, hallWall, true);
+  slab(northRight, HX1 + 0.2, 0, HALL_H, 4.8, 5.2, hallWall, true);
+  slab(northLeft, northRight, room1 ? 4 : FD_H, HALL_H, 4.8, 5.2, hallWall);
   for (const x of [HX0 + 1, HX1 - 1]) for (const z of [9, 13, 17, 21]) {                                        // columnas
     const c = new THREE.Mesh(new THREE.CylinderGeometry(0.45, 0.5, HALL_H, 16), marble); c.position.set(x, HALL_H / 2, z); root.add(c);
     c.userData.noReceiveShadow = true;
