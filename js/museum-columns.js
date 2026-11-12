@@ -30,7 +30,7 @@ function baseGeometry() {
 // Fuste con 24 estrías cóncavas separadas por filetes; las estrías se cierran cerca de los extremos.
 function shaftGeometry() {
   const h = SHAFT1 - SHAFT0;
-  const geo = new THREE.CylinderGeometry(R_TOP, R_BOT, h, FLUTES * 6, 40, true);
+  const geo = new THREE.CylinderGeometry(R_TOP, R_BOT, h, FLUTES * 6, 24, true);
   const p = geo.attributes.position;
   for (let i = 0; i < p.count; i++) {
     let t = p.getY(i) / h + 0.5;
@@ -65,12 +65,14 @@ function abacusGeometry(H, sag, chamfer, y0, depth) {
   s.lineTo(-H, H - c); s.quadraticCurveTo(-k, 0, -H, -H + c);
   const geo = new THREE.ExtrudeGeometry(s, { depth, bevelEnabled: false, curveSegments: 14 });
   geo.rotateX(-Math.PI / 2); geo.translate(0, y0, 0);
+  // El ábaco se genera sin índice. Añadimos uno para unirlo a las demás piezas indexadas.
+  geo.setIndex(Array.from({ length: geo.attributes.position.count }, (_, i) => i));
   return geo;
 }
 
 // Hoja de acanto: lámina lobulada que sube pegada a la campana y se curva hacia fuera en la punta.
 function leafGeometry(L, W, curl, wrapR) {
-  const nu = 10, nv = 30, ls = L * 0.62, R = (L - ls) / curl;
+  const nu = 8, nv = 24, ls = L * 0.62, R = (L - ls) / curl;
   const pos = [], uv = [], idx = [];
   for (let j = 0; j <= nv; j++) {
     const v = j / nv, s = v * L;
@@ -107,7 +109,7 @@ function voluteGeometry(stalk, cx, cy, r0, r1, a0, turns, dir, n0, n1, tube, sid
     const t = i / steps, a = a0 + dir * t * turns * TAU, r = THREE.MathUtils.lerp(r0, r1, t);
     pts.push(new THREE.Vector3((cx + r * Math.cos(a)) * side, cy + r * Math.sin(a), THREE.MathUtils.lerp(n0, n1, t)));
   }
-  return new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), 72, tube, 6, false);
+  return new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), 54, tube, 6, false);
 }
 
 function rosetteGeometry(n, y) {
@@ -117,15 +119,8 @@ function rosetteGeometry(n, y) {
     petal.scale(1, 0.55, 0.45); petal.rotateZ(a); petal.translate(Math.cos(a) * 0.06, Math.sin(a) * 0.06, -0.01);
     parts.push(petal);
   }
-  const geo = mergeGeometries(parts.map(clean)); geo.translate(0, y, n);
+  const geo = mergeGeometries(parts); geo.translate(0, y, n);
   return geo;
-}
-
-// Todas las piezas sin índice y con los mismos atributos para poder unirlas.
-function clean(geo) {
-  const g = geo.index ? geo.toNonIndexed() : geo;
-  for (const name of Object.keys(g.attributes)) if (!['position', 'normal', 'uv'].includes(name)) g.deleteAttribute(name);
-  return g;
 }
 
 function capitalParts() {
@@ -158,7 +153,7 @@ function capitalParts() {
 
 function columnGeometry() {
   const plinth = new THREE.BoxGeometry(1.62, PLINTH, 1.62); plinth.translate(0, PLINTH / 2, 0);
-  const geo = mergeGeometries([plinth, baseGeometry(), shaftGeometry(), ...capitalParts()].map(clean));
+  const geo = mergeGeometries([plinth, baseGeometry(), shaftGeometry(), ...capitalParts()]);
   // UV cilíndricas: una vuelta y toda la altura, igual que el cilindro liso al que sustituye.
   const p = geo.attributes.position, uv = geo.attributes.uv;
   for (let i = 0; i < p.count; i++) uv.setXY(i, Math.atan2(p.getX(i), p.getZ(i)) / TAU + 0.5, p.getY(i) / TOP);
