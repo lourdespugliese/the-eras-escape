@@ -109,7 +109,7 @@ export function buildIntro(ctx, room1, { player, skip = false } = {}) {
   const introColliderStart = ctx.colliders.length;                                   // para poder quitar luego los colisionadores del lobby
   const introItems = [];                                                             // objetos interactivos del exterior y del lobby
   const addItem = (mesh, opts) => { introItems.push(mesh); return ctx.interaction.add(mesh, opts); };
-  const locked = () => player.controls.isLocked;
+  const locked = () => player.playing;
   const baseSpeed = player.speed;
   const qs = typeof location !== 'undefined' ? new URLSearchParams(location.search) : new URLSearchParams('');
   const debug = qs.has('debug'), hallStart = qs.has('hall');        // ?debug = panel de diagnóstico | ?hall = empieza ya dentro del hall
@@ -340,7 +340,7 @@ export function buildIntro(ctx, room1, { player, skip = false } = {}) {
 
   // ================= HALL PRINCIPAL =================
   const hallBounds = { minX: HX0, maxX: HX1, minZ: HZ0, maxZ: FZ - 0.2 };
-  ctx.rooms.push({ name: 'Hall principal', bounds: hallBounds });
+  if (room1) ctx.rooms.push({ name: 'Hall principal', bounds: hallBounds });
   const hallFloor = new THREE.Mesh(new THREE.PlaneGeometry(HX1 - HX0, FZ - HZ0), checkerMaterial());
   hallFloor.rotation.x = -Math.PI / 2; hallFloor.position.set(HCX, 0, (FZ + HZ0) / 2); root.add(hallFloor);
   slab(FD_L, FD_R, -0.02, 0.004, 4.8, 5.4, marble);                                                                 // umbral de la puerta de Fearless
@@ -433,7 +433,7 @@ export function buildIntro(ctx, room1, { player, skip = false } = {}) {
   inscr.position.set(FDOOR_X, 4.75, 5.26); root.add(inscr);
   const fCol = { minX: FD_L, maxX: FD_R, minZ: 4.85, maxZ: 5.15 }; ctx.colliders.push(fCol);
   addItem(fDoor, {
-    prompt: () => 'Objeto bloqueado.', enabled: () => !fOpen && fTarget === 0,
+    prompt: () => 'Objeto bloqueado.', enabled: () => !!room1 && !fOpen && fTarget === 0,
     onInteract: () => {
       if (orbPhase === 'hidden' && (phase === 'hall' || phase === 'guide')) { spawnGuide(); ctx.ui.toast('Algo despierta en la estatua...', 3000); }   // no hace falta esperar
       else ctx.ui.toast('La cerradura no responde... todavía.', 2500);
@@ -441,12 +441,14 @@ export function buildIntro(ctx, room1, { player, skip = false } = {}) {
   });
 
   const mine = new Set(ctx.colliders.slice(introColliderStart));                      // colisionadores propios de la intro (exterior + lobby)
+  let sealedCollider;
   let photoMid = null, trimPieces = [], trimMat = null, entrancePieces = [], entranceMat = null;                              // lo que se movió para abrir la entrada y hay que devolver
 
   // ---------- La sala 1 necesita una abertura en su pared sur (donde está la puerta dorada) ----------
   // Normalmente la crea rooms.js con "southOpening: 3". Si tu rooms.js todavía no la tiene, se abre aquí automáticamente:
   // sin abertura las hojas de la puerta quedan DENTRO del muro y no se puede entrar.
   (function ensureEntrance() {
+    if (!room1) return;
     const g1 = room1.group, near = (a, b, e = 0.02) => Math.abs(a - b) < e;
     const full = ctx.colliders.find((c) => near(c.minX, -5, 0.05) && near(c.maxX, 9, 0.05) && near(c.minZ, 4.8) && near(c.maxZ, 5.2));
     if (full) {                                                                    // pared sur entera: se reemplaza por dos tramos + dintel
@@ -486,7 +488,8 @@ export function buildIntro(ctx, room1, { player, skip = false } = {}) {
     veil.classList.remove('show'); setTimeout(() => (veil.style.display = 'none'), 900);
     held.visible = false; setPhase('returning'); sound.gust();
   }
-  addEventListener('keydown', (e) => { if (e.code === 'KeyE' && phase === 'reading' && phaseT > 1.2) closeLetter(); });
+  const onLetterKey = (e) => { if (e.code === 'KeyE' && phase === 'reading' && phaseT > 1.2) closeLetter(); };
+  addEventListener('keydown', onLetterKey);
 
   // Abre la puerta dorada. force = true: la deja abierta de inmediato (plan B si la animación fallara).
   function openFearless(force = false) {
@@ -509,7 +512,8 @@ export function buildIntro(ctx, room1, { player, skip = false } = {}) {
     removeColliders((c) => near(c.minZ, 4.8) && near(c.maxZ, 5.2) && c.maxX - c.minX < 7 && c.minX > -5.05 && c.maxX < 9.05);
     const full = new THREE.Mesh(new THREE.BoxGeometry(14, 4, 0.4), mat); full.position.set(2, 2, 5); g1.add(full);
     room1.sealEntranceTrim?.();
-    ctx.colliders.push({ minX: -5, maxX: 9, minZ: 4.8, maxZ: 5.2 });
+    sealedCollider = { minX: -5, maxX: 9, minZ: 4.8, maxZ: 5.2 };
+    ctx.colliders.push(sealedCollider);
     // 2) la moldura dorada vuelve a ser continua y 3) la foto del medio vuelve a su sitio original
     if (trimPieces.length) { trimPieces.forEach((o) => { g1.remove(o); o.geometry.dispose(); }); const t = new THREE.Mesh(new THREE.BoxGeometry(13.6, 0.08, 0.04), trimMat); t.position.set(2, 1.0, 4.77); g1.add(t); }
     if (photoMid) photoMid.position.x = 2;
@@ -586,8 +590,10 @@ export function buildIntro(ctx, room1, { player, skip = false } = {}) {
       light.position.z = 15 + 16 * out;
       light.intensity = inZone * 28 * out;
     });
-    room1.lights.mute = Math.min(room1.lights.mute, Math.max(0.04, fOpen ? Math.max(clamp((5.4 - z) / 1.8, 0, 1), 0.22) : clamp((5.4 - z) / 1.8, 0, 1)));
-    room1.lights.apply();
+    if (room1) {
+      room1.lights.mute = Math.min(room1.lights.mute, Math.max(0.04, fOpen ? Math.max(clamp((5.4 - z) / 1.8, 0, 1), 0.22) : clamp((5.4 - z) / 1.8, 0, 1)));
+      room1.lights.apply();
+    }
     const rainOutside = smooth(FZ, FZ + 1.2, z);
     rainMesh.visible = rainOutside > 0.02; rainMesh.material.opacity = 0.32 * rainOutside;
     sparkles.visible = envHalo.visible;
@@ -742,6 +748,12 @@ export function buildIntro(ctx, room1, { player, skip = false } = {}) {
   // Portal de la sala 6: devuelve al jugador al Hall principal. Al entrar en Fearless la entrada se "selló" (sealEntrance) y el hall
   // dejó de existir; aquí vuelve a dibujarse, con sus colisionadores y su luz, y el jugador aparece frente a la estatua.
   function returnToHall() {
+    if (!room1) {
+      sound = safeSound(() => createIntroSound(ctx.audio));
+      started = done = lanternOff = true;
+      phase = 'done';
+      env.visible = envHalo.visible = false;
+    }
     if (gone) {
       gone = false;
       mine.forEach((c) => { if (!ctx.colliders.includes(c)) ctx.colliders.push(c); });
@@ -762,6 +774,12 @@ export function buildIntro(ctx, room1, { player, skip = false } = {}) {
 
   return {
     returnToHall,
+    cleanup() {
+      removeEventListener('keydown', onLetterKey);
+      removeColliders(c => c === sealedCollider || mine.has(c));
+      sound?.dispose();
+      style.remove(); fadeEl.remove(); veil.remove(); dbgEl?.remove();
+    },
     hudMode() { return phase === 'hall' || phase === 'guide' || phase === 'done' || skip ? 'full' : 'minimal'; },
     blockMove() { return !canMove() && !skip; },
     onLock() {

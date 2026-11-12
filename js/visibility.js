@@ -17,7 +17,7 @@ const SHOWN = 1, MIRROR_ONLY = 2, HIDDEN = 0;   // máscaras de layers: 0 = cám
 
 export function setupVisibility({ scene, camera, zones, openings, shadowLights }) {
   // zones: [{ name, bounds }] en orden de la cadena; la zona i conecta con la i + 1 por openings()[i].
-  const all = (1 << zones.length) - 1;
+  const allZones = () => (1 << zones.length) - 1;
   const inside = (b, p) => p.x > b.minX && p.x < b.maxX && p.z > b.minZ && p.z < b.maxZ;
   const contains = (b, box) => box.min.x > b.minX + EDGE && box.max.x < b.maxX - EDGE && box.min.z > b.minZ + EDGE && box.max.z < b.maxZ - EDGE;
   const gap = (b, p) => Math.hypot(Math.max(b.minX - p.x, 0, p.x - b.maxX), Math.max(b.minZ - p.z, 0, p.z - b.maxZ));
@@ -29,7 +29,7 @@ export function setupVisibility({ scene, camera, zones, openings, shadowLights }
     zones.forEach((z, i) => { if (inside(z.bounds, p)) start |= 1 << i; });
     if (!start) zones.forEach((z, i) => { if (gap(z.bounds, p) < NEAR) start |= 1 << i; });
     current = start; state.current = start;
-    if (!start) return all;                                               // fuera del mapa: no se oculta nada
+    if (!start) return allZones();                                        // fuera del mapa: no se oculta nada
     const open = openings();
     let mask = start;
     for (let i = 0; i < zones.length; i++) if (start & (1 << i)) {
@@ -75,7 +75,14 @@ export function setupVisibility({ scene, camera, zones, openings, shadowLights }
   function same(a, b) { for (let i = 0; i < 16; i++) if (a[i] !== b[i]) return false; return true; }
 
   // --- Sombras: qué objetos pueden cambiar el mapa de cada luz ---
-  const lights = shadowLights.map(({ light, zone }) => ({ light, bit: 1 << zone, casters: [], snap: null }));
+  let lights = [];
+  function addShadows(entries) {
+    for (const { light, zone } of entries) {
+      light.shadow.autoUpdate = false; light.shadow.needsUpdate = true;
+      lights.push({ light, bit: 1 << zone, casters: [], snap: null });
+    }
+    t = SCAN_EVERY;
+  }
   function collectCasters() {
     const sphere = new THREE.Sphere(), box = new THREE.Box3();
     for (const L of lights) {
@@ -95,7 +102,7 @@ export function setupVisibility({ scene, camera, zones, openings, shadowLights }
     }
   }
   const PER = 21;
-  function worldVisible(o) { for (let p = o; p; p = p.parent) if (!p.visible) return 0; return 1; }
+  function worldVisible(o) { for (let p = o; p; p = p.parent) { if (!p.visible) return 0; if (p === scene) return 1; } return 0; }
   // Estado actual de todo lo que afecta al mapa de sombras. Devuelve true si cambió desde la última vez que se dibujó.
   // moving = false: ignora movimientos (matrices) y solo mira qué objetos están (visibles, en qué layer, con sombra).
   function changed(L, moving) {
@@ -117,11 +124,21 @@ export function setupVisibility({ scene, camera, zones, openings, shadowLights }
     return false;
   }
 
-  const state = { cull: true, shadowsOnDemand: true, visible: all, current: 0, stats: { tracked: 0, culled: 0, shadowRenders: 0 }, invalidate() { t = SCAN_EVERY; for (const L of lights) L.snap = null; } };
+  const state = {
+    cull: true, shadowsOnDemand: true, visible: allZones(), current: 0,
+    stats: { tracked: 0, culled: 0, shadowRenders: 0 },
+    addShadows,
+    forget(removed) {
+      lights = lights.filter(({ light }) => !removed.has(light));
+      for (const entry of lights) entry.casters = entry.casters.filter(o => !removed.has(o));
+      for (let i = tracked.length - 1; i >= 0; i--) if (removed.has(tracked[i].o)) tracked.splice(i, 1);
+    },
+    invalidate() { t = SCAN_EVERY; for (const L of lights) L.snap = null; },
+  };
   let t = SCAN_EVERY, first = true;
   const clock = new THREE.Clock();
   // Primer frame: todos los mapas de sombras se dibujan una vez con todo visible (como antes), así ninguna luz queda sin mapa.
-  for (const L of lights) { L.light.shadow.autoUpdate = false; L.light.shadow.needsUpdate = true; }
+  addShadows(shadowLights);
 
   const previous = scene.onBeforeRender;
   scene.onBeforeRender = function (renderer, s, cam, target) {
@@ -130,8 +147,8 @@ export function setupVisibility({ scene, camera, zones, openings, shadowLights }
     t += clock.getDelta();
     if (t >= SCAN_EVERY) { t = 0; scan(); collectCasters(); }
 
-    const vis = state.cull && !first ? visibleZones() : all;
-    const mirror = ((vis << 1) | (vis >> 1)) & all & ~vis;                // vecinas tras una puerta cerrada
+    const vis = state.cull && !first ? visibleZones() : allZones();
+    const mirror = ((vis << 1) | (vis >> 1)) & allZones() & ~vis;         // vecinas tras una puerta cerrada
     state.visible = vis;
     let culled = 0;
     for (const e of tracked) {

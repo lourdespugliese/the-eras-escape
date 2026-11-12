@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
 
 const rounded = new Map();
+export function clearRoundedGeometryCache() { rounded.clear(); }
 export function roundedGeometry(w, h, d, radius = .035) {
   const r = Math.min(radius, Math.min(w, h, d) * .22);
   const key = [w, h, d, r].join('/');

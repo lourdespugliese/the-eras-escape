@@ -451,7 +451,7 @@ function whiteMovesOf(pcs, p) {                                                 
 export const chessTools = { gridOf, attackSquares, verdictOf, whiteMovesOf, blackEscapes, CHESS_POS };
 
 // ---------------- Lector de notas (panel HTML) ----------------
-function makeReader() {
+function makeReader(player) {
   const none = { open: false, key: null, show() {}, hide() {}, toggle() {} };
   if (typeof document === 'undefined' || !document.body || !document.createElement) return none;
   const el = document.createElement('div');
@@ -469,14 +469,14 @@ function makeReader() {
     hide() { r.open = false; r.key = null; el.style.display = 'none'; },
     toggle(key, title, text) { if (r.open && r.key === key) r.hide(); else r.show(key, title, text); },
   };
-  document.addEventListener('pointerlockchange', () => { if (!document.pointerLockElement) r.hide(); });
+  player.addEventListener('pause', () => r.hide());
   return r;
 }
 
 function createMidnightsPuzzle(ctx, env) {
   const { g, materials, CZ, TALL, R, BD, phone, mat, box, cyl, hit, colBox, colRound, makeGlow, light, dark, sqx, sqz, ball, ballGlow, rod, BALL, orbs, hHour, hMin, hSec, clockGlow, addSource, onSolved } = env;
   const animationBounds = { minX: -W / 2, maxX: W / 2, minZ: CZ - D / 2, maxZ: CZ + D / 2 };
-  const reader = makeReader(), clamp = THREE.MathUtils.clamp, ease = (k) => 1 - Math.pow(1 - k, 3);
+  const reader = makeReader(ctx.player), clamp = THREE.MathUtils.clamp, ease = (k) => 1 - Math.pow(1 - k, 3);
   const state = { call: false, clock: false, chess: false, night: false, gears: 0, placed: 0 };
   const finale = { on: false, t: 0, strikes: 0, ballDone: false, keyT: -1 };
   const wp = (x, y, z) => g.localToWorld(new THREE.Vector3(x, y, z));

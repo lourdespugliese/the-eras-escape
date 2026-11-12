@@ -164,15 +164,16 @@ export function createDoor(ctx, { x, z, width = 3, onOpen = null }) {
   door.unlock = () => {
     if (!door.locked) return;
     door.locked = false; door.opening = true;
-    ctx.colliders.splice(ctx.colliders.indexOf(collider), 1);
+    const index = ctx.colliders.indexOf(collider);
+    if (index >= 0) ctx.colliders.splice(index, 1);
     ctx.audio.creak();
     if (onOpen) onOpen();
-    ctx.updaters.push((dt) => {
-      if (!mesh.visible) return;
-      mesh.position.y += dt * 1.0;                              // apertura lenta
-      if (mesh.position.y > DOOR_H * 1.6) mesh.visible = false;
-    });
   };
+  ctx.updaters.push((dt) => {
+    if (!door.opening || !mesh.visible) return;
+    mesh.position.y += dt * 1.0;                                // apertura lenta
+    if (mesh.position.y > DOOR_H * 1.6) mesh.visible = false;
+  });
   ctx.interaction.add(mesh, {
     prompt: () => 'Objeto bloqueado.',
     enabled: () => door.locked,

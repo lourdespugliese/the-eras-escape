@@ -56,18 +56,6 @@ const STATUE = {
 
 // Los .glb son pesados: se cargan una sola vez (caché por url) y solo cuando el trofeo de esa era se recupera.
 const gltfLoader = new GLTFLoader();
-const modelCache = new Map();
-function loadModel(url) {
-  if (!modelCache.has(url)) modelCache.set(url, new Promise((res, rej) => gltfLoader.load(url, (g) => res(g.scene), undefined, rej)));
-  return modelCache.get(url);
-}
-async function loadStatueModel(cfg) {
-  try { return await loadModel(cfg.url); } catch (e) {
-    if (!STATUE.fallback) throw e;
-    console.warn(`[trophies] No se pudo cargar ${cfg.url}; se usa ${STATUE.fallback} como reemplazo temporal.`);
-    return loadModel(STATUE.fallback);
-  }
-}
 // Figura simple y liviana (unos cientos de triángulos) para las eras que aún no tienen su .glb. Evita dibujar 6 veces la estatua
 // completa (~430k triángulos cada una), que es lo que más cuesta en el hall.
 function buildPlaceholderStatue(hex, height) {
@@ -95,11 +83,6 @@ function fitModel(src, height) {
 
 // ---------- Materiales compartidos ----------
 const M = (color, o = {}) => new THREE.MeshStandardMaterial({ color, roughness: 0.4, metalness: 0.6, ...o });
-const marble = museumMaterial('ivory-marble');
-const gold = brassMaterial();
-const glassM = new THREE.MeshPhysicalMaterial({ color: 0xf4efdf, transparent: true, opacity: 0.2, roughness: 0.04, metalness: 0.2, depthWrite: false, envMapIntensity: 0.8, side: THREE.FrontSide });
-glassM.userData.museumGlass = true;
-const GHOST = new THREE.MeshStandardMaterial({ color: 0x1a1a22, transparent: true, opacity: 0.4, roughness: 1, metalness: 0 });
 
 function glowTex() {
   return canvasTex(128, 128, (g) => {
@@ -187,6 +170,32 @@ export function buildTrophyHall(ctx) {
   const root = new THREE.Group(); ctx.scene.add(root);
   const labelOf = (id) => (ITEMS.find((i) => i.id === id) || { label: id }).label;
   const byId = {};
+  const marble = museumMaterial('ivory-marble'), gold = brassMaterial();
+  const glassM = new THREE.MeshPhysicalMaterial({ color: 0xf4efdf, transparent: true, opacity: 0.2, roughness: 0.04, metalness: 0.2, depthWrite: false, envMapIntensity: 0.8, side: THREE.FrontSide });
+  glassM.userData.museumGlass = true;
+  const GHOST = new THREE.MeshStandardMaterial({ color: 0x1a1a22, transparent: true, opacity: 0.4, roughness: 1, metalness: 0 });
+  const modelCache = new Map();
+  const loading = new AbortController();
+  const { signal } = loading;
+  function loadModel(url) {
+    if (!modelCache.has(url)) {
+      const request = fetch(url, { signal }).then(async response => {
+        if (!response.ok) throw new Error(`No se pudo descargar ${url}: ${response.status}`);
+        const data = await response.arrayBuffer();
+        const base = new URL('.', response.url).href;
+        return (await gltfLoader.parseAsync(data, base)).scene;
+      });
+      modelCache.set(url, request);
+    }
+    return modelCache.get(url);
+  }
+  async function loadStatueModel(cfg) {
+    try { return await loadModel(cfg.url); } catch (error) {
+      if (signal.aborted || !STATUE.fallback) throw error;
+      console.warn(`[trophies] No se pudo cargar ${cfg.url}; se usa ${STATUE.fallback} como reemplazo temporal.`);
+      return loadModel(STATUE.fallback);
+    }
+  }
 
   // Pedestal + estatua de la era, al lado de la vitrina (mismo lado del hall, mirando hacia la alfombra).
   function buildStatueStand(spot) {
@@ -211,8 +220,9 @@ export function buildTrophyHall(ctx) {
     s.load = () => {
       if (s.loading) return; s.loading = true;
       if (cfg.placeholder) { holder.add(buildPlaceholderStatue(spot.hex, cfg.height || STATUE.height)); s.ready = true; return; }
-      loadStatueModel(cfg).then((src) => { holder.add(fitModel(src, cfg.height || STATUE.height)); s.ready = true; })
-        .catch((e) => console.error(`[trophies] No se pudo cargar la estatua de ${spot.era}:`, e));
+      loadStatueModel(cfg).then((src) => {
+        if (!signal.aborted) { holder.add(fitModel(src, cfg.height || STATUE.height)); s.ready = true; }
+      }).catch((e) => { if (!signal.aborted) console.error(`[trophies] No se pudo cargar la estatua de ${spot.era}:`, e); });
     };
 
     ctx.colliders.push({ minX: spot.x - 0.62, maxX: spot.x + 0.62, minZ: z - 0.62, maxZ: z + 0.62 });
@@ -298,13 +308,11 @@ export function buildTrophyHall(ctx) {
     });
   }
 
-  function markCollected(id, silent = false) {
+  function markCollected(id) {
     const v = byId[id];
     if (!v || v.state !== 'empty') return;
     v.state = 'pending';
     if (v.statue) v.statue.load();                    // empieza a descargar la estatua de esta era
-    if (silent) return;                                // ?room=N: sin aviso
-    setTimeout(() => ctx.ui.toast(`✨ ${labelOf(id)} ahora se exhibe en el Hall principal`, 4500), 3200);   // después del mensaje propio de la sala
   }
 
   function startReveal(v) {
@@ -425,9 +433,9 @@ export function buildTrophyHall(ctx) {
   }
 
   // Engancha ctx.collect: las salas siguen llamándolo igual que siempre.
-  const prevCollect = ctx.collect.bind(ctx);
-  ctx.collect = (id, opts) => { prevCollect(id); markCollected(id, opts && opts.silent); };
-  ctx.game.items.forEach((id) => markCollected(id));              // por si algo ya estaba recogido al construir
+  const prevCollect = ctx.collect;
+  ctx.collect = (id, opts) => { prevCollect.call(ctx, id, opts); markCollected(id); };
+  ctx.game.items.forEach(markCollected);
 
   ctx.updaters.push((dt, t) => {
     if (!ctx.ending && ctx.streaming && !ctx.streaming.isActive(HALL)) return;
@@ -460,5 +468,6 @@ export function buildTrophyHall(ctx) {
   });
 
   root.traverse(mapMuseumMesh);
-  return { vitrines: byId, statues: Object.fromEntries(Object.values(byId).filter((v) => v.statue).map((v) => [v.spot.id, v.statue])), reveal: (id) => { markCollected(id); } };
+  return { vitrines: byId, statues: Object.fromEntries(Object.values(byId).filter((v) => v.statue).map((v) => [v.spot.id, v.statue])), reveal: (id) => { markCollected(id); },
+    cleanup() { loading.abort(); modelCache.clear(); ctx.collect = prevCollect; cer.veil?.remove(); } };
 }

@@ -17,18 +17,18 @@ import { buildRoomReputation } from './roomreputation.js';
 import { buildIntro } from './intro.js';
 import { buildRoomLover } from './roomlover.js';
 import { buildTrophyHall } from './trophies.js';
-import { buildRoomForest } from './roomforest.js';
-import { buildRoomMidnights } from './roommidnights.js';
+import { buildForestTransition } from './forest-transition.js';
 import { createSecrets } from './secrets.js';
 import { buildSongShelf } from './songshelf.js';
 import { createVolume } from './volume.js';
 import { setupLighting } from './lighting.js';
-import { setupMuseumReflections } from './museum-materials.js';
+import { clearMuseumMaterialCache, setupMuseumReflections } from './museum-materials.js';
 import { setupHallMaterials } from './museum-hall.js';
 import { setupVisibility } from './visibility.js';
 import { setupLightBudget } from './light-budget.js';
-import { loadingStage } from './loading.js';
+import { loadingStage, nextPaint } from './loading.js';
 import { createRoomRegistry, setupStreaming } from './streaming.js';
+import { clearRoundedGeometryCache } from './surface-library.js';
 
 await loadingStage('Preparando el escenario…');
 
@@ -64,21 +64,25 @@ composer.addPass(bloomPass);
 composer.addPass(new OutputPass());
 
 const ui = new UI();
-ui.bindVolume(createVolume());       // volumen general: barra en la pausa (ESC). Debe ir ANTES de crear el AudioManager.
-const audio = new AudioManager();
 const colliders = [];
 const player = new Player(camera, canvas, colliders);
+ui.bindVolume(createVolume(player));
+const audio = new AudioManager();
 player.speed *= 1.25;   // +25% de velocidad (intro.js toma este valor como base y sigue aplicando sus propios frenos en escaleras y hall)
-const interaction = new Interaction(camera, ui);
+const interaction = new Interaction(camera, ui, player);
 const game = { items: new Set(), solved: 0 };
 
 // "ctx": contexto compartido con rooms.js y puzzles.js
 const ctx = {
-  scene, camera, colliders, ui, interaction, game, audio,
+  scene, camera, colliders, ui, interaction, game, audio, player,
   particles: new Particles(scene),
   fx: { bloom: false },
   rooms: [], updaters: [],
-  collect(id) { game.items.add(id); ui.updateInventory(game.items); },
+  collect(id, { silent } = {}) {
+    const item = !silent && !game.items.has(id) && ITEMS.find(item => item.id === id);
+    game.items.add(id); ui.updateInventory(game.items);
+    if (item) setTimeout(() => ui.toast(`✨ ${item.label} ahora se exhibe en el Hall principal`, 4500), 3200);
+  },
 };
 
 // Misión secundaria: canciones secretas (panel lateral izquierdo + vitrina del hall). Debe crearse ANTES que las salas.
@@ -87,91 +91,153 @@ ctx.secrets = createSecrets(ctx, { total: 3 });
 const registry = createRoomRegistry(ctx);
 
 await loadingStage('Despertando Fearless…');
-const room1 = registry.build('Fearless', () => {
+let room1 = registry.build('Fearless', () => {
   const room = buildFearlessRoom(ctx);
   ctx.glitter = createGlitter(ctx);
-  createFearlessPuzzle(ctx, room);
+  room.cleanup = createFearlessPuzzle(ctx, room);
   return room;
 });
 await loadingStage('Viajando a 1989…');
-const room2 = registry.build('1989', () => buildRoom1989(ctx, room1));
+let room2 = registry.build('1989', () => buildRoom1989(ctx, room1));
 await loadingStage('Descubriendo Reputation…');
-const room3 = registry.build('Reputation', () => buildRoomReputation(ctx, room2));
+let room3 = registry.build('Reputation', () => buildRoomReputation(ctx, room2));
 await loadingStage('Pintando el cielo de Lover…');
-const room4 = registry.build('Lover', () => buildRoomLover(ctx, room3));
-await loadingStage('Explorando el bosque de Folklore…');
-const room5 = registry.build('Folklore', () => buildRoomForest(ctx, room4));
-await loadingStage('Encendiendo las estrellas de Midnights…');
-const room6 = registry.build('Midnights', () => buildRoomMidnights(ctx, room5));
+let room4 = registry.build('Lover', () => buildRoomLover(ctx, room3));
+const transition = registry.build('Transición a Folklore', () => buildForestTransition(ctx, room4.bounds.minZ));
+let room5, room6;
 
 // Introducción inmersiva (exterior, hall y luz guía). Debe crearse DESPUÉS de las salas.
 // Para saltarla mientras desarrollas, abre el juego con  http://localhost:8000/?skip
 // ---- Atajos de desarrollo (por la URL) ----
 //   ?skip       salta la intro y empieza en la sala 1
-//   ?room=N     salta la intro y empieza dentro de la sala N (1-6): inventario con los objetos de las salas anteriores
+//   ?room=N     salta la intro y prepara la sala N (1-6): inventario con los objetos de las salas anteriores
+//               ?room=5 empieza en la cámara de transición, antes de entrar al bosque.
 //               y puertas anteriores abiertas. La puerta de salida de la sala N sigue cerrada (se abre al resolverla).
 //   ?perf       deja renderer, escena, cámara, composer y visibilidad en window.__perf para medir desde la consola
 const params = new URLSearchParams(location.search);
-const START_ROOM = parseInt(params.get('room'), 10) || 0;
+const START_ROOM = Math.min(parseInt(params.get('room'), 10) || 0, 6);
 const FINALE = params.has('lobby') || params.has('finale');   // ?lobby (o ?finale): empiezas en el hall con los 6 trofeos recogidos (para probar la ceremonia final)
 await loadingStage('Preparando el museo…');
-const intro = buildIntro(ctx, room1, { player, skip: params.has('skip') || START_ROOM > 0 || FINALE });
-ctx.returnToMuseum = () => intro.returnToHall();   // portal de la sala 6 -> Hall principal
+function buildMuseum(firstRoom) {
+  return registry.build('Museo', () => {
+    const sequence = buildIntro(ctx, firstRoom, { player, skip: params.has('skip') || START_ROOM > 0 || FINALE });
+    const trophies = buildTrophyHall(ctx);
+    const songs = buildSongShelf(ctx);
+    setupHallMaterials(renderer, scene, ctx);
+    setupMuseumReflections(renderer, scene, camera, ctx);
+    return {
+      bounds: { minX: -40, maxX: 40, minZ: 5, maxZ: 240 },
+      targets: [ctx.museum.hallEnvironment],
+      sequence,
+      cleanup() { sequence.cleanup(); trophies.cleanup(); songs.cleanup(); },
+    };
+  }).sequence;
+}
+let intro = buildMuseum(room1);
 
 // >>> atajo ?room=N
+function placeInRoom(room) {
+  const b = room.bounds;
+  let x = (b.minX + b.maxX) / 2; const z = b.maxZ - 1.8;
+  for (const dx of [0, 1.5, -1.5, 3, -3]) if (!player.collides(x + dx, z)) { x += dx; break; }
+  camera.position.set(x, 1.7, z);
+  camera.rotation.set(0, 0, 0);
+}
 function jumpToRoom(n, list) {
-  n = Math.min(Math.max(n, 1), list.length);
-  ITEMS.slice(0, n - 1).forEach((it) => ctx.collect(it.id, { silent: true }));          // objetos de las salas anteriores
+  if (n < 5) ITEMS.slice(0, n - 1).forEach(it => ctx.collect(it.id, { silent: true }));
   const creak = ctx.audio.creak; ctx.audio.creak = () => {};                              // sin el crujido de cada puerta
   list.slice(0, n - 1).forEach((r) => r.door.unlock());                                   // puertas anteriores abiertas
   ctx.audio.creak = creak;
-  if (n > 1) {                                                                            // la sala 1 ya es el punto de partida normal
-    const b = list[n - 1].bounds;
-    let x = (b.minX + b.maxX) / 2; const z = b.maxZ - 1.8;                                // dentro de la sala, junto a su entrada (sur), mirando al norte
-    for (const dx of [0, 1.5, -1.5, 3, -3]) if (!player.collides(x + dx, z)) { x += dx; break; }   // si hubiera un obstáculo, un poco al lado
-    camera.position.set(x, 1.7, z);
+  if (n >= 5) {
+    camera.position.set(0, 1.7, transition.centerZ - 0.01);
     camera.rotation.set(0, 0, 0);
-  }
-  console.info(`[dev] ?room=${n}: sala ${n} lista para probar`);
+  } else if (n > 1) placeInRoom(list[n - 1]);
 }
 // <<< atajo ?room=N
 
-// Vitrinas del hall: cada trofeo recuperado (ctx.collect) aparece en su vitrina.
-registry.build('Vitrinas', () => {
-  buildTrophyHall(ctx);
-  // Las canciones y sus objetos se conservan al descargar las vitrinas.
-  buildSongShelf(ctx);
-  return { bounds: ctx.rooms.find(r => /^Hall/.test(r.name)).bounds };
-});
 await loadingStage('Iluminando los recuerdos…');
 const lighting = setupLighting({ renderer, scene, camera, ctx });   // tone mapping, reflejos en metales y sombras (después de crear todo)
-setupHallMaterials(renderer, scene, ctx);
-setupMuseumReflections(renderer, scene, camera, ctx);
 // Zonas en cadena (exterior -> hall -> salas 1-6) y la puerta que une cada una con la siguiente: lo que no se ve no se dibuja.
 const hallZone = ctx.rooms.find((r) => /^Hall/.test(r.name));
 const chain = [{ name: 'exterior', bounds: { minX: -1e3, maxX: 1e3, minZ: hallZone.bounds.maxZ, maxZ: 1e3 } }, hallZone, ...ctx.rooms.filter((r) => r !== hallZone)];
-const roomDoors = [room1, room2, room3, room4, room5].map((r) => r.door);
+const roomDoors = [room1, room2, room3, room4].map((r) => r.door);
+const shadowZones = lights => lights.map(({ light, room }) => ({ light, zone: room === 'exterior' ? 0 : chain.indexOf(room) }));
 const visibility = setupVisibility({
   scene, camera, zones: chain,
-  openings: () => { const d = intro.doors; return [d.front, d.fearless, ...roomDoors.map((door) => !door.locked)]; },
-  shadowLights: lighting.shadowLights.map(({ light, room }) => ({ light, zone: room === 'exterior' ? 0 : chain.indexOf(room) })),
+  openings: () => { const d = intro?.doors; return [d?.front, d?.fearless, ...roomDoors.map(door => door && !door.locked)]; },
+  shadowLights: shadowZones([...lighting.roomShadows(ctx.rooms), ...lighting.museumShadows()]),
 });
 const lightBudget = setupLightBudget({ renderer, scene, camera, target: composer.readBuffer, zone: () => visibility.current });   // después de visibility: usa su zona y los reflejos activos
-// Museum and trophies share materials with the rooms. The streaming manager
-// protects shared resources and restores the existing objects when returning.
-const museumGroup = new THREE.Group(); museumGroup.name = 'stream-museum';
-scene.add(museumGroup); museumGroup.add(ctx.museum.root);
-registry.entries.push({ name: 'Museo', group: museumGroup, bounds: { minX: -40, maxX: 40, minZ: 5, maxZ: 240 }, resident: true });
 ctx.streaming = setupStreaming({ scene, camera, renderer, entries: registry.entries,
   ready: () => lightBudget.ready,
+  forget: objects => { visibility.forget(objects); lightBudget.forget(objects); },
   invalidate: () => { visibility.invalidate(); lightBudget.invalidate(); },
 });
-if (params.has('perf')) window.__perf = { renderer, scene, camera, composer, ctx, player, visibility, lightBudget, streaming: ctx.streaming };
+async function loadForest() {
+  ui.setRoom('Transición a Folklore');
+  transition.message('Dejando atrás el museo…');
+  await nextPaint();
+  await lightBudget.initialReady;
+  ctx.streaming.discard(['Fearless', '1989', 'Reputation', 'Lover', 'Museo']);
+  intro = room1 = room2 = room3 = room4 = null;
+  roomDoors.fill(null, 0, 4);
+  ctx.museum = ctx.glitter = null;
+  clearMuseumMaterialCache();
+  clearRoundedGeometryCache();
+  if (START_ROOM >= 5) ITEMS.slice(0, START_ROOM - 1).forEach(it => ctx.collect(it.id, { silent: true }));
 
-ui.onStart(() => { audio.start(); player.lock(); });   // el audio necesita un click del usuario
-let devJumped = false;
-player.controls.addEventListener('lock', () => {
-  audio.start(); ui.showGame(true); intro.onLock();
+  transition.message('La puerta se abrirá en breve');
+  await nextPaint();
+  const [{ buildRoomForest }, { buildRoomMidnights }] = await Promise.all([import('./roomforest.js'), import('./roommidnights.js')]);
+  const firstNewZone = ctx.rooms.length;
+  room5 = registry.build('Folklore', () => buildRoomForest(ctx, transition));
+  await nextPaint();
+  room6 = registry.build('Midnights', () => buildRoomMidnights(ctx, room5));
+  const newZones = ctx.rooms.slice(firstNewZone);
+  chain.push(...newZones);
+  roomDoors.push(room5.door);
+  lighting.scan();
+  visibility.addShadows(shadowZones(lighting.roomShadows(newZones)));
+  registry.entries.find(entry => entry.name === 'Midnights').available = () => !room5.door.locked;
+  ctx.streaming.refresh();
+  ctx.streaming.update();
+
+  await Promise.all([room5.materials.ready, room6.materials.ready]);
+  const forest = registry.entries.find(entry => entry.name === 'Folklore');
+  await lightBudget.prepare('noche', forest.group);
+  transition.open();
+}
+function updateTransition(dt) {
+  const wasOpening = transition.phase === 'opening';
+  transition.update(dt, !!room4 && !room4.door.locked, () => {
+    loadForest().catch(error => {
+      console.error('[Folklore] No se pudo preparar el bosque:', error);
+      transition.fail('No pudimos preparar el bosque. Recargá la página para volver a intentar.');
+    });
+  });
+  if (START_ROOM === 6 && wasOpening && transition.phase === 'open') {
+    room5.door.unlock();
+    placeInRoom(room6);
+  }
+}
+ctx.returnToMuseum = () => {
+  if (!intro) {
+    intro = buildMuseum(null);
+    visibility.addShadows(shadowZones(lighting.museumShadows()));
+    ctx.streaming.refresh();
+  }
+  intro.returnToHall();
+};
+if (params.has('perf')) window.__perf = { renderer, scene, camera, composer, ctx, player, visibility, lightBudget, streaming: ctx.streaming, transition };
+
+ui.onStart(() => { audio.start(); player.start(); });   // el audio necesita un click del usuario
+let devJumped = false, dragHintShown = false;
+player.addEventListener('play', () => {
+  ui.showGame(true); intro?.onLock();
+  if (player.mode === 'drag' && !dragHintShown) {
+    dragHintShown = true;
+    ui.toast('Arrastrá el mouse para mirar. WASD para moverte y Esc para pausar.', 5500);
+  }
   if (FINALE && !devJumped) {                                                                // atajo de prueba ?lobby / ?finale
     devJumped = true;
     try {
@@ -179,22 +245,23 @@ player.controls.addEventListener('lock', () => {
       intro.returnToHall();                                                                 // aparece en el hall
     } catch (e) { console.error('[dev] ?lobby falló:', e); ui.toast('[dev] ?lobby falló: ' + (e && e.message ? e.message : e), 12000); }
   }
-  if (START_ROOM > 0 && !devJumped) { devJumped = true; jumpToRoom(START_ROOM, [room1, room2, room3, room4, room5, room6]); }   // después de intro.onLock(), que coloca la cámara en la sala 1
+  if (START_ROOM > 0 && !devJumped) { devJumped = true; jumpToRoom(START_ROOM, [room1, room2, room3, room4]); }
 });
-player.controls.addEventListener('unlock', () => { audio.pause(); ui.showGame(false); });
+player.addEventListener('pause', () => { audio.pause(); ui.showGame(false); });
 
 const clock = new THREE.Clock();
 function animate() {
   requestAnimationFrame(animate);
   const dt = Math.min(clock.getDelta(), 0.1), t = clock.elapsedTime;
-  if (player.controls.isLocked) {
-    if (!intro.blockMove() && !ctx.ending) player.update(dt);      // durante la intro solo se mueve la cámara hasta tomar el sobre
-    if (!ctx.ending) interaction.update();          // ctx.ending = final del juego (ceremonia de trophies.js): sin movimiento ni interacción
+  if (player.playing) {
+    if (!intro?.blockMove() && !ctx.ending && !transition.busy) player.update(dt);
+    if (!ctx.ending && !transition.busy) interaction.update();
     const p = camera.position;
     const r = ctx.rooms.find((r) => p.x > r.bounds.minX && p.x < r.bounds.maxX && p.z > r.bounds.minZ && p.z < r.bounds.maxZ);
     if (r) ui.setRoom(r.name);
   }
   ctx.updaters.forEach((fn) => fn(dt, t));
+  updateTransition(dt);
   // After updaters: teleports and the final return to the museum happen here.
   ctx.streaming.update(dt);
   ctx.particles.update(dt);

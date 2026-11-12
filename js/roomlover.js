@@ -8,7 +8,7 @@
 // EASTER EGG: cuando el corazón premio sale del cofre y se posa en el pedestal, dentro del cofre abierto aparece un
 // toca discos secreto que reproduce una canción de assets/audio.
 import * as THREE from 'three';
-import { createRoom, createDoor, addWall, canvasTex, makeTextTexture, makeButterfly, flap, DOOR_H, WALL_H } from './rooms.js';
+import { createRoom, createDoor, canvasTex, makeButterfly, flap, DOOR_H, WALL_H } from './rooms.js';
 import { addBox, addTube, neon, makeSign } from './room1989.js';
 import { createGlitter } from './glitter.js';
 import { createLoverMaterials } from './lover-materials.js';
@@ -18,7 +18,6 @@ import { roundedGeometry, physicalUV } from './surface-library.js';
 const TAU = Math.PI * 2;
 const SIZE = 12;                       // lado de la sala
 const TUNNEL = 7;                      // largo del túnel (entre el centro de la pared norte de la sala 3 y el de la pared sur de esta sala)
-const HALL_OUT = 4;                    // pasillo (provisional) hacia la sala 5
 const PINK = 0xff7ab8, PINK_D = 0xff4fa3, BLUE = 0x8fd3ff, LILAC = 0xc9a8ff;
 const clamp = THREE.MathUtils.clamp;
 // Canción del toca discos secreto del cofre. Copia tu archivo de audio en esa ruta (relativa a index.html).
@@ -228,27 +227,12 @@ export function buildRoomLover(ctx, room3) {
   createGlitter(ctx, { count: 160, size: { x: 11, y: 3.6, z: 11 }, center: [0, 0, CZ], color: 0xff9ccd }).uniforms.uIntensity.value = 0.55;
   createGlitter(ctx, { count: 100, size: { x: 11, y: 3.6, z: 11 }, center: [0, 0, CZ], color: 0x9fd8ff }).uniforms.uIntensity.value = 0.45;
 
-  // --- Puerta de salida (norte) + pasillo provisional hacia la siguiente era ---
+  // --- Puerta de salida hacia la cámara de transición ---
   const doorZ = CZ - half;
   const door = createDoor(ctx, { x: 0, z: doorZ, width: room.doorWidth });
   door.mesh.material=materials.pearl(0xe2c1d1,{emissive:0x1c1018});
   addTube(g, 0.07, DOOR_H, 0.07, PINK_D, -1.56, DOOR_H / 2, -half + 0.02, 1.6); addTube(g, 0.07, DOOR_H, 0.07, PINK_D, 1.56, DOOR_H / 2, -half + 0.02, 1.6);
   addTube(g, 3.2, 0.07, 0.07, PINK_D, 0, DOOR_H, -half + 0.02, 1.6);
-  const hallMat = mat(0xf3b5d0, { roughness: 1, emissive: 0x4a2a38 });
-  addWall(ctx, abs, -1.6, doorZ - HALL_OUT / 2, 0.2, HALL_OUT, hallMat);
-  addWall(ctx, abs, 1.6, doorZ - HALL_OUT / 2, 0.2, HALL_OUT, hallMat);
-  const endCol = ctx.colliders.length;
-  addWall(ctx, abs, 0, doorZ - HALL_OUT, 3.4, 0.2, hallMat);               // pared del fondo: la sala 5 llama a openHall() y la quita
-  const hallEnd = { mesh: abs.children[abs.children.length - 1], col: ctx.colliders[endCol] };
-  const hallFloor = new THREE.Mesh(new THREE.PlaneGeometry(3, HALL_OUT), mat(0xffeaf3));
-  hallFloor.rotation.x = -Math.PI / 2; hallFloor.position.set(0, 0.005, doorZ - HALL_OUT / 2);
-  const hallCeil = hallFloor.clone(); hallCeil.rotation.x = Math.PI / 2; hallCeil.position.y = 4;
-  const hallSign = new THREE.Mesh(new THREE.PlaneGeometry(2.8, 0.9), new THREE.MeshBasicMaterial({
-    map: makeTextTexture('El amor también cambia de forma... la siguiente era te espera.', { w: 640, h: 200, color: '#b0306a', font: '32px Georgia' }), transparent: true }));
-  hallSign.position.set(0, 2, doorZ - HALL_OUT + 0.12);
-  const hallLight = new THREE.PointLight(0xffb3d9, 0, 9); hallLight.position.set(0, 3, doorZ - 2);
-  abs.add(hallFloor, hallCeil, hallSign, hallLight);
-  let hallBase = 0;
 
   // ================= Animación y luces (cada frame) =================
   ctx.updaters.push((dt, t) => {
@@ -264,8 +248,6 @@ export function buildRoomLover(ctx, room3) {
     if (door3.opening) tunnelOn = Math.min(1, tunnelOn + dt * 0.8);
     const beat = 0.8 + 0.2 * Math.pow(Math.sin(t * 3), 2), tl = clamp((z - (hallStart - TUNNEL - 3)) / 3, 0, 1);
     tLights.forEach((l) => (l.intensity = 16 * tunnelOn * tl * beat));
-    if (door.opening) hallBase = Math.min(10, hallBase + dt * 4);
-    hallLight.intensity = hallBase * lights.mute;
     if (ctx.streaming && !ctx.streaming.isActive(room.bounds)) return;
     ribs.forEach((r) => r.m.color.set(PINK_D).multiplyScalar(2.2 * (0.35 + 0.65 * (0.5 + 0.5 * Math.sin(t * 3.5 - r.i * 0.9)))));   // pulso que avanza hacia la sala 4
     tHearts.forEach((o) => {
@@ -283,13 +265,7 @@ export function buildRoomLover(ctx, room3) {
 
   });
 
-  // Abre el final del pasillo hacia la sala 5 (bosque): quita la pared del fondo y su cartel. El resto del pasillo se queda.
-  const openHall = () => {
-    abs.remove(hallEnd.mesh, hallSign);
-    const i = ctx.colliders.indexOf(hallEnd.col); if (i >= 0) ctx.colliders.splice(i, 1);
-  };
-
-  return { ...room, door, lights, openHall, materials, propsRoot:g, tunnel, architecture };
+  return { ...room, door, lights, materials, propsRoot:g, tunnel, architecture };
 }
 
 // ============================================================================================================

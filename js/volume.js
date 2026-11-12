@@ -18,7 +18,7 @@ function load(key) {
 }
 function save(key, v) { try { localStorage.setItem(key, String(v)); } catch (e) { /* ignorado */ } }
 
-export function createVolume() {
+export function createVolume(player) {
   let fx = load(KEY_FX), music = load(KEY_MUSIC);
   const fxGain = () => fx * fx, musicGain = () => music * music;
 
@@ -105,8 +105,9 @@ export function createVolume() {
   const refreshMusic = makeRow('vol-music', 'Canciones', KEY_MUSIC, () => music, (v) => { music = clamp01(v); }, applyMusic);
 
   // Visibles cuando el cursor está libre (pantalla de inicio o pausa con ESC); ocultas mientras se juega.
-  const sync = () => box.classList.toggle('on', !document.pointerLockElement);
-  document.addEventListener('pointerlockchange', sync);
+  const sync = () => box.classList.toggle('on', !player.playing);
+  player.addEventListener('play', sync);
+  player.addEventListener('pause', sync);
   sync();
 
   return {

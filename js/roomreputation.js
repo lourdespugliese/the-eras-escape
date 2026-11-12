@@ -439,7 +439,7 @@ export function buildRoomReputation(ctx, room2) {
   });
   let swingStart = -9, swingHit = true, nowRef = 0;
   const swing = () => { if (!batHeld || nowRef - swingStart < SWING_DUR + 0.05) return; swingStart = nowRef; swingHit = false; ctx.audio.swoosh(); };
-  document.addEventListener('mousedown', (e) => { if (e.button === 0 && document.pointerLockElement) swing(); });   // clic izquierdo (solo con el juego activo)
+  ctx.player.addEventListener('attack', swing);
   const aimDir = new THREE.Vector3(), aimV = new THREE.Vector3();
   function doHit() {                                      // a mitad del golpe: ¿hay una serpiente cerca de la mira, al alcance?
     ctx.camera.getWorldDirection(aimDir);
@@ -661,5 +661,6 @@ export function buildRoomReputation(ctx, room2) {
     abs.remove(hallFloor, hallCeil, hallSign, hallLight);
   };
 
-  return { ...room, door, lights, removeHall, materials, propsRoot: g };
+  return { ...room, door, lights, removeHall, materials, propsRoot: g,
+    cleanup() { ctx.player.removeEventListener('attack', swing); } };
 }

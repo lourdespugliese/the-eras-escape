@@ -1,20 +1,63 @@
 // player.js — Cámara en primera persona, teclado y colisiones.
 import * as THREE from 'three';
-import { PointerLockControls } from 'three/addons/controls/PointerLockControls.js';
 
-export class Player {
+export class Player extends THREE.EventDispatcher {
   constructor(camera, domElement, colliders) {
+    super();
     this.camera = camera;
+    this.canvas = domElement;
     this.colliders = colliders;           // lista de cajas {minX,maxX,minZ,maxZ}
-    this.controls = new PointerLockControls(camera, domElement); // mouse -> mirar
     this.speed = 4;                        // metros por segundo
     this.sprintMult = 1.85;                 // multiplicador al mantener Shift (se compone con speed, que otras partes ajustan)
     this.radius = 0.35;                   // "grosor" del jugador para las colisiones
     this.keys = {};
+    this.mode = null;
+    this._lockPending = false;
+    this._useDrag = false;
+    this._look = new THREE.Euler(0, 0, 0, 'YXZ');
 
-    addEventListener('keydown', (e) => (this.keys[e.code] = true));
+    addEventListener('keydown', (e) => {
+      if (e.code === 'Escape' && this.mode === 'drag') this._setMode(null);
+      if (this.playing) this.keys[e.code] = true;
+    });
     addEventListener('keyup', (e) => (this.keys[e.code] = false));
     addEventListener('blur', () => (this.keys = {}));
+    const doc = domElement.ownerDocument;
+    doc.addEventListener('pointerlockchange', () => {
+      if (doc.pointerLockElement === domElement) {
+        this._lockPending = false;
+        this._setMode('locked');
+      } else if (this.mode === 'locked') this._setMode(null);
+    });
+    doc.addEventListener('pointerlockerror', () => this._startDrag());
+    doc.addEventListener('mousemove', e => {
+      if (this.mode === 'locked') this._turn(e.movementX, e.movementY);
+    });
+    domElement.addEventListener('mousedown', e => {
+      if (this.mode === 'locked' && e.button === 0) this.dispatchEvent({ type: 'attack' });
+    });
+    domElement.addEventListener('pointerdown', e => {
+      if (this.mode !== 'drag' || e.button !== 0 || this._drag) return;
+      this._drag = { id: e.pointerId, x: e.clientX, y: e.clientY, distance: 0 };
+      domElement.setPointerCapture(e.pointerId);
+    });
+    domElement.addEventListener('pointermove', e => {
+      const drag = this._drag;
+      if (drag?.id !== e.pointerId) return;
+      const dx = e.clientX - drag.x, dy = e.clientY - drag.y;
+      drag.distance += Math.hypot(dx, dy);
+      drag.x = e.clientX; drag.y = e.clientY;
+      this._turn(dx, dy);
+    });
+    domElement.addEventListener('pointerup', e => {
+      const drag = this._drag;
+      if (drag?.id !== e.pointerId) return;
+      this._drag = null;
+      if (drag.distance < 5) this.dispatchEvent({ type: 'attack' });
+    });
+    domElement.addEventListener('lostpointercapture', e => {
+      if (this._drag?.id === e.pointerId) this._drag = null;
+    });
 
     // Vectores reutilizables (evita crear objetos nuevos en cada frame).
     this._fwd = new THREE.Vector3();
@@ -22,7 +65,47 @@ export class Player {
     this._move = new THREE.Vector3();
   }
 
-  lock() { this.controls.lock(); }
+  get playing() { return this.mode !== null; }
+
+  start() {
+    if (this.playing || this._lockPending) return;
+    this._lockPending = true;
+    if (this._useDrag || !this.canvas.requestPointerLock) {
+      this._startDrag();
+      return;
+    }
+    try { this.canvas.requestPointerLock()?.catch(() => this._startDrag()); }
+    catch { this._startDrag(); }
+  }
+
+  _startDrag() {
+    if (!this._lockPending) return;
+    this._lockPending = false;
+    this._useDrag = true;
+    this._setMode('drag');
+  }
+
+  _setMode(mode) {
+    const wasPlaying = this.playing;
+    this.mode = mode;
+    this.canvas.classList.toggle('drag-look', mode === 'drag');
+    if (!this.playing) {
+      this.keys = {};
+      if (this._drag) {
+        const { id } = this._drag;
+        this._drag = null;
+        if (this.canvas.hasPointerCapture(id)) this.canvas.releasePointerCapture(id);
+      }
+    }
+    if (this.playing !== wasPlaying) this.dispatchEvent({ type: this.playing ? 'play' : 'pause' });
+  }
+
+  _turn(dx, dy) {
+    this._look.setFromQuaternion(this.camera.quaternion);
+    this._look.y -= dx * 0.002;
+    this._look.x = THREE.MathUtils.clamp(this._look.x - dy * 0.002, -Math.PI / 2, Math.PI / 2);
+    this.camera.quaternion.setFromEuler(this._look);
+  }
 
   // ¿El círculo del jugador en (x,z) toca alguna caja? (colisión círculo-rectángulo)
   collides(x, z) {

@@ -5,6 +5,7 @@ import { Reflector } from 'three/addons/objects/Reflector.js';
 const SIZE = 512;
 const cache = new Map();
 const pending = [];
+export function clearMuseumMaterialCache() { cache.clear(); pending.length = 0; }
 function canvas() { const c = document.createElement('canvas'); c.width = c.height = SIZE; return c; }
 function texture(c, color = false) {
   const t = new THREE.CanvasTexture(c);

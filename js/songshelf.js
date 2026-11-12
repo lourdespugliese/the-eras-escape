@@ -92,10 +92,14 @@ export function buildSongShelf(ctx) {
     if (animate) ctx.particles.burst(root.localToWorld(new THREE.Vector3(slot.sg.position.x, 2.1, 0.4)), 30, { speed: 0.8, up: 1 });
   }
   const byId = Object.fromEntries(slots.map((s) => [s.def.id, s]));
-  ctx.secrets?.onAdd((id, info) => { if (byId[id]) reveal(byId[id], info, true); });
+  for (const slot of slots) {
+    const info = ctx.secrets?.get(slot.def.id);
+    if (info) reveal(slot, info, false);
+  }
+  const unsubscribe = ctx.secrets?.onAdd((id, info) => { if (byId[id]) reveal(byId[id], info, true); });
 
   ctx.updaters.push((dt, t) => {
-    if (ctx.streaming?.entries.find(e => e.name === 'Vitrinas')?.resident === false) return;
+    if (ctx.streaming?.entries.find(e => e.name === 'Museo')?.resident === false) return;
     slots.forEach((s, i) => {
       if (!s.found) return;
       if (s.t < 1) { s.t = Math.min(1, s.t + dt / 1.1); s.holder.scale.setScalar(Math.max(0.01, ease(s.t))); } else s.holder.scale.setScalar(1);
@@ -103,5 +107,5 @@ export function buildSongShelf(ctx) {
       s.glow.material.opacity = 0.5 + 0.2 * Math.sin(t * 2 + i);
     });
   });
-  return { slots };
+  return { slots, cleanup() { unsubscribe?.(); } };
 }

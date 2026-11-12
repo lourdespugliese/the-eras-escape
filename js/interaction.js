@@ -2,7 +2,7 @@
 import * as THREE from 'three';
 
 export class Interaction {
-  constructor(camera, ui) {
+  constructor(camera, ui, player) {
     this.camera = camera;
     this.ui = ui;
     this.items = [];                     // objetos interactivos registrados
@@ -11,7 +11,7 @@ export class Interaction {
     this.raycaster.far = 3;              // distancia máxima de interacción (metros)
 
     addEventListener('keydown', (e) => {
-      if (e.code === 'KeyE' && this.current) this.current.onInteract();
+      if (e.code === 'KeyE' && player.playing && this.current) this.current.onInteract();
     });
   }
 
@@ -25,6 +25,14 @@ export class Interaction {
     mesh.userData.interactable = item;
     this.items.push(item);
     return item;
+  }
+
+  remove(items) {
+    if (items.has(this.current)) {
+      this.current = null;
+      this.ui.setPrompt('');
+    }
+    this.items = this.items.filter(item => !items.has(item));
   }
 
   // Se llama en cada frame.

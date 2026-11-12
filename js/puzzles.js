@@ -347,4 +347,5 @@ export function createFearlessPuzzle(ctx, room) {
       if (rise >= 1) ready = true;
     }
   });
+  return () => clips.dispose();
 }

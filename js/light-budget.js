@@ -23,7 +23,8 @@ const SCAN_EVERY = 1.5;            // s: busca luces nuevas
 export function setupLightBudget({ renderer, scene, camera, target = null, zone = () => 0, start = START }) {
   const kinds = new Map();                       // tipo -> { lights: [], dummies: [] }
   const tables = new Map();                      // grupo -> { tipo: huecos }
-  const seen = new WeakSet(), reflectors = [];
+  const seen = new WeakSet();
+  let reflectors = [];
   const kindOf = (l) => l.type + (l.castShadow ? '*' : '') + (l.map ? '+map' : '');
   const kind = (k) => { if (!kinds.has(k)) kinds.set(k, { lights: [], dummies: [] }); return kinds.get(k); };
   for (const [key, t] of Object.entries(start)) { tables.set(key, { ...t }); Object.keys(t).forEach(kind); }
@@ -93,40 +94,65 @@ export function setupLightBudget({ renderer, scene, camera, target = null, zone 
   // Dibuja una vez toda la escena desde arriba, en pequeño y con todo visible: el driver termina de preparar cada shader
   // en su primer dibujo (ANGLE/Direct3D), y así ese costo no aparece al entrar por primera vez en una zona.
   let warmCam = null, warmTarget = null;
-  function warm() {
-    if (!warmCam) {
-      const box = new THREE.Box3().setFromObject(scene), c = box.getCenter(new THREE.Vector3()), size = box.getSize(new THREE.Vector3());
-      const half = Math.min(Math.max(size.x, size.z) / 2 + 1, 400);
-      warmCam = new THREE.OrthographicCamera(-half, half, half, -half, 0.1, Math.min(size.y, 800) + 20);
-      warmCam.position.set(c.x, Math.min(box.max.y, 400) + 10, c.z); warmCam.lookAt(c.x, c.y, c.z); warmCam.updateMatrixWorld();
+  function overview(root) {
+    const box = new THREE.Box3().setFromObject(root), c = box.getCenter(new THREE.Vector3()), size = box.getSize(new THREE.Vector3());
+    const half = Math.min(Math.max(size.x, size.z) / 2 + 1, 400);
+    const view = new THREE.OrthographicCamera(-half, half, half, -half, 0.1, Math.min(size.y, 800) + 20);
+    view.position.set(c.x, Math.min(box.max.y, 400) + 10, c.z); view.lookAt(c.x, c.y, c.z); view.updateMatrixWorld();
+    return view;
+  }
+  function warm(view, shadows = false) {
+    if (!warmTarget) {
       warmTarget = target ? target.clone() : new THREE.WebGLRenderTarget(1, 1); warmTarget.setSize(64, 64);
     }
     const hidden = [];
     scene.traverse((o) => { if ((o.isMesh || o.isPoints || o.isLine || o.isSprite) && !(o.layers.mask & 1)) { hidden.push([o, o.layers.mask]); o.layers.mask |= 1; } });
-    const previous = renderer.getRenderTarget(), shadows = renderer.shadowMap.autoUpdate;
-    renderer.shadowMap.autoUpdate = false;                                // los mapas de sombras no cambian por esto
-    renderer.setRenderTarget(warmTarget); renderer.render(scene, warmCam); renderer.setRenderTarget(previous);
-    renderer.shadowMap.autoUpdate = shadows;
-    for (const [o, mask] of hidden) o.layers.mask = mask;
+    const previous = renderer.getRenderTarget(), shadowMap = renderer.shadowMap;
+    const { autoUpdate, needsUpdate } = shadowMap;
+    shadowMap.autoUpdate = false;
+    shadowMap.needsUpdate = shadows;
+    try { renderer.setRenderTarget(warmTarget); renderer.render(scene, view); }
+    finally {
+      renderer.setRenderTarget(previous);
+      shadowMap.autoUpdate = autoUpdate; shadowMap.needsUpdate = needsUpdate;
+      for (const [o, mask] of hidden) o.layers.mask = mask;
+    }
+  }
+
+  async function prepare(key, root = null) {
+    const sizes = tables.get(key);
+    scan();
+    apply(sizes, () => false);
+    const previous = renderer.getRenderTarget();
+    renderer.setRenderTarget(target);
+    let compilation;
+    try { compilation = renderer.compileAsync(scene, camera); }
+    finally { renderer.setRenderTarget(previous); }
+    await compilation;
+    apply(sizes, light => root && light.intensity !== 0);
+    warm(root ? overview(root) : (warmCam ||= overview(scene)), !!root);
   }
 
   // Precompila en segundo plano los programas de cada tabla (los compiladores de la GPU trabajan en paralelo).
   async function precompile() {
     const keys = [...tables.keys()].filter((k) => k !== ALL).sort((a, b) => (b === state.key) - (a === state.key));   // la actual primero
     for (const key of keys) {
-      const sizes = tables.get(key);
-      apply(sizes, () => false);
-      const previous = renderer.getRenderTarget();
-      renderer.setRenderTarget(target);                                   // misma variante de shader que al dibujar (composer)
-      const ready = renderer.compileAsync(scene, camera);                 // compile() es síncrono; la espera, no
-      renderer.setRenderTarget(previous);
-      await ready;
-      apply(sizes, () => false); warm();
+      await prepare(key);
       state.precompiled.push(key);
     }
   }
 
-  const state = { enabled: true, ready: false, key: null, active: {}, tables, grown: 0, precompiled: [], invalidate() { t = SCAN_EVERY; } };
+  let finishInitial;
+  const initialReady = new Promise(resolve => { finishInitial = resolve; });
+  const state = {
+    enabled: true, ready: false, key: null, active: {}, tables, grown: 0, precompiled: [],
+    initialReady, prepare,
+    forget(removed) {
+      reflectors = reflectors.filter(o => !removed.has(o));
+      for (const kind of kinds.values()) kind.lights = kind.lights.filter(light => !removed.has(light));
+    },
+    invalidate() { t = SCAN_EVERY; },
+  };
   let t = SCAN_EVERY, frames = 0;
   const clock = new THREE.Clock();
   const previous = scene.onBeforeRender;
@@ -135,7 +161,7 @@ export function setupLightBudget({ renderer, scene, camera, target = null, zone 
     if (cam !== camera) return;
     t += clock.getDelta();
     if (t >= SCAN_EVERY) { t = 0; scan(); }
-    if (++frames === 3) precompile().catch((e) => console.warn('[luces] precompilación:', e)).finally(() => { state.ready = true; });
+    if (++frames === 3) precompile().catch((e) => console.warn('[luces] precompilación:', e)).finally(() => { state.ready = true; finishInitial(); });
 
     if (!state.enabled) {                                                 // para comparar: todas las luces, como antes
       for (const K of kinds.values()) { K.lights.forEach((l) => { l.layers.mask = 1; }); K.dummies.forEach((l) => { l.layers.mask = 0; }); }

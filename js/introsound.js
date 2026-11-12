@@ -44,9 +44,13 @@ export function createIntroSound(audio) {
 
   // ---- Zumbido grave del museo (silencio con eco del edificio) ----
   const droneG = c.createGain(); droneG.gain.value = 0; droneG.connect(bus);
-  [55, 82.4].forEach((f) => { const o = c.createOscillator(); o.frequency.value = f; o.connect(droneG); o.start(); });
+  const drones = [55, 82.4].map((f) => { const o = c.createOscillator(); o.frequency.value = f; o.connect(droneG); o.start(); return o; });
 
   return {
+    dispose() {
+      for (const source of [windSrc, rainSrc, lfo, ...drones]) source.stop();
+      fb.disconnect(); bus.disconnect();
+    },
     // level 0..1: cuánto "exterior" se oye (lluvia y viento)
     outdoor(level) {
       windG.gain.setTargetAtTime(0.2 * level, c.currentTime, 0.5);

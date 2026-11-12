@@ -51,6 +51,11 @@ export function createSongClips(ctx) {
 
   return {
     stop,
+    dispose() {
+      stop();
+      for (const pending of cache.values()) pending.then(url => { if (url) URL.revokeObjectURL(url); });
+      cache.clear();
+    },
     preload(song) { load(song.clip.url); },
 
     async play(song) {

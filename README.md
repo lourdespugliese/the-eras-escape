@@ -25,15 +25,17 @@ Se activan añadiendo un parámetro a la URL. No afectan al juego normal: sin pa
 |---|---|
 | `http://localhost:8000/?skip` | Salta la intro y empieza en la sala 1. |
 | `http://localhost:8000/?room=N` | Salta la intro y empieza **dentro de la sala N** (N = 1 a 4). |
+| `http://localhost:8000/?room=5` | Empieza en la cámara de transición. La salida se abre cuando Folklore está preparado. |
+| `http://localhost:8000/?room=6` | Pasa por la cámara de transición y te lleva a Midnights. |
 
 Ejemplo para probar la sala Lover: `http://localhost:8000/?room=4`
 (con Live Server de VS Code: `http://127.0.0.1:5500/?room=4`).
-Después hay que pulsar **COMENZAR JUEGO** como siempre; el salto ocurre en ese momento.
+Pulsá **Comenzar la historia** para activar el atajo.
 
 Con `?room=N` el juego deja todo como si ya hubieras pasado las salas anteriores:
 - El inventario trae los objetos de las salas anteriores.
-- Las puertas de las salas anteriores están abiertas, así que se puede volver atrás caminando.
-- Apareces dentro de la sala N, junto a su entrada y mirando hacia el interior.
+- En las salas 1 a 4, las puertas anteriores quedan abiertas y aparecés junto a la entrada de la sala elegida.
+- La cámara de Folklore cierra el paso hacia Lover y descarga las salas anteriores antes de abrir la salida al bosque.
 - La puerta de **salida** de la sala N sigue cerrada: se abre al resolver su acertijo.
 
 Notas:

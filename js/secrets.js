@@ -42,19 +42,21 @@ export function createSecrets(ctx, { total = 2 } = {}) {
   document.body.appendChild(panel);
 
   const found = new Map();
-  const listeners = [];                                   // otros módulos (p. ej. la vitrina del hall) se enteran de cada hallazgo
+  const listeners = new Set();                            // otros módulos se enteran de cada hallazgo
   const refreshHead = () => { head.textContent = `Canciones secretas ${found.size}/${total}`; };
   refreshHead();
 
-  // El panel se muestra solo mientras se juega (cursor bloqueado) y una vez hallada la primera canción.
+  // El panel se muestra solo mientras se juega y una vez hallada la primera canción.
   let active = 0;                                         // tarjetas visibles ahora mismo (cada una se muestra solo ~5 s)
-  const sync = () => panel.classList.toggle('on', active > 0 && !!document.pointerLockElement);
-  document.addEventListener('pointerlockchange', sync);
+  const sync = () => panel.classList.toggle('on', active > 0 && ctx.player.playing);
+  ctx.player.addEventListener('play', sync);
+  ctx.player.addEventListener('pause', sync);
 
   return {
     count: () => found.size,
     has: (id) => found.has(id),
-    onAdd: (fn) => listeners.push(fn),
+    get: (id) => found.get(id),
+    onAdd(fn) { listeners.add(fn); return () => listeners.delete(fn); },
     add(id, { icon = 'vinyl', era = '', title = '' } = {}) {
       if (found.has(id)) return false;
       found.set(id, { icon, era, title });

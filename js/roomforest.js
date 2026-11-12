@@ -31,7 +31,7 @@ import { roundedGeometry, physicalUV } from './surface-library.js';
 import { partitionInstances } from './spatial-instances.js';
 
 const W = 40, D = 32;                  // 1280 m² (la sala Lover mide 12 × 12 = 144 m²). Medidas pares: la rejilla de 1 m queda alineada
-const HALL = 4;                        // pasillo entre la puerta de Lover y el bosque (= HALL_OUT de roomlover.js)
+const HALL = 4;                        // pasillo de salida hacia Midnights
 const TALL = 14;                       // altura de las paredes / cielo del bosque
 const clamp = THREE.MathUtils.clamp, lerp = THREE.MathUtils.lerp;
 const smooth = (a, b, x) => { const k = clamp((x - a) / (b - a), 0, 1); return k * k * (3 - 2 * k); };
@@ -200,7 +200,7 @@ const signTex = (lines, w, h, { bg = '#3a2818', fg = '#f3d38a', font = 'bold 40p
 });
 
 // ================= Lector de cartas (panel HTML) y fundido =================
-function makeReader() {
+function makeReader(player) {
   const none = { open: false, key: null, show() {}, hide() {}, toggle() {} };
   if (typeof document === 'undefined' || !document.body || !document.createElement) return none;
   const el = document.createElement('div');
@@ -218,7 +218,7 @@ function makeReader() {
     hide() { r.open = false; r.key = null; el.style.display = 'none'; },
     toggle(key, title, text) { if (r.open && r.key === key) r.hide(); else r.show(key, title, text); },
   };
-  document.addEventListener('pointerlockchange', () => { if (!document.pointerLockElement) r.hide(); });
+  player.addEventListener('pause', () => r.hide());
   return r;
 }
 function makeFade() {
@@ -230,12 +230,9 @@ function makeFade() {
 }
 
 // ================= SALA =================
-export function buildRoomForest(ctx, room4) {
+export function buildRoomForest(ctx, { entryZ, exitZ: southZ }) {
   const cam = ctx.camera.position, scene = ctx.scene;
-  const doorZ4 = room4.bounds.minZ;                       // puerta norte de Lover (mundo)
-  const southZ = doorZ4 - HALL;                           // pared sur del bosque (mundo)
   const CZ = southZ - D / 2;                              // centro del bosque (mundo)
-  room4.openHall();                                       // quita la pared del fondo del pasillo de Lover
   const bounds = { minX: -W / 2, maxX: W / 2, minZ: CZ - D / 2, maxZ: CZ + D / 2 };
   ctx.rooms.push({ name: 'Habitación 5 — Folklore / Evermore', bounds });
 
@@ -251,7 +248,7 @@ export function buildRoomForest(ctx, room4) {
   const hit = (w, h, d, x, y, z) => { const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), new THREE.MeshBasicMaterial({ visible: false })); m.position.set(x, y, z); return m; };
   const box = (w, h, d, m, x, y, z, p = g) => { const o = new THREE.Mesh(roundedGeometry(w,h,d,.018), m); o.position.set(x, y, z); p.add(o); return o; };
   const cyl = (rt, rb, h, m, x, y, z, seg = 10, p = g) => { const o = new THREE.Mesh(new THREE.CylinderGeometry(rt, rb, h, seg), m===materials.trunk?[m,materials.cutWood,materials.cutWood]:m); o.position.set(x, y, z); p.add(o); return o; };
-  const reader = makeReader(), fade = makeFade();
+  const reader = makeReader(ctx.player), fade = makeFade();
   const { walk, X: cellX, Z: cellZ } = layout();
 
   const glowTex = canvasTex(128, 128, (c) => {
@@ -832,20 +829,19 @@ export function buildRoomForest(ctx, room4) {
   ctx.updaters.push((dt, t) => {
     const z = cam.z, x = cam.x;
     // ---- luces entre salas (igual que en las otras salas) ----
-    room4.lights.mute = clamp((z - southZ) / HALL, 0.04, 1);                                // Lover se apaga a lo largo del pasillo
-    const k5 = clamp((doorZ4 - 1 - z) / 3, 0, 1), base = k5 * lights.mute;
+    const k5 = clamp((entryZ - 1 - z) / 3, 0, 1), base = k5 * lights.mute;
     ambient.intensity = 0.55 * base; hemi.intensity = 0.55 * base; moon.intensity = 0.5 * base;
     // ---- niebla global: se espesa al entrar al bosque ----
     const fog = scene.fog;
     if (fog) {
       if (!baseFog) baseFog = { near: fog.near, far: fog.far, color: fog.color.clone() };
-      const fk = clamp((doorZ4 - 0.5 - z) / 3.5, 0, 1);
+      const fk = clamp((entryZ - 0.5 - z) / 3.5, 0, 1);
       fogCol.copy(FOG_C).lerp(FOG_W, 1 - smooth(-9, -3, x)).lerp(FOG_E, smooth(3, 9, x));
       fog.near = lerp(baseFog.near, 2.5, fk); fog.far = lerp(baseFog.far, 26, fk); fog.color.copy(baseFog.color).lerp(fogCol, fk);
     }
     hallBase = door.opening ? Math.min(8, hallBase + dt * 4) : hallBase; hallLight.intensity = hallBase * lights.mute;
     // ---- lo demás solo se calcula cerca del bosque ----
-    const active = z < doorZ4 + 0.5 && z > bounds.minZ - HALL - 2;
+    const active = z < entryZ + 0.5 && z > bounds.minZ - HALL - 2;
     if (!active) {
       pool.forEach((p) => (p.l.intensity = 0));
       if (snd) snd.gain.gain.setTargetAtTime(0, snd.c.currentTime, .2);
@@ -865,7 +861,7 @@ export function buildRoomForest(ctx, room4) {
     falls.forEach((f) => f(dt, t)); fireflies(t); flyJar(t, dt);
     if (reader.open) { if (!readerAt) readerAt = cam.clone(); else if (cam.distanceTo(readerAt) > 3) { reader.hide(); readerAt = null; } } else readerAt = null;     // el papel se cierra solo si te alejas
     // aviso al llegar al claro
-    if (!welcomed && z < southZ + 3) { welcomed = true; ctx.ui.toast('Un bosque que se divide en tres caminos. Al oeste, una cabaña con luz; al este, un sendero nevado; al norte, solo niebla.', 7000); }
+    if (!welcomed && z < southZ - 0.5) { welcomed = true; ctx.ui.toast('Un bosque que se divide en tres caminos. Al oeste, una cabaña con luz; al este, un sendero nevado; al norte, solo niebla.', 7000); }
     // cabaña: cajón que se desliza
     if (drawerT > 0 && drawerT < 1) { drawerT = Math.min(1, drawerT + dt / 0.9); drawer.position.z = 0.5 * (1 - Math.pow(1 - drawerT, 3)); }
     // sendero: progreso, trampas de niebla y canto del lago
