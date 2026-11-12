@@ -11,6 +11,9 @@ import { buildMuseumPremiere } from './museum-premiere.js';
 import { buildMuseumCornice } from './museum-cornice.js';
 import { buildHallLighting } from './museum-hall.js';
 import { buildCorinthianColumns } from './museum-columns.js';
+import { buildMuseumWaterfront } from './museum-waterfront.js';
+import { buildMuseumSky } from './museum-sky.js';
+import { buildMuseumGarden } from './museum-garden.js';
 import { buildMuseumNeon } from './museum-neon.js';
 
 // ================= Medidas del mundo =================
@@ -105,6 +108,7 @@ function safeSound(make) {
 
 export function buildIntro(ctx, room1, { player, skip = false } = {}) {
   const { scene, camera } = ctx;
+  const finalHall = !room1;
   const root = new THREE.Group(); scene.add(root);
   const introColliderStart = ctx.colliders.length;                                   // para poder quitar luego los colisionadores del lobby
   const introItems = [];                                                             // objetos interactivos del exterior y del lobby
@@ -253,32 +257,17 @@ export function buildIntro(ctx, room1, { player, skip = false } = {}) {
     return { geo, base: geo.attributes.position.array.slice(), phase: i * 1.7 };
   });
 
-  // Setos y árboles oscuros alrededor de la plaza
-  const hedgeM = M(0x0e1a14);
-  slab(HCX - 19.4, HCX - 19, GROUND, GROUND + 1.8, 25, 62, hedgeM, true); slab(HCX + 19, HCX + 19.4, GROUND, GROUND + 1.8, 25, 62, hedgeM, true);
-  slab(HCX - 19.4, HCX + 19.4, GROUND, GROUND + 1.8, 62, 62.4, hedgeM, true);
-  const treeTrunk = M(0x1a120c), treeLeaf = M(0x0c1a12);
-  for (let i = 0; i < 16; i++) {
-    const side = i % 2 ? 1 : -1, x = HCX + side * (24 + Math.random() * 8), z = 30 + Math.floor(i / 2) * 5 + Math.random() * 2, h = 4 + Math.random() * 2;
-    const tr = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.3, h, 6), treeTrunk); tr.position.set(x, GROUND + h / 2, z);
-    const cn = new THREE.Mesh(new THREE.ConeGeometry(1.8, h * 1.2, 8), treeLeaf); cn.position.set(x, GROUND + h + h * 0.4, z); root.add(tr, cn);
-  }
+  // Bordes bajos para dejar a la vista los jardines y las farolas.
+  slab(HCX - 19.4, HCX - 19, GROUND, GROUND + 0.38, 25, 62, stepStone, true);
+  slab(HCX + 19, HCX + 19.4, GROUND, GROUND + 0.38, 25, 62, stepStone, true);
+  const nearBank = 62.4;
+  slab(HCX - 19.4, HCX + 19.4, GROUND, GROUND + 0.12, 62, nearBank, stepStone, true);
+  const garden = buildMuseumGarden({
+    root, centerX: HCX, ground: GROUND, colliders: ctx.colliders, glow: glowTexture('255,203,133'),
+  });
 
-  // Cielo: estrellas, luna y las luces lejanas de la ciudad
-  const starPos = new Float32Array(500 * 3);
-  for (let i = 0; i < 500; i++) { const a = Math.random() * TAU, e = 0.12 + Math.random() * 1.4, r = 320; starPos[i * 3] = HCX + Math.cos(a) * Math.cos(e) * r; starPos[i * 3 + 1] = Math.sin(e) * r; starPos[i * 3 + 2] = 20 + Math.sin(a) * Math.cos(e) * r; }
-  const starsGeo = new THREE.BufferGeometry(); starsGeo.setAttribute('position', new THREE.BufferAttribute(starPos, 3));
-  root.add(new THREE.Points(starsGeo, new THREE.PointsMaterial({ color: 0xcfd8ff, size: 1.6, sizeAttenuation: false, transparent: true, opacity: 0.55, fog: false })));
-  const moonMap = new THREE.TextureLoader().load('assets/textures/museum/full-moon.webp', () => { moon.visible = true; });
-  moonMap.colorSpace = THREE.SRGBColorSpace;
-  const moon = new THREE.Sprite(new THREE.SpriteMaterial({ map: moonMap, transparent: true, alphaTest: 0.05, fog: false, toneMapped: false }));
-  moon.name = 'museum-moon';
-  moon.visible = false;
-  moon.scale.setScalar(48); moon.position.set(110, 150, -120); root.add(moon);
-  const cityPos = new Float32Array(260 * 3);
-  for (let i = 0; i < 260; i++) { const cl = i % 4; cityPos[i * 3] = HCX - 170 + cl * 90 + (Math.random() - 0.5) * 70; cityPos[i * 3 + 1] = GROUND + 1 + Math.random() * 14; cityPos[i * 3 + 2] = 190 + Math.random() * 90; }
-  const cityGeo = new THREE.BufferGeometry(); cityGeo.setAttribute('position', new THREE.BufferAttribute(cityPos, 3));
-  root.add(new THREE.Points(cityGeo, new THREE.PointsMaterial({ color: 0xffd9a0, size: 2.2, sizeAttenuation: false, transparent: true, opacity: 0.7, fog: false })));
+  const sky = buildMuseumSky(root);
+  const waterfront = buildMuseumWaterfront(root, HCX, GROUND, nearBank);
 
   // Lluvia suave
   const RN = 450, rainPos = new Float32Array(RN * 6), rain = [];
@@ -334,8 +323,8 @@ export function buildIntro(ctx, room1, { player, skip = false } = {}) {
   const frontCol = { minX: DOOR_X - 2, maxX: DOOR_X + 2, minZ: FZ - 0.3, maxZ: FZ + 0.3 };
   ctx.colliders.push(frontCol);
   addItem(frontDoor, {
-    prompt: () => (frontLocked ? 'Objeto bloqueado.' : 'Presiona E para abrir.'),
-    enabled: () => (phase === 'walk' && !doorOpen) || frontLocked,
+    prompt: () => finalHall ? 'Presiona E para abrir la salida.' : frontLocked ? 'Objeto bloqueado.' : 'Presiona E para abrir.',
+    enabled: () => (!doorOpen && (phase === 'walk' || finalHall)) || frontLocked,
     onInteract: () => {
       if (frontLocked) { ctx.ui.toast('La puerta se cerró detrás de ti. Ya no hay vuelta atrás.', 3200); return; }
       setPhase('doorOpening'); doorTarget = 1.85; doorOpen = true; sound.creak(6); setTimeout(() => sound.boom(), 400);
@@ -344,7 +333,7 @@ export function buildIntro(ctx, room1, { player, skip = false } = {}) {
 
   // ================= HALL PRINCIPAL =================
   const hallBounds = { minX: HX0, maxX: HX1, minZ: HZ0, maxZ: FZ - 0.2 };
-  if (room1) ctx.rooms.push({ name: 'Hall principal', bounds: hallBounds });
+  if (!ctx.rooms.some(room => room.name === 'Hall principal')) ctx.rooms.push({ name: 'Hall principal', bounds: hallBounds });
   const hallFloor = new THREE.Mesh(new THREE.PlaneGeometry(HX1 - HX0, FZ - HZ0), checkerMaterial());
   hallFloor.rotation.x = -Math.PI / 2; hallFloor.position.set(HCX, 0, (FZ + HZ0) / 2); root.add(hallFloor);
   slab(FD_L, FD_R, -0.02, 0.004, 4.8, 5.4, marble);                                                                 // umbral de la puerta de Fearless
@@ -352,13 +341,25 @@ export function buildIntro(ctx, room1, { player, skip = false } = {}) {
   for (let x = HX0 + 3; x < HX1; x += 5) slab(x - 0.25, x + 0.25, HALL_H - 0.6, HALL_H, HZ0, FZ, hallBeam);   // vigas
   slab(HX0 - 0.2, HX0 + 0.2, 0, HALL_H, 5.2, FZ + 0.2, hallWall, true);                                            // pared oeste
   slab(HX1 - 0.2, HX1 + 0.2, 0, HALL_H, 4.8, FZ + 0.2, hallWall, true);                                            // pared este
-  // En el regreso desde Midnights ya no existe la pared sur de Fearless.
-  // El hall reconstruido aporta sus propios muros y colisiones hasta el marco.
-  const northLeft = room1 ? -5.2 : FD_L;
-  const northRight = room1 ? 9.2 : FD_R;
-  slab(HX0 - 0.2, northLeft, 0, HALL_H, 4.8, 5.2, hallWall, true);
-  slab(northRight, HX1 + 0.2, 0, HALL_H, 4.8, 5.2, hallWall, true);
-  slab(northLeft, northRight, room1 ? 4 : FD_H, HALL_H, 4.8, 5.2, hallWall);
+  if (finalHall) {
+    // Una sola superficie de yeso alrededor de la puerta, con UVs continuas.
+    const outline = new THREE.Shape([
+      [HX0 - 0.2, 0], [FD_L, 0], [FD_L, FD_H], [FD_R, FD_H],
+      [FD_R, 0], [HX1 + 0.2, 0], [HX1 + 0.2, HALL_H], [HX0 - 0.2, HALL_H],
+    ].map(([x, y]) => new THREE.Vector2(x, y)));
+    const northWall = new THREE.Mesh(new THREE.ExtrudeGeometry(outline, { depth: 0.4, bevelEnabled: false }), hallWall);
+    northWall.position.z = 4.8;
+    northWall.userData.noReceiveShadow = true;
+    root.add(northWall);
+    ctx.colliders.push(
+      { minX: HX0 - 0.2, maxX: FD_L, minZ: 4.8, maxZ: 5.2 },
+      { minX: FD_R, maxX: HX1 + 0.2, minZ: 4.8, maxZ: 5.2 },
+    );
+  } else {
+    slab(HX0 - 0.2, -5.2, 0, HALL_H, 4.8, 5.2, hallWall, true);
+    slab(9.2, HX1 + 0.2, 0, HALL_H, 4.8, 5.2, hallWall, true);
+    slab(-5.2, 9.2, 4, HALL_H, 4.8, 5.2, hallWall);
+  }
   for (const x of [HX0 + 1, HX1 - 1]) for (const z of [9, 13, 17, 21]) {                                        // columnas
     const c = new THREE.Mesh(new THREE.CylinderGeometry(0.45, 0.5, HALL_H, 16), marble); c.position.set(x, HALL_H / 2, z); root.add(c);
     c.userData.noReceiveShadow = true;
@@ -560,6 +561,8 @@ export function buildIntro(ctx, room1, { player, skip = false } = {}) {
     if (ctx.streaming?.entries.find(e => e.name === 'Museo')?.resident === false) return;
     // ----- Animaciones del mundo (siempre) -----
     const cam = camera.position;
+    sky.update(t);
+    waterfront.update(t);
     for (let i = 0; i < RN; i++) {                                                // lluvia
       const d = rain[i]; d.y -= 13 * dt; if (d.y < GROUND) d.y += 16;
       const x = cam.x + ((((d.x - cam.x) % 44) + 66) % 44) - 22, z = cam.z + ((((d.z - cam.z) % 44) + 66) % 44) - 22;
@@ -589,6 +592,7 @@ export function buildIntro(ctx, room1, { player, skip = false } = {}) {
     premiere.update(dt, t, smooth(FZ, FZ + 1.2, z));
     cornice.update(smooth(FZ, FZ + 1.2, z));
     neon.update(smooth(FZ, FZ + 1.2, z));
+    garden.update(out);
     hallAtmosphere.update(inZone * (1 - out));
     ambient.color.setRGB(0.8 + 0.2 * (1 - out), 0.82 + 0.05 * (1 - out), 0.9 - 0.22 * (1 - out));
     ambient.intensity = inZone * (0.22 * out + 0.045 * (1 - out));
@@ -609,6 +613,7 @@ export function buildIntro(ctx, room1, { player, skip = false } = {}) {
     if (!locked() || !started) return;                                           // pausa o antes de empezar: se congela la secuencia
 
     it += dt; phaseT += dt;
+    if (finalHall && z >= FZ) ctx.ui.setRoom('Exterior del museo');
     sound.outdoor(out * Math.min(1, it / 3));
     sound.drone(smooth(FZ - 1, FZ - 4, z) * (1 - smooth(4.5, 3, z)) * (fOpen || phase === 'hall' || phase === 'guide' || phase === 'done' ? 1 : 0));
     // altura del suelo (escalera) y velocidad
@@ -656,7 +661,9 @@ export function buildIntro(ctx, room1, { player, skip = false } = {}) {
       case 'doorOpening': {
         doorAngle += (doorTarget - doorAngle) * Math.min(1, dt * 0.55);
         if (doorAngle > 0.6) frontCol.minZ = frontCol.maxZ = -999;               // ya se puede pasar
-        if (z < FZ - 1.4) {                                                      // el jugador entró: la puerta se cierra sola
+        if (finalHall) {
+          if (doorAngle > 1.8) setPhase('done');
+        } else if (z < FZ - 1.4) {                                               // el jugador entró: la puerta se cierra sola
           setPhase('hall'); doorTarget = 0; frontLocked = true; Object.assign(frontCol, { minZ: FZ - 0.3, maxZ: FZ + 0.3 });   // se cierra y se bloquea YA
           hudMode('full'); ctx.ui.setPrompt('');
         }
@@ -753,31 +760,21 @@ export function buildIntro(ctx, room1, { player, skip = false } = {}) {
     fClosing = fClosed = true; sealEntrance();
   }
 
-  // Portal de la sala 6: devuelve al jugador al Hall principal. Al entrar en Fearless la entrada se "selló" (sealEntrance) y el hall
-  // dejó de existir; aquí vuelve a dibujarse, con sus colisionadores y su luz, y el jugador aparece frente a la estatua.
+  // Entrada al hall reconstruido tras cruzar el portal de Midnights.
   function returnToHall() {
-    if (!room1) {
-      sound = safeSound(() => createIntroSound(ctx.audio));
-      started = done = lanternOff = true;
-      phase = 'done';
-      env.visible = envHalo.visible = false;
-    }
-    if (gone) {
-      gone = false;
-      mine.forEach((c) => { if (!ctx.colliders.includes(c)) ctx.colliders.push(c); });
-      introItems.forEach((m) => (m.visible = true));
-      root.visible = true;
-    }
-    // las puertas quedan como las dejó la secuencia: la principal cerrada y bloqueada, la de Fearless cerrada
-    doorAngle = 0; doorTarget = 0; doorOpen = false; frontLocked = true; Object.assign(frontCol, { minZ: FZ - 0.3, maxZ: FZ + 0.3 });
-    fAngle = fTarget = 0; fL.rotation.y = fR.rotation.y = 0; Object.assign(fCol, { minZ: 4.85, maxZ: 5.15 });
+    if (started) return;
+    sound = safeSound(() => createIntroSound(ctx.audio));
+    started = done = plaqueShown = true;
+    setPhase('done');
+    env.visible = envHalo.visible = false;
     // atmósfera del museo (las salas intermedias cambian la niebla, el fondo y el bloom)
     scene.background = new THREE.Color(0x070b14);
     if (!scene.fog) scene.fog = new THREE.Fog(0x070b14, 40, 170); else { scene.fog.color.set(0x070b14); scene.fog.near = 40; scene.fog.far = 170; }
     ctx.fx.bloom = false;
     camera.position.set(HCX, 1.7, 23.2); camera.rotation.set(0, 0, 0); lastX = camera.position.x; lastZ = camera.position.z;
     hudMode('full'); player.speed = baseSpeed;
-    ctx.ui.toast('Has vuelto al museo. Los recuerdos que recuperaste descansan en sus vitrinas.', 7000);
+    ctx.ui.setRoom('Hall principal');
+    ctx.ui.toast('Has vuelto al museo. Podés ver tus recuerdos o salir por la puerta principal.', 7000);
   }
 
   return {
@@ -791,8 +788,8 @@ export function buildIntro(ctx, room1, { player, skip = false } = {}) {
     hudMode() { return phase === 'hall' || phase === 'guide' || phase === 'done' || skip ? 'full' : 'minimal'; },
     blockMove() { return !canMove() && !skip; },
     onLock() {
+      if (started || finalHall) return;
       if (!sound) sound = safeSound(() => createIntroSound(ctx.audio));
-      if (started) return;
       started = true;
       if (skip) { finishInstant(); return; }
       if (hallStart) {                                                              // ?hall: ya dentro del hall, con la puerta principal cerrada
