@@ -184,9 +184,15 @@ export function buildMuseumPremiere({ root, colliders, centerX = 2, ground = -1.
     update(dt, time, outside) {
       // Desactivar los haces al entrar evita que el humo atraviese el techo del hall.
       fixtures.forEach(({ swivel, beam, halo, side, index }) => {
-        direction.set(side * (index === 0 ? 0.28 : -0.3) + Math.sin(time * 0.16 + index) * 0.035, 1, -0.12).normalize();
-        swivel.quaternion.setFromUnitVectors(UP, direction);
         beam.visible = outside > 0.02; halo.visible = beam.visible;
+        if (!beam.visible) return;
+        // Cada pareja abre y cruza sus haces; el otro lado entra un poco después.
+        const phase = time * 0.52 + (side > 0 ? 0.85 : 0);
+        const swing = index === 0 ? 1 : -1;
+        const lateral = side * swing * (0.04 + Math.sin(phase) * 0.50);
+        const depth = -0.13 + Math.cos(phase + index * 0.9) * 0.18;
+        direction.set(lateral, 1, depth).normalize();
+        swivel.quaternion.setFromUnitVectors(UP, direction);
         beam.material.uniforms.strength.value = 0.2 * outside;
         halo.material.opacity = 0.85 * outside;
       });

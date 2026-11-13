@@ -271,11 +271,39 @@ export function buildIntro(ctx, room1, { player, skip = false } = {}) {
 
   // Lluvia suave
   const RN = 450, rainPos = new Float32Array(RN * 6), rain = [];
-  for (let i = 0; i < RN; i++) rain.push({ x: START.x + (Math.random() - 0.5) * 44, z: START.z + (Math.random() - 0.5) * 44, y: GROUND + Math.random() * 16 });
+  for (let i = 0; i < RN; i++) rain.push({ x: START.x + (Math.random() - 0.5) * 44, z: START.z + (Math.random() - 0.5) * 44, y: GROUND + Math.random() * 16, speed: 11 + Math.random() * 5, length: 0.20 + Math.random() * 0.25 });
   const rainGeo = new THREE.BufferGeometry(); rainGeo.setAttribute('position', new THREE.BufferAttribute(rainPos, 3));
   const rainMesh = new THREE.LineSegments(rainGeo, new THREE.LineBasicMaterial({ color: 0x9fb4d6, transparent: true, opacity: 0.32, fog: false }));
   rainMesh.name = 'museum-rain';
   rainMesh.frustumCulled = false; root.add(rainMesh);
+  // Un único grupo de anillos reutilizables para los impactos visibles.
+  const impactCount = 48, impacts = Array.from({ length: impactCount }, () => ({ age: 1 }));
+  const impactMesh = new THREE.InstancedMesh(new THREE.RingGeometry(0.82, 1, 12),
+    new THREE.MeshBasicMaterial({ color: 0x8cacc4, transparent: true, opacity: 0.48, depthWrite: false, side: THREE.DoubleSide, fog: false }), impactCount);
+  impactMesh.name = 'museum-rain-impacts';
+  impactMesh.frustumCulled = false;
+  const impactPose = new THREE.Object3D(), impactColor = new THREE.Color();
+  impactPose.rotation.x = -Math.PI / 2;
+  impactPose.scale.setScalar(0.0001); impactPose.updateMatrix();
+  for (let i = 0; i < impactCount; i++) impactMesh.setMatrixAt(i, impactPose.matrix);
+  impactMesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+  root.add(impactMesh);
+  let nextImpact = 0;
+
+  const dropletsPerImpact = 3;
+  const splashPositions = new Float32Array(impactCount * dropletsPerImpact * 6);
+  const splashColors = new Float32Array(splashPositions.length);
+  const splashGeometry = new THREE.BufferGeometry();
+  splashGeometry.setAttribute('position', new THREE.BufferAttribute(splashPositions, 3).setUsage(THREE.DynamicDrawUsage));
+  splashGeometry.setAttribute('color', new THREE.BufferAttribute(splashColors, 3).setUsage(THREE.DynamicDrawUsage));
+  splashGeometry.setDrawRange(0, 0);
+  const splashMesh = new THREE.LineSegments(splashGeometry, new THREE.LineBasicMaterial({
+    color: 0xc3d9ec, vertexColors: true, transparent: true, opacity: 0.58,
+    blending: THREE.AdditiveBlending, depthWrite: false, fog: false,
+  }));
+  splashMesh.name = 'museum-rain-splashes';
+  splashMesh.frustumCulled = false;
+  root.add(splashMesh);
 
   // Hojas secas que cruzan el camino
   const leafM = new THREE.MeshStandardMaterial({ color: 0x8a5120, emissive: 0x2a1608, side: THREE.DoubleSide });
@@ -564,12 +592,63 @@ export function buildIntro(ctx, room1, { player, skip = false } = {}) {
     sky.update(t);
     waterfront.update(t);
     for (let i = 0; i < RN; i++) {                                                // lluvia
-      const d = rain[i]; d.y -= 13 * dt; if (d.y < GROUND) d.y += 16;
+      const d = rain[i]; d.y -= d.speed * dt;
       const x = cam.x + ((((d.x - cam.x) % 44) + 66) % 44) - 22, z = cam.z + ((((d.z - cam.z) % 44) + 66) % 44) - 22;
+      if (d.y < GROUND) {
+        const waterHit = z >= nearBank && z < 212 && Math.abs(x - HCX) < 240;
+        const plazaHit = z >= 35 && z < 62 && Math.abs(x - HCX) < 19 && Math.abs(x - HCX) > 1.8;
+        if (cam.z > FZ && (waterHit || plazaHit)) {
+          const hit = impacts[nextImpact++ % impactCount];
+          hit.x = x; hit.z = z; hit.y = GROUND + (waterHit ? 0.035 : 0.025);
+          hit.age = 0; hit.water = waterHit;
+          hit.angle = Math.random() * TAU;
+        }
+        d.y += 16;
+      }
       const sheltered = z > HZ0 && z < 29 && Math.abs(x - HCX) < 18.4 && d.y < HALL_H + 1;
-      rainPos.set(sheltered ? [0, -100, 0, 0, -100, 0] : [x, d.y, z, x + 0.03, d.y + 0.38, z + 0.02], i * 6);
+      rainPos.set(sheltered ? [0, -100, 0, 0, -100, 0] : [x, d.y, z, x + 0.03, d.y + d.length, z + 0.02], i * 6);
     }
     rainGeo.attributes.position.needsUpdate = true;
+    let splashOffset = 0;
+    for (let i = 0; i < impactCount; i++) {
+      const hit = impacts[i];
+      hit.age += dt;
+      const life = Math.min(hit.age / 0.65, 1);
+      impactPose.position.set(hit.x || 0, hit.y || GROUND, hit.z || 0);
+      impactPose.scale.setScalar(life < 1 ? 0.015 + life * (hit.water ? 0.20 : 0.11) : 0.0001);
+      impactPose.updateMatrix();
+      impactMesh.setMatrixAt(i, impactPose.matrix);
+      impactMesh.setColorAt(i, impactColor.setRGB(1 - life, 1 - life, 1 - life));
+
+      if (hit.age >= 0.33) continue;
+      for (let j = 0; j < dropletsPerImpact; j++) {
+        const lift = (hit.water ? 1.08 : 0.82) + j * 0.22;
+        const lifetime = lift / 4.6;
+        if (hit.age >= lifetime) continue;
+        const angle = hit.angle + j * TAU / dropletsPerImpact;
+        const spread = 0.70 - j * 0.14;
+        const vx = Math.cos(angle) * spread, vz = Math.sin(angle) * spread;
+        const tail = Math.max(0, hit.age - 0.028);
+        const brightness = 1 - hit.age / lifetime;
+        // Cada trazo sigue un arco corto hasta volver a tocar la superficie.
+        splashPositions[splashOffset] = hit.x + vx * tail;
+        splashPositions[splashOffset + 1] = hit.y + tail * (lift - 4.6 * tail);
+        splashPositions[splashOffset + 2] = hit.z + vz * tail;
+        splashPositions[splashOffset + 3] = hit.x + vx * hit.age;
+        splashPositions[splashOffset + 4] = hit.y + hit.age * (lift - 4.6 * hit.age);
+        splashPositions[splashOffset + 5] = hit.z + vz * hit.age;
+        splashColors.fill(brightness * 0.36, splashOffset, splashOffset + 3);
+        splashColors.fill(brightness, splashOffset + 3, splashOffset + 6);
+        splashOffset += 6;
+      }
+    }
+    impactMesh.instanceMatrix.needsUpdate = true;
+    impactMesh.instanceColor.needsUpdate = true;
+    splashGeometry.setDrawRange(0, splashOffset / 3);
+    if (splashOffset) {
+      splashGeometry.attributes.position.needsUpdate = true;
+      splashGeometry.attributes.color.needsUpdate = true;
+    }
     leaves.forEach((l, i) => {                                                    // hojas secas
       l.x += l.v * dt; if (l.x > HCX + 22) l.x = HCX - 19; l.ph += dt * 3;
       l.m.position.set(l.x, GROUND + 0.04 + Math.abs(Math.sin(l.ph)) * 0.12, l.z + Math.sin(t * 0.7 + i) * 0.8); l.m.rotation.z = l.ph;
@@ -608,6 +687,9 @@ export function buildIntro(ctx, room1, { player, skip = false } = {}) {
     }
     const rainOutside = smooth(FZ, FZ + 1.2, z);
     rainMesh.visible = rainOutside > 0.02; rainMesh.material.opacity = 0.32 * rainOutside;
+    impactMesh.visible = rainMesh.visible;
+    splashMesh.visible = rainMesh.visible && splashOffset > 0;
+    splashMesh.material.opacity = 0.58 * rainOutside;
     sparkles.visible = envHalo.visible;
     if (dbgEl && ++dbgN % 6 === 0) dbgEl.textContent = debugText(cam);
     if (!locked() || !started) return;                                           // pausa o antes de empezar: se congela la secuencia
