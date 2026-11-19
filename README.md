@@ -27,6 +27,7 @@ Se activan añadiendo un parámetro a la URL. No afectan al juego normal: sin pa
 | `http://localhost:8000/?room=N` | Salta la intro y empieza **dentro de la sala N** (N = 1 a 4). |
 | `http://localhost:8000/?room=5` | Empieza en la cámara de transición. La salida se abre cuando Folklore está preparado. |
 | `http://localhost:8000/?room=6` | Pasa por la cámara de transición y te lleva a Midnights. |
+| `http://localhost:8000/?finale` | Abre el hall final con los seis trofeos. Podés abrir la salida con E y caminar hasta la fachada. |
 
 Durante el juego, pulsá **Ctrl + Alt + F** para activar o desactivar el vuelo libre. Usá **WASD** para moverte, el mouse para mirar, **Espacio** para subir, **Ctrl** para bajar y **Shift** para acelerar.
 

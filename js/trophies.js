@@ -424,6 +424,20 @@ export function buildTrophyHall(ctx) {
     });
     if (!cer.finale) return;
     cer.t += dt; const T = cer.t, g = Math.min(1, T / 8), ge = g * g;
+    if (T >= 17) {
+      mainHalo.visible = false;
+      beams.forEach(b => { b.grp.visible = false; });
+      const fade = Math.min(1, (T - 17) / 1.5);
+      cer.veil.style.opacity = String(1 - fade);
+      if (fade === 1) {
+        cer.veil.remove();
+        cer.veil = null;
+        cer.lines = [];
+        cer.finale = ctx.ending = false;
+        ctx.ui.toast('Podés salir por la puerta principal.', 5000);
+      }
+      return;
+    }
     _m.lookAt(ctx.camera.position, MAIN_POS, _up); _q.setFromRotationMatrix(_m);       // la cámara se gira suavemente hacia la estatua
     ctx.camera.quaternion.slerp(_q, 1 - Math.exp(-2 * dt));
     mainHalo.material.opacity = Math.min(1, T / 1.2) * (0.5 + 0.5 * ge); mainHalo.scale.setScalar(4 + 46 * ge);
