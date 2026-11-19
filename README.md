@@ -28,6 +28,8 @@ Se activan añadiendo un parámetro a la URL. No afectan al juego normal: sin pa
 | `http://localhost:8000/?room=5` | Empieza en la cámara de transición. La salida se abre cuando Folklore está preparado. |
 | `http://localhost:8000/?room=6` | Pasa por la cámara de transición y te lleva a Midnights. |
 
+Durante el juego, pulsá **Ctrl + Alt + F** para activar o desactivar el vuelo libre. Usá **WASD** para moverte, el mouse para mirar, **Espacio** para subir, **Ctrl** para bajar y **Shift** para acelerar.
+
 Ejemplo para probar la sala Lover: `http://localhost:8000/?room=4`
 (con Live Server de VS Code: `http://127.0.0.1:5500/?room=4`).
 Pulsá **Comenzar la historia** para activar el atajo.

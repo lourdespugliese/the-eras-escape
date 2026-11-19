@@ -695,6 +695,16 @@ export function buildIntro(ctx, room1, { player, skip = false } = {}) {
     splashMesh.material.opacity = 0.58 * rainOutside;
     sparkles.visible = envHalo.visible;
     if (dbgEl && ++dbgN % 6 === 0) dbgEl.textContent = debugText(cam);
+    if (player.devMode) {
+      started = done = true;
+      phase = 'done';
+      orbPhase = 'gone';
+      fadeEl.style.display = 'none';
+      veil.classList.remove('show');
+      veil.style.display = 'none';
+      hudMode('full');
+      return;
+    }
     if (!locked() || !started) return;                                           // pausa o antes de empezar: se congela la secuencia
 
     it += dt; phaseT += dt;

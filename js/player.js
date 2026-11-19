@@ -14,6 +14,7 @@ export class Player extends THREE.EventDispatcher {
     this.mode = null;
     this._lockPending = false;
     this._useDrag = false;
+    this.devMode = false;
     this._look = new THREE.Euler(0, 0, 0, 'YXZ');
 
     addEventListener('keydown', (e) => {
@@ -122,22 +123,30 @@ export class Player extends THREE.EventDispatcher {
     const k = this.keys;
     const forward = (k.KeyW ? 1 : 0) - (k.KeyS ? 1 : 0);
     const side = (k.KeyD ? 1 : 0) - (k.KeyA ? 1 : 0);
-    if (!forward && !side) return;
+    const vertical = this.devMode ? (k.Space ? 1 : 0) - (k.ControlLeft || k.ControlRight ? 1 : 0) : 0;
+    if (!forward && !side && !vertical) return;
 
-    // Dirección hacia donde mira la cámara, aplanada al suelo (sin volar).
+    // En vuelo, WASD sigue la inclinación de la cámara para subir y bajar mirando.
     this.camera.getWorldDirection(this._fwd);
-    this._fwd.y = 0;
+    if (!this.devMode) this._fwd.y = 0;
     this._fwd.normalize();
     this._right.crossVectors(this._fwd, this.camera.up);
 
     this._move.set(0, 0, 0)
       .addScaledVector(this._fwd, forward)
       .addScaledVector(this._right, side)
+      .addScaledVector(this.camera.up, vertical)
       .normalize()
-      .multiplyScalar(this.speed * (k.ShiftLeft || k.ShiftRight ? this.sprintMult : 1) * dt);
+      .multiplyScalar(this.devMode
+        ? this.speed * (k.ShiftLeft || k.ShiftRight ? 5 : 2.5) * dt
+        : this.speed * (k.ShiftLeft || k.ShiftRight ? this.sprintMult : 1) * dt);
 
-    // Se prueba cada eje por separado: así el jugador "desliza" por las paredes.
     const p = this.camera.position;
+    if (this.devMode) {
+      p.add(this._move);
+      return;
+    }
+    // Se prueba cada eje por separado: así el jugador "desliza" por las paredes.
     if (!this.collides(p.x + this._move.x, p.z)) p.x += this._move.x;
     if (!this.collides(p.x, p.z + this._move.z)) p.z += this._move.z;
   }

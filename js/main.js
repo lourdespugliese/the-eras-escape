@@ -260,12 +260,13 @@ ctx.streaming = setupStreaming({ scene, camera, renderer, entries: registry.entr
   ready: () => lightBudget.ready,
   currentStage,
   canSeeNext: stage => {
+    if (player.devMode) return true;
     if (stage === -1) return intro?.doors.fearless;
     if (stage === 4) return transition?.phase === 'open';
     const door = stageRooms[stage]?.door;
     return door && !door.locked;
   },
-  canSeeMuseum: () => !intro?.sealed,
+  canSeeMuseum: () => !intro?.sealed || player.devMode,
   forget: objects => { visibility.forget(objects); lightBudget.forget(objects); },
   invalidate: () => { visibility.invalidate(); lightBudget.invalidate(); },
 });
@@ -345,6 +346,17 @@ ctx.returnToMuseum = () => {
 };
 if (params.has('perf')) window.__perf = { renderer, scene, camera, composer, ctx, player, visibility, lightBudget, streaming: ctx.streaming, get transition() { return transition; } };
 
+addEventListener('keydown', (event) => {
+  if (event.code !== 'KeyF' || !event.ctrlKey || !event.altKey || event.repeat || !player.playing) return;
+  event.preventDefault();
+  event.stopPropagation();
+  player.devMode = !player.devMode;
+  player.keys = {};
+  ui.toast(player.devMode
+    ? 'Vuelo libre activado. WASD mueve, mouse mira, Espacio sube, Ctrl baja, Shift acelera. Ctrl + Alt + F para salir.'
+    : 'Vuelo libre desactivado.', 5000);
+});
+
 ui.onStart(() => { audio.start(); player.start(); });   // el audio necesita un click del usuario
 let devJumped = false, dragHintShown = false;
 player.addEventListener('play', () => {
@@ -372,8 +384,8 @@ function animate() {
   requestAnimationFrame(animate);
   const dt = Math.min(clock.getDelta(), 0.1), t = clock.elapsedTime;
   if (player.playing) {
-    if (!intro?.blockMove() && !ctx.ending && !transition?.busy) player.update(dt);
-    if (!ctx.ending && !transition?.busy) interaction.update();
+    if (player.devMode || (!intro?.blockMove() && !ctx.ending && !transition?.busy)) player.update(dt);
+    if (!player.devMode && !ctx.ending && !transition?.busy) interaction.update();
     const p = camera.position;
     const r = ctx.rooms.find((r) => p.x > r.bounds.minX && p.x < r.bounds.maxX && p.z > r.bounds.minZ && p.z < r.bounds.maxZ);
     if (r) ui.setRoom(r.name);
@@ -386,7 +398,7 @@ function animate() {
   scene.fog.color.copy(outdoorFog).lerp(indoorFog, fogMix);
   ctx.updaters.forEach((fn) => fn(dt, t));
   scene.background.copy(outdoorFog).lerp(scene.fog.color, fogMix);
-  updateTransition(dt);
+  if (!player.devMode) updateTransition(dt);
   // After updaters: teleports and the final return to the museum happen here.
   ctx.streaming.update(dt);
   ctx.particles.update(dt);
