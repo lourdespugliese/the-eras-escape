@@ -103,7 +103,20 @@ export function buildMuseumPremiere({ root, colliders, centerX = 2, ground = -1.
   const group = new THREE.Group(); group.name = 'museum-premiere'; root.add(group);
   const redCarpet = buildRedCarpet(group, centerX, ground);
   const loader = new THREE.TextureLoader(), banners = [], fixtures = [], pools = [];
-  const pending = [];
+  const pending = [loader.loadAsync('assets/textures/reputation/wine-velvet.webp').then(texture => {
+    texture.colorSpace = THREE.SRGBColorSpace;
+    texture.wrapS = texture.wrapT = THREE.MirroredRepeatWrapping;
+    // Las UVs recorren todo el ancho en U y un metro por unidad en V.
+    const carpetWidth = redCarpet.geometry.attributes.position.getX(1) - redCarpet.geometry.attributes.position.getX(0);
+    const tileSize = 2.4;
+    texture.repeat.set(carpetWidth / tileSize, 1 / tileSize);
+    texture.anisotropy = 8;
+    const material = redCarpet.material;
+    material.map = texture;
+    // Compensa el albedo oscuro del terciopelo para conservar el rojo de la alfombra.
+    material.color.setRGB(8, 1.4, 0.85);
+    material.needsUpdate = true;
+  }, error => { console.warn('[premiere] No se pudo cargar el terciopelo de la alfombra.', error); })];
   const casing = new THREE.MeshStandardMaterial({ color: 0x13171d, metalness: 0.65, roughness: 0.36 });
   const lensMaterial = new THREE.MeshBasicMaterial({ color: 0xe5f0ff, toneMapped: false });
   const glow = haloTexture();
