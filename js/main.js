@@ -12,12 +12,8 @@ import { Particles } from './particles.js';
 import { buildFearlessRoom } from './rooms.js';
 import { createFearlessPuzzle } from './puzzles.js';
 import { createGlitter } from './glitter.js';
-import { buildRoom1989 } from './room1989.js';
-import { buildRoomReputation } from './roomreputation.js';
 import { buildIntro } from './intro.js';
-import { buildRoomLover } from './roomlover.js';
 import { buildTrophyHall } from './trophies.js';
-import { buildForestTransition } from './forest-transition.js';
 import { createSecrets } from './secrets.js';
 import { buildSongShelf } from './songshelf.js';
 import { createVolume } from './volume.js';
@@ -90,24 +86,6 @@ const ctx = {
 ctx.secrets = createSecrets(ctx, { total: 3 });
 const registry = createRoomRegistry(ctx);
 
-await loadingStage('Despertando Fearless…');
-let room1 = registry.build('Fearless', () => {
-  const room = buildFearlessRoom(ctx);
-  ctx.glitter = createGlitter(ctx);
-  room.cleanup = createFearlessPuzzle(ctx, room);
-  return room;
-});
-await loadingStage('Viajando a 1989…');
-let room2 = registry.build('1989', () => buildRoom1989(ctx, room1));
-await loadingStage('Descubriendo Reputation…');
-let room3 = registry.build('Reputation', () => buildRoomReputation(ctx, room2));
-await loadingStage('Pintando el cielo de Lover…');
-let room4 = registry.build('Lover', () => buildRoomLover(ctx, room3));
-const transition = registry.build('Transición a Folklore', () => buildForestTransition(ctx, room4.bounds.minZ));
-let room5, room6;
-
-// Introducción inmersiva (exterior, hall y luz guía). Debe crearse DESPUÉS de las salas.
-// Para saltarla mientras desarrollas, abre el juego con  http://localhost:8000/?skip
 // ---- Atajos de desarrollo (por la URL) ----
 //   ?skip       salta la intro y empieza en la sala 1
 //   ?room=N     salta la intro y prepara la sala N (1-6): inventario con los objetos de las salas anteriores
@@ -115,8 +93,105 @@ let room5, room6;
 //               y puertas anteriores abiertas. La puerta de salida de la sala N sigue cerrada (se abre al resolverla).
 //   ?perf       deja renderer, escena, cámara, composer y visibilidad en window.__perf para medir desde la consola
 const params = new URLSearchParams(location.search);
-const START_ROOM = Math.min(parseInt(params.get('room'), 10) || 0, 6);
+const START_ROOM = THREE.MathUtils.clamp(parseInt(params.get('room'), 10) || 0, 0, 6);
 const FINALE = params.has('lobby') || params.has('finale');   // ?lobby (o ?finale): empiezas en el hall con los 6 trofeos recogidos (para probar la ceremonia final)
+
+const stages = [
+  { name: 'Fearless' },
+  { name: '1989', load: async () => (await import('./room1989.js')).buildRoom1989 },
+  { name: 'Reputation', load: async () => (await import('./roomreputation.js')).buildRoomReputation },
+  { name: 'Lover', load: async () => (await import('./roomlover.js')).buildRoomLover },
+  { name: 'Transición a Folklore', load: async () => {
+    const { buildForestTransition } = await import('./forest-transition.js');
+    return (ctx, previous) => buildForestTransition(ctx, previous.bounds.minZ);
+  } },
+  { name: 'Folklore', load: async () => (await import('./roomforest.js')).buildRoomForest },
+  { name: 'Midnights', load: async () => (await import('./roommidnights.js')).buildRoomMidnights },
+];
+const stageRooms = [];
+const stageLoads = new Map();
+const stageReady = new Set();
+const requestedDoors = new Set();
+let transition;
+let onStageBuilt = null;
+let retryAfter = 0;
+
+function buildStage(index, build) {
+  const { name } = stages[index];
+  const firstZone = ctx.rooms.length;
+  const previous = stageRooms[index - 1];
+  const room = registry.build(name, () => build(ctx, previous), {
+    stage: index,
+    entryZ: previous?.door?.mesh.position.z ?? previous?.exitZ,
+    entryX: previous?.door?.mesh.position.x ?? (index === 0 ? 2 : 0),
+  });
+  stageRooms[index] = room;
+  if (index === 4) {
+    transition = room;
+    ctx.rooms.push({ name, bounds: room.bounds });
+  }
+  if (room.door && stages[index + 1]) {
+    const unlock = room.door.unlock;
+    let waiting = false;
+    room.door.unlock = () => {
+      if (!room.door.locked) return;
+      if (stageReady.has(index + 1)) {
+        requestedDoors.delete(index);
+        return unlock();
+      }
+      requestedDoors.add(index);
+      if (waiting || performance.now() < retryAfter) return;
+      waiting = true;
+      ui.toast(`Preparando ${stages[index + 1].name}…`);
+      loadStage(index + 1).then(() => {
+        requestedDoors.delete(index);
+        unlock();
+      }, reportStageError).finally(() => { waiting = false; });
+    };
+  }
+  onStageBuilt?.(ctx.rooms.slice(firstZone));
+  return room;
+}
+
+function loadStage(index) {
+  if (stageReady.has(index)) return Promise.resolve(stageRooms[index]);
+  if (!stageLoads.has(index)) {
+    const load = (async () => {
+      const build = await stages[index].load();
+      await nextPaint();
+      const room = stageRooms[index] ?? buildStage(index, build);
+      await room.materials?.ready;
+      stageReady.add(index);
+      return room;
+    })();
+    stageLoads.set(index, load.finally(() => stageLoads.delete(index)));
+  }
+  return stageLoads.get(index);
+}
+
+function reportStageError(error) {
+  retryAfter = performance.now() + 5000;
+  console.error('[salas] No se pudo preparar la siguiente sala:', error);
+  ui.toast('No pudimos preparar la siguiente sala. Volvé a acercarte a la puerta para reintentar.', 6500);
+}
+
+if (!FINALE) {
+  await loadingStage('Despertando Fearless…');
+  buildStage(0, () => {
+    const room = buildFearlessRoom(ctx);
+    ctx.glitter = createGlitter(ctx);
+    room.cleanup = createFearlessPuzzle(ctx, room);
+    return room;
+  });
+  stageReady.add(0);
+  // Los atajos preparan la ruta hasta el punto donde empieza la prueba.
+  for (let i = 1; i < Math.min(START_ROOM, 5); i++) {
+    await loadingStage(`Preparando ${stages[i].name}…`);
+    await loadStage(i);
+  }
+}
+
+// La intro conecta el hall con Fearless cuando se construyen las salas.
 await loadingStage('Preparando el museo…');
 function buildMuseum(firstRoom) {
   return registry.build('Museo', () => {
@@ -133,7 +208,7 @@ function buildMuseum(firstRoom) {
     };
   }).sequence;
 }
-let intro = buildMuseum(room1);
+let intro = buildMuseum(stageRooms[0]);
 
 // >>> atajo ?room=N
 function placeInRoom(room) {
@@ -143,92 +218,132 @@ function placeInRoom(room) {
   camera.position.set(x, 1.7, z);
   camera.rotation.set(0, 0, 0);
 }
-function jumpToRoom(n, list) {
+function jumpToRoom(n) {
   if (n < 5) ITEMS.slice(0, n - 1).forEach(it => ctx.collect(it.id, { silent: true }));
   const creak = ctx.audio.creak; ctx.audio.creak = () => {};                              // sin el crujido de cada puerta
-  list.slice(0, n - 1).forEach((r) => r.door.unlock());                                   // puertas anteriores abiertas
+  stageRooms.slice(0, Math.min(n - 1, 4)).forEach((r) => r.door.unlock());                // puertas anteriores abiertas
   ctx.audio.creak = creak;
   if (n >= 5) {
     camera.position.set(0, 1.7, transition.centerZ - 0.01);
     camera.rotation.set(0, 0, 0);
-  } else if (n > 1) placeInRoom(list[n - 1]);
+  } else if (n > 1) placeInRoom(stageRooms[n - 1]);
 }
 // <<< atajo ?room=N
 
 await loadingStage('Iluminando los recuerdos…');
-const lighting = setupLighting({ renderer, scene, camera, ctx });   // tone mapping, reflejos en metales y sombras (después de crear todo)
+const lighting = setupLighting({ renderer, scene, camera, ctx });   // tone mapping, reflejos y sombras de las salas iniciales
 // Zonas en cadena (exterior -> hall -> salas 1-6) y la puerta que une cada una con la siguiente: lo que no se ve no se dibuja.
 const hallZone = ctx.rooms.find((r) => /^Hall/.test(r.name));
 const chain = [{ name: 'exterior', bounds: { minX: -1e3, maxX: 1e3, minZ: hallZone.bounds.maxZ, maxZ: 1e3 } }, hallZone, ...ctx.rooms.filter((r) => r !== hallZone)];
-const roomDoors = [room1, room2, room3, room4].map((r) => r.door);
 const shadowZones = lights => lights.map(({ light, room }) => ({ light, zone: room === 'exterior' ? 0 : chain.indexOf(room) }));
 const visibility = setupVisibility({
   scene, camera, zones: chain,
-  openings: () => { const d = intro?.doors; return [d?.front, d?.fearless, ...roomDoors.map(door => door && !door.locked)]; },
+  openings: () => {
+    const doors = intro?.doors;
+    return [doors?.front, doors?.fearless, ...stageRooms.map((room, i) =>
+      i === 4 ? room?.phase === 'open' : room?.door && !room.door.locked)];
+  },
   shadowLights: shadowZones([...lighting.roomShadows(ctx.rooms), ...lighting.museumShadows()]),
 });
 const lightBudget = setupLightBudget({ renderer, scene, camera, target: composer.readBuffer, zone: () => visibility.current });   // después de visibility: usa su zona y los reflejos activos
+
+function currentStage() {
+  // Cada etapa incluye el pasillo desde la puerta anterior.
+  for (let i = registry.entries.length - 1; i >= 0; i--) {
+    const { stage, entryZ } = registry.entries[i];
+    if (stage !== undefined && camera.position.z <= entryZ) return stage;
+  }
+  return -1;
+}
+
 ctx.streaming = setupStreaming({ scene, camera, renderer, entries: registry.entries,
   ready: () => lightBudget.ready,
+  currentStage,
+  canSeeNext: stage => {
+    if (stage === -1) return intro?.doors.fearless;
+    if (stage === 4) return transition?.phase === 'open';
+    const door = stageRooms[stage]?.door;
+    return door && !door.locked;
+  },
+  canSeeMuseum: () => !intro?.sealed,
   forget: objects => { visibility.forget(objects); lightBudget.forget(objects); },
   invalidate: () => { visibility.invalidate(); lightBudget.invalidate(); },
 });
+onStageBuilt = newZones => {
+  chain.push(...newZones);
+  lighting.scan();
+  visibility.addShadows(shadowZones(lighting.roomShadows(newZones)));
+  ctx.streaming.refresh();
+  ctx.streaming.update();
+};
+ctx.streaming.refresh();
+
+function preloadNextStage() {
+  const index = currentStage();
+  if (index < 0 || index === 4 || !stageReady.has(index)) return;
+  const next = index + 1;
+  if (!stages[next] || stageLoads.has(next) || performance.now() < retryAfter) return;
+  const room = stageRooms[index];
+  const door = room.door.mesh.position;
+  const { x, z } = camera.position;
+  if (Math.hypot(x - door.x, z - door.z) > 8) return;
+  if (requestedDoors.has(index)) {
+    room.door.unlock();
+    return;
+  }
+  if (!stageReady.has(next)) loadStage(next).catch(reportStageError);
+}
+
 async function loadForest() {
   ui.setRoom('Transición a Folklore');
   transition.message('Dejando atrás el museo…');
   await nextPaint();
   await lightBudget.initialReady;
   ctx.streaming.discard(['Fearless', '1989', 'Reputation', 'Lover', 'Museo']);
-  intro = room1 = room2 = room3 = room4 = null;
-  roomDoors.fill(null, 0, 4);
+  intro = null;
+  stageRooms.fill(null, 0, 4);
   ctx.museum = ctx.glitter = null;
   clearMuseumMaterialCache();
   clearRoundedGeometryCache();
   if (START_ROOM >= 5) ITEMS.slice(0, START_ROOM - 1).forEach(it => ctx.collect(it.id, { silent: true }));
 
   transition.message('La puerta se abrirá en breve');
-  await nextPaint();
-  const [{ buildRoomForest }, { buildRoomMidnights }] = await Promise.all([import('./roomforest.js'), import('./roommidnights.js')]);
-  const firstNewZone = ctx.rooms.length;
-  room5 = registry.build('Folklore', () => buildRoomForest(ctx, transition));
-  await nextPaint();
-  room6 = registry.build('Midnights', () => buildRoomMidnights(ctx, room5));
-  const newZones = ctx.rooms.slice(firstNewZone);
-  chain.push(...newZones);
-  roomDoors.push(room5.door);
-  lighting.scan();
-  visibility.addShadows(shadowZones(lighting.roomShadows(newZones)));
-  registry.entries.find(entry => entry.name === 'Midnights').available = () => !room5.door.locked;
-  ctx.streaming.refresh();
-  ctx.streaming.update();
-
-  await Promise.all([room5.materials.ready, room6.materials.ready]);
-  const forest = registry.entries.find(entry => entry.name === 'Folklore');
-  await lightBudget.prepare('noche', forest.group);
+  await loadStage(5);
+  if (START_ROOM === 6) await loadStage(6);
   transition.open();
 }
 function updateTransition(dt) {
+  if (!transition) return;
   const wasOpening = transition.phase === 'opening';
-  transition.update(dt, !!room4 && !room4.door.locked, () => {
+  transition.update(dt, stageRooms[3]?.door.locked === false, () => {
     loadForest().catch(error => {
       console.error('[Folklore] No se pudo preparar el bosque:', error);
       transition.fail('No pudimos preparar el bosque. Recargá la página para volver a intentar.');
     });
   });
   if (START_ROOM === 6 && wasOpening && transition.phase === 'open') {
-    room5.door.unlock();
-    placeInRoom(room6);
+    stageRooms[5].door.unlock();
+    placeInRoom(stageRooms[6]);
   }
 }
 ctx.returnToMuseum = () => {
   if (!intro) {
+    ctx.streaming.discard(['Transición a Folklore', 'Folklore', 'Midnights']);
+    transition = null;
+    stageRooms.length = 0;
+    stageReady.clear();
+    requestedDoors.clear();
+    ctx.rooms.splice(0, ctx.rooms.length, hallZone);
+    chain.length = 2;
+    clearRoundedGeometryCache();
     intro = buildMuseum(null);
+    lighting.scan();
     visibility.addShadows(shadowZones(lighting.museumShadows()));
     ctx.streaming.refresh();
   }
   intro.returnToHall();
 };
-if (params.has('perf')) window.__perf = { renderer, scene, camera, composer, ctx, player, visibility, lightBudget, streaming: ctx.streaming, transition };
+if (params.has('perf')) window.__perf = { renderer, scene, camera, composer, ctx, player, visibility, lightBudget, streaming: ctx.streaming, get transition() { return transition; } };
 
 ui.onStart(() => { audio.start(); player.start(); });   // el audio necesita un click del usuario
 let devJumped = false, dragHintShown = false;
@@ -242,25 +357,35 @@ player.addEventListener('play', () => {
     devJumped = true;
     try {
       ITEMS.forEach((it) => ctx.collect(it.id, { silent: true }));                          // los 6 trofeos recogidos (sin avisos)
-      intro.returnToHall();                                                                 // aparece en el hall
+      ctx.returnToMuseum();
     } catch (e) { console.error('[dev] ?lobby falló:', e); ui.toast('[dev] ?lobby falló: ' + (e && e.message ? e.message : e), 12000); }
   }
-  if (START_ROOM > 0 && !devJumped) { devJumped = true; jumpToRoom(START_ROOM, [room1, room2, room3, room4]); }
+  if (START_ROOM > 0 && !devJumped) { devJumped = true; jumpToRoom(START_ROOM); }
 });
 player.addEventListener('pause', () => { audio.pause(); ui.showGame(false); });
 
 const clock = new THREE.Clock();
+const indoorFog = new THREE.Color(0x333640);
+const outdoorFog = new THREE.Color(0x070b14);
+let fogMix = 0;
 function animate() {
   requestAnimationFrame(animate);
   const dt = Math.min(clock.getDelta(), 0.1), t = clock.elapsedTime;
   if (player.playing) {
-    if (!intro?.blockMove() && !ctx.ending && !transition.busy) player.update(dt);
-    if (!ctx.ending && !transition.busy) interaction.update();
+    if (!intro?.blockMove() && !ctx.ending && !transition?.busy) player.update(dt);
+    if (!ctx.ending && !transition?.busy) interaction.update();
     const p = camera.position;
     const r = ctx.rooms.find((r) => p.x > r.bounds.minX && p.x < r.bounds.maxX && p.z > r.bounds.minZ && p.z < r.bounds.maxZ);
     if (r) ui.setRoom(r.name);
+    preloadNextStage();
   }
+  // Folklore y Midnights mezclan su propia niebla sobre esta base.
+  fogMix = THREE.MathUtils.damp(fogMix, currentStage() >= 0 ? 1 : 0, 4, dt);
+  scene.fog.near = THREE.MathUtils.lerp(40, 8, fogMix);
+  scene.fog.far = THREE.MathUtils.lerp(170, 30, fogMix);
+  scene.fog.color.copy(outdoorFog).lerp(indoorFog, fogMix);
   ctx.updaters.forEach((fn) => fn(dt, t));
+  scene.background.copy(outdoorFog).lerp(scene.fog.color, fogMix);
   updateTransition(dt);
   // After updaters: teleports and the final return to the museum happen here.
   ctx.streaming.update(dt);

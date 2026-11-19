@@ -4,11 +4,10 @@ import * as THREE from 'three';
 export class Particles {
   constructor(scene, max = 300) {
     this.max = max;
-    this.pos = new Float32Array(max * 3).fill(0);
+    this.pos = new Float32Array(max * 3).fill(1e6);
     this.vel = new Float32Array(max * 3);
     this.life = new Float32Array(max);
     this.next = 0;
-    for (let i = 0; i < max; i++) this.pos[i * 3 + 1] = -100;   // partículas "muertas" fuera de vista
     const geo = new THREE.BufferGeometry();
     geo.setAttribute('position', new THREE.BufferAttribute(this.pos, 3));
     this.geo = geo;
@@ -17,11 +16,13 @@ export class Particles {
       depthWrite: false, blending: THREE.AdditiveBlending,
     }));
     this.points.frustumCulled = false;
+    this.points.visible = false;
     scene.add(this.points);
   }
 
   // Lanza "count" partículas desde "center" (Vector3).
   burst(center, count = 30, { speed = 1.2, up = 1.5 } = {}) {
+    this.points.visible = count > 0;
     for (let k = 0; k < count; k++) {
       const i = this.next; this.next = (this.next + 1) % this.max;
       const p = i * 3;
@@ -34,14 +35,18 @@ export class Particles {
   }
 
   update(dt) {
+    let active = false;
     for (let i = 0; i < this.max; i++) {
       if (this.life[i] <= 0) continue;
+      active = true;
       const p = i * 3;
       this.life[i] -= dt;
       this.vel[p + 1] -= 0.8 * dt;                  // gravedad suave
       this.pos[p] += this.vel[p] * dt; this.pos[p + 1] += this.vel[p + 1] * dt; this.pos[p + 2] += this.vel[p + 2] * dt;
-      if (this.life[i] <= 0) this.pos[p + 1] = -100;
+      if (this.life[i] <= 0) this.pos.fill(1e6, p, p + 3);
     }
+    this.points.visible = active;
+    if (!active) return;
     this.geo.attributes.position.needsUpdate = true;
   }
 }

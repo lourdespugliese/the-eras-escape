@@ -107,6 +107,11 @@ export function buildForestTransition(ctx, entryZ) {
   let phase = 'waiting';
   return {
     bounds, entryZ, exitZ, centerZ,
+    cleanup() {
+      const index = ctx.colliders.indexOf(rear.collider);
+      if (index >= 0) ctx.colliders.splice(index, 1);
+      status.remove();
+    },
     get phase() { return phase; },
     get busy() { return phase !== 'waiting' && phase !== 'open'; },
     message(text) { status.textContent = text; status.hidden = false; },

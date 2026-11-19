@@ -36,19 +36,19 @@ Con `?room=N` el juego deja todo como si ya hubieras pasado las salas anteriores
 - El inventario trae los objetos de las salas anteriores.
 - En las salas 1 a 4, las puertas anteriores quedan abiertas y aparecés junto a la entrada de la sala elegida.
 - La cámara de Folklore cierra el paso hacia Lover y descarga las salas anteriores antes de abrir la salida al bosque.
+- Al cruzar el portal de Midnights se descargan Folklore, su cámara de transición y Midnights. El hall final y el exterior del museo quedan disponibles.
 - La puerta de **salida** de la sala N sigue cerrada: se abre al resolver su acertijo.
 
 Notas:
 - Si N es mayor que el número de salas construidas, se usa la última sala.
 - El progreso no se guarda: al recargar se vuelve a empezar.
-- Al construir una sala nueva, agrégala a la lista que recibe `jumpToRoom` en `main.js`
-  (`[room1, room2, room3, room4, ...]`) y `?room=N` la reconocerá.
+- La secuencia de carga y los módulos de las salas se configuran en `stages` en `js/main.js`.
 
 ## Rendimiento y memoria gráfica
 
-Las salas se registran en `js/streaming.js`. Las que quedan lejos se separan de la escena y liberan sus geometrías, texturas y buffers de instancias de la GPU; vuelven a conectarse antes de entrar en el alcance visible. Los recursos compartidos con salas presentes se conservan. Los objetos originales, las fuentes de las texturas en RAM y el progreso de los acertijos se mantienen, por lo que regresar no reinicia una sala ni requiere descargar sus imágenes otra vez. Las salas todavía se construyen al inicio: esta optimización no es carga de archivos por demanda.
+Las salas se registran en `js/streaming.js`. Las que quedan lejos se separan de la escena y liberan sus geometrías, texturas y buffers de instancias de la GPU. Conservan el estado en RAM para volver a conectarse antes de entrar en el alcance visible. Al sellar una etapa del recorrido se eliminan sus salas del registro y se liberan sus recursos y referencias. Los recursos compartidos con salas presentes se conservan.
 
-El alcance se calcula con la niebla y la cámara existentes, teniendo en cuenta las esquinas de la pantalla, más 4 m de precarga y 4 m de margen para evitar cargas repetidas al moverse sobre un límite. No se reducen resolución, texturas, antialiasing, bloom ni calidad de sombras. Las animaciones lejanas se suspenden conservando las transiciones globales de iluminación.
+Al iniciar se construyen el museo y Fearless. Cada sala prepara la siguiente al acercarse a su puerta. El renderizado de la sala siguiente empieza cuando se abre la puerta y sus partículas se activan cerca del umbral. La escena mantiene la sala actual y la anterior inmediata dentro del alcance de la cámara. La niebla interior reduce la visibilidad a distancia y las animaciones se suspenden al separar una sala de la escena.
 
 La vegetación del bosque se agrupa en sectores de 8 m. Se conservan todas las instancias, sus transformaciones, colores, geometrías y materiales. Los sectores que quedan fuera de la cámara ya no se envían a dibujar; los límites incluyen margen para el viento.
 

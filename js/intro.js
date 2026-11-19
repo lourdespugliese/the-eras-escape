@@ -549,6 +549,8 @@ export function buildIntro(ctx, room1, { player, skip = false } = {}) {
     removeColliders((c) => near(c.minZ, 4.8) && near(c.maxZ, 5.2) && c.maxX - c.minX < 7 && c.minX > -5.05 && c.maxX < 9.05);
     const full = new THREE.Mesh(new THREE.BoxGeometry(14, 4, 0.4), mat); full.position.set(2, 2, 5); g1.add(full);
     room1.sealEntranceTrim?.();
+    room1.lights.mute = 1;
+    room1.lights.apply();
     sealedCollider = { minX: -5, maxX: 9, minZ: 4.8, maxZ: 5.2 };
     ctx.colliders.push(sealedCollider);
     // 2) la moldura dorada vuelve a ser continua y 3) la foto del medio vuelve a su sitio original
@@ -682,7 +684,8 @@ export function buildIntro(ctx, room1, { player, skip = false } = {}) {
       light.intensity = inZone * 28 * out;
     });
     if (room1) {
-      room1.lights.mute = Math.min(room1.lights.mute, Math.max(0.04, fOpen ? Math.max(clamp((5.4 - z) / 1.8, 0, 1), 0.22) : clamp((5.4 - z) / 1.8, 0, 1)));
+      const entranceLight = clamp((5.4 - z) / 1.8, 0.04, 1);
+      room1.lights.mute = fOpen ? Math.max(entranceLight, 0.22) : entranceLight;
       room1.lights.apply();
     }
     const rainOutside = smooth(FZ, FZ + 1.2, z);
@@ -886,6 +889,7 @@ export function buildIntro(ctx, room1, { player, skip = false } = {}) {
       hudMode('minimal'); setPhase('opening'); it = 0;
     },
     get phase() { return phase; },
+    get sealed() { return sealed; },
     get guide() { return { phase: orbPhase, obj: orb }; },     // solo lectura (para pruebas)
     get doors() { return { front: doorAngle > 0.001, fearless: fAngle > 0.001 }; },   // visibility.js: ¿se ve a través de ellas?
   };

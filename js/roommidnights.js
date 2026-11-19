@@ -286,7 +286,8 @@ export function buildRoomMidnights(ctx, room5) {
 
   // ---------------- Portal de regreso al museo (fondo del pasillo de salida) ----------------
   // Aparece cuando se abre la puerta norte. Al cruzarlo, ctx.returnToMuseum() (definido en main.js) te devuelve al Hall principal.
-  const flash = (typeof document !== 'undefined' && document.body) ? document.createElement('div') : null;
+  let flash = (typeof document !== 'undefined' && document.body) ? document.createElement('div') : null;
+  let portalTimer;
   if (flash) { flash.style.cssText = 'position:fixed;inset:0;z-index:9;pointer-events:none;opacity:0;transition:opacity 1s;background:radial-gradient(circle,#fff6e0 0%,#cbb8ff 45%,#2a1a5a 100%);'; document.body.appendChild(flash); }
   const portal = (() => {
     const px = 0, py = 1.6, pz = doorZ - HALL + 0.35, rad = 1.25;
@@ -308,10 +309,19 @@ export function buildRoomMidnights(ctx, room5) {
       enter() {
         P.used = true; ctx.audio.success();
         if (flash) flash.style.opacity = '1';
-        setTimeout(() => {
-          if (ctx.returnToMuseum) ctx.returnToMuseum();
-          else { P.used = false; ctx.ui.toast('El portal vibra, pero todavía no sabe a dónde llevarte.', 4000); }
-          if (flash) setTimeout(() => (flash.style.opacity = '0'), 250);
+        portalTimer = setTimeout(() => {
+          if (!ctx.returnToMuseum) {
+            P.used = false;
+            if (flash) flash.style.opacity = '0';
+            ctx.ui.toast('El portal vibra, pero todavía no sabe a dónde llevarte.', 4000);
+            return;
+          }
+          if (flash) {
+            const fade = flash.animate([{ opacity: 1 }, { opacity: 0 }], { delay: 250, duration: 1000, fill: 'both' });
+            fade.onfinish = () => fade.effect.target.remove();
+            flash = null;
+          }
+          ctx.returnToMuseum();
         }, 1100);
       },
     };
@@ -367,7 +377,14 @@ export function buildRoomMidnights(ctx, room5) {
     if (!welcomed && z < southZ + 3) { welcomed = true; ctx.ui.toast('Es más de medianoche y esta sala nunca duerme: relojes, espejos, un tablero enorme y un teléfono que no suena.', 7000); }
   });
 
-  return { group: g, bounds, x: 0, z: CZ, w: W, d: D, door, lights, openHall, puzzle, materials, propsRoot:g };
+  return {
+    group: g, bounds, x: 0, z: CZ, w: W, d: D, door, lights, openHall, puzzle, materials, propsRoot: g,
+    cleanup() {
+      clearTimeout(portalTimer);
+      flash?.remove();
+      puzzle.cleanup();
+    },
+  };
 }
 
 // ============================================================================================================
@@ -452,7 +469,7 @@ export const chessTools = { gridOf, attackSquares, verdictOf, whiteMovesOf, blac
 
 // ---------------- Lector de notas (panel HTML) ----------------
 function makeReader(player) {
-  const none = { open: false, key: null, show() {}, hide() {}, toggle() {} };
+  const none = { open: false, key: null, show() {}, hide() {}, toggle() {}, dispose() {} };
   if (typeof document === 'undefined' || !document.body || !document.createElement) return none;
   const el = document.createElement('div');
   el.style.cssText = 'position:fixed;inset:0;z-index:7;display:none;align-items:center;justify-content:center;pointer-events:none;';
@@ -468,8 +485,9 @@ function makeReader(player) {
     show(key, title, text) { r.open = true; r.key = key; head.textContent = title; body.textContent = text; el.style.display = 'flex'; },
     hide() { r.open = false; r.key = null; el.style.display = 'none'; },
     toggle(key, title, text) { if (r.open && r.key === key) r.hide(); else r.show(key, title, text); },
+    dispose() { player.removeEventListener('pause', r.hide); el.remove(); },
   };
-  player.addEventListener('pause', () => r.hide());
+  player.addEventListener('pause', r.hide);
   return r;
 }
 
@@ -477,6 +495,8 @@ function createMidnightsPuzzle(ctx, env) {
   const { g, materials, CZ, TALL, R, BD, phone, mat, box, cyl, hit, colBox, colRound, makeGlow, light, dark, sqx, sqz, ball, ballGlow, rod, BALL, orbs, hHour, hMin, hSec, clockGlow, addSource, onSolved } = env;
   const animationBounds = { minX: -W / 2, maxX: W / 2, minZ: CZ - D / 2, maxZ: CZ + D / 2 };
   const reader = makeReader(ctx.player), clamp = THREE.MathUtils.clamp, ease = (k) => 1 - Math.pow(1 - k, 3);
+  const callTimers = [];
+  let boardUnlockTimer;
   const state = { call: false, clock: false, chess: false, night: false, gears: 0, placed: 0 };
   const finale = { on: false, t: 0, strikes: 0, ballDone: false, keyT: -1 };
   const wp = (x, y, z) => g.localToWorld(new THREE.Vector3(x, y, z));
@@ -519,8 +539,9 @@ function createMidnightsPuzzle(ctx, env) {
       if (reader.open) { reader.hide(); return; }
       if (dialVals.every((v) => v === 0)) { ctx.ui.toast('El teléfono espera un número. Las ruedas del atril lo marcan.', 4000); return; }
       if (!dialVals.every((v, i) => v === CALL_CODE[i])) { ctx.audio.error(); ctx.ui.toast('Tono de ocupado... ese número no existe.', 3500); return; }
-      state.call = true; [0, 450, 900].forEach((d) => setTimeout(() => ctx.audio.note(480), d));
-      setTimeout(() => { reader.show('call', T_CALL.title, T_CALL.text); ctx.audio.chime(); }, 1500);
+      state.call = true;
+      for (const delay of [0, 450, 900]) callTimers.push(setTimeout(() => ctx.audio.note(480), delay));
+      callTimers.push(setTimeout(() => { reader.show('call', T_CALL.title, T_CALL.text); ctx.audio.chime(); }, 1500));
     },
   });
 
@@ -742,7 +763,7 @@ function createMidnightsPuzzle(ctx, env) {
     });
     if (resetT >= 0) {
       resetT += dt;
-      if (resetT > 1.8) { resetT = -1; board.pcs.forEach((p) => { if (p.x !== p.hx || p.y !== p.hy) { p.anim = { fx: p.gr.position.x, fz: p.gr.position.z, tx: toX(p.hx), tz: toZ(p.hy), t: 0, after: null }; p.x = p.hx; p.y = p.hy; } }); setTimeout(() => (board.locked = false), 600); }
+      if (resetT > 1.8) { resetT = -1; board.pcs.forEach((p) => { if (p.x !== p.hx || p.y !== p.hy) { p.anim = { fx: p.gr.position.x, fz: p.gr.position.z, tx: toX(p.hx), tz: toZ(p.hy), t: 0, after: null }; p.x = p.hx; p.y = p.hy; } }); boardUnlockTimer = setTimeout(() => (board.locked = false), 600); }
     }
     squares.forEach((s) => { if (s.dot.visible) s.dot.material.opacity = 0.5 + 0.25 * Math.sin(t * 5); });
     if (kingT >= 0 && kingT < 1) {
@@ -774,5 +795,13 @@ function createMidnightsPuzzle(ctx, env) {
     }
   });
 
-  return { state, finale, board, dialVals, reader, gearA, gearB, gearC, key, fHour, fMin, orbsLit: () => orbs.filter((o) => o.lit).length, totalMin: () => totalMin };
+  return {
+    state, finale, board, dialVals, reader, gearA, gearB, gearC, key, fHour, fMin,
+    orbsLit: () => orbs.filter((o) => o.lit).length, totalMin: () => totalMin,
+    cleanup() {
+      callTimers.forEach(timer => clearTimeout(timer));
+      clearTimeout(boardUnlockTimer);
+      reader.dispose();
+    },
+  };
 }

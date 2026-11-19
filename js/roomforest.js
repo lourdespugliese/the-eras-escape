@@ -201,7 +201,7 @@ const signTex = (lines, w, h, { bg = '#3a2818', fg = '#f3d38a', font = 'bold 40p
 
 // ================= Lector de cartas (panel HTML) y fundido =================
 function makeReader(player) {
-  const none = { open: false, key: null, show() {}, hide() {}, toggle() {} };
+  const none = { open: false, key: null, show() {}, hide() {}, toggle() {}, dispose() {} };
   if (typeof document === 'undefined' || !document.body || !document.createElement) return none;
   const el = document.createElement('div');
   el.style.cssText = 'position:fixed;inset:0;z-index:7;display:none;align-items:center;justify-content:center;pointer-events:none;';
@@ -217,16 +217,21 @@ function makeReader(player) {
     show(key, title, text) { r.open = true; r.key = key; head.textContent = title; body.textContent = text; el.style.display = 'flex'; },
     hide() { r.open = false; r.key = null; el.style.display = 'none'; },
     toggle(key, title, text) { if (r.open && r.key === key) r.hide(); else r.show(key, title, text); },
+    dispose() { player.removeEventListener('pause', r.hide); el.remove(); },
   };
-  player.addEventListener('pause', () => r.hide());
+  player.addEventListener('pause', r.hide);
   return r;
 }
 function makeFade() {
-  if (typeof document === 'undefined' || !document.body || !document.createElement) return { flash(cb) { cb(); } };
+  if (typeof document === 'undefined' || !document.body || !document.createElement) return { flash(cb) { cb(); }, dispose() {} };
   const el = document.createElement('div');
   el.style.cssText = 'position:fixed;inset:0;z-index:9;background:#dfe8ee;opacity:0;pointer-events:none;transition:opacity .45s;';
   document.body.appendChild(el);
-  return { flash(cb) { el.style.opacity = '1'; setTimeout(() => { cb(); el.style.opacity = '0'; }, 550); } };
+  let timer;
+  return {
+    flash(cb) { el.style.opacity = '1'; timer = setTimeout(() => { cb(); el.style.opacity = '0'; }, 550); },
+    dispose() { clearTimeout(timer); el.remove(); },
+  };
 }
 
 // ================= SALA =================
@@ -249,6 +254,7 @@ export function buildRoomForest(ctx, { entryZ, exitZ: southZ }) {
   const box = (w, h, d, m, x, y, z, p = g) => { const o = new THREE.Mesh(roundedGeometry(w,h,d,.018), m); o.position.set(x, y, z); p.add(o); return o; };
   const cyl = (rt, rb, h, m, x, y, z, seg = 10, p = g) => { const o = new THREE.Mesh(new THREE.CylinderGeometry(rt, rb, h, seg), m===materials.trunk?[m,materials.cutWood,materials.cutWood]:m); o.position.set(x, y, z); p.add(o); return o; };
   const reader = makeReader(ctx.player), fade = makeFade();
+  let stoneReset, willowReset;
   const { walk, X: cellX, Z: cellZ } = layout();
 
   const glowTex = canvasTex(128, 128, (c) => {
@@ -657,7 +663,7 @@ export function buildRoomForest(ctx, { entryZ, exitZ: southZ }) {
       if (STONE_ORDER.every((n, k) => n === stOrder[k])) { stDone = true; openGate(4, 'Las cuatro piedras brillan a la vez. La niebla que cerraba el camino del norte se disuelve.', { x: 15, z: -12 }); return; }
       stBusy = true; ctx.audio.error();
       ctx.ui.toast('Las piedras se apagan de golpe... ese no era el orden. Vuelve a leer la inscripción del tocón.', 4500);
-      setTimeout(() => { for (let k = 0; k < 4; k++) setStone(k, false); stOrder.length = 0; stBusy = false; }, 1300);
+      stoneReset = setTimeout(() => { for (let k = 0; k < 4; k++) setStone(k, false); stOrder.length = 0; stBusy = false; }, 1300);
     }
   }
   // lago helado + caja
@@ -743,7 +749,7 @@ export function buildRoomForest(ctx, { entryZ, exitZ: southZ }) {
     if (WILLOW_ORDER.every((s, k) => s === order[k])) return solveWillow();
     willowBusy = true; ctx.audio.error();
     ctx.ui.toast('Los faroles se apagan de golpe... el orden no era el correcto. Repasa tus notas en el tocón.', 4500);
-    setTimeout(() => { for (let k = 0; k < 5; k++) setLamp(k, false); order.length = 0; willowBusy = false; }, 1300);
+    willowReset = setTimeout(() => { for (let k = 0; k < 5; k++) setLamp(k, false); order.length = 0; willowBusy = false; }, 1300);
   }
   // tocón con las notas
   {
@@ -809,7 +815,7 @@ export function buildRoomForest(ctx, { entryZ, exitZ: southZ }) {
   // =====================================================================================================================
   // ANIMACIÓN, LUCES Y NIEBLA (cada frame)
   // =====================================================================================================================
-  let baseFog = null, welcomed = false, snd = null, fogCol = new THREE.Color(), readerAt = null;
+  let welcomed = false, snd = null, fogCol = new THREE.Color(), readerAt = null;
   const FOG_W = new THREE.Color(0x2a1c10), FOG_C = new THREE.Color(0x141c1a), FOG_E = new THREE.Color(0x1d2c3d);
   const tmpV = new THREE.Vector3(), camDir = new THREE.Vector3();
   const lakeW = wpos(LAKE.x, 0, LAKE.z);
@@ -847,10 +853,9 @@ export function buildRoomForest(ctx, { entryZ, exitZ: southZ }) {
     // ---- niebla global: se espesa al entrar al bosque ----
     const fog = scene.fog;
     if (fog) {
-      if (!baseFog) baseFog = { near: fog.near, far: fog.far, color: fog.color.clone() };
       const fk = clamp((entryZ - 0.5 - z) / 3.5, 0, 1);
       fogCol.copy(FOG_C).lerp(FOG_W, 1 - smooth(-9, -3, x)).lerp(FOG_E, smooth(3, 9, x));
-      fog.near = lerp(baseFog.near, 2.5, fk); fog.far = lerp(baseFog.far, 26, fk); fog.color.copy(baseFog.color).lerp(fogCol, fk);
+      fog.near = lerp(fog.near, 2.5, fk); fog.far = lerp(fog.far, 26, fk); fog.color.lerp(fogCol, fk);
     }
     hallBase = door.opening ? Math.min(8, hallBase + dt * 4) : hallBase; hallLight.intensity = hallBase * lights.mute;
     // ---- lo demás solo se calcula cerca del bosque ----
@@ -905,5 +910,15 @@ export function buildRoomForest(ctx, { entryZ, exitZ: southZ }) {
     for(const y of [-.155,.155])for(const sign of [-1,1]){strut(0,y,sign*.112,.238,.014,.014);strut(sign*.112,y,0,.014,.014,.238);}
   });
   cageFrames.instanceMatrix.needsUpdate=true;cageFrames.name='forest-lantern-cages';g.add(cageFrames);
-  return { group: g, bounds, x: 0, z: CZ, w: W, d: D, door, lights, openHall, materials, propsRoot:g };
+  return {
+    group: g, bounds, x: 0, z: CZ, w: W, d: D, door, lights, openHall, materials, propsRoot: g,
+    cleanup() {
+      clearTimeout(stoneReset);
+      clearTimeout(willowReset);
+      reader.dispose();
+      fade.dispose();
+      snd?.gain.disconnect();
+      snd?.pan?.disconnect();
+    },
+  };
 }

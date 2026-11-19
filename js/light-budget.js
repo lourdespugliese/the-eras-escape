@@ -15,8 +15,8 @@ const START = {
   museo: { PointLight: 13, 'PointLight*': 4, SpotLight: 4, RectAreaLight: 3, DirectionalLight: 1 },            // hall y salas 1-3
   noche: { PointLight: 23, 'PointLight*': 5, DirectionalLight: 1, 'DirectionalLight*': 2, HemisphereLight: 2 }, // salas 4-6
 };
-// Zonas de visibility.js (bit 0 exterior, 1 hall, 2-7 salas 1-6) -> grupo.
-const GROUP = ['exterior', 'museo', 'museo', 'museo', 'museo', 'noche', 'noche', 'noche'];
+// Exterior, hall, salas 1-4, cámara de transición, Folklore y Midnights.
+const GROUP = ['exterior', 'museo', 'museo', 'museo', 'museo', 'noche', 'noche', 'noche', 'noche'];
 const ALL = 'all';                 // fuera de toda zona: el máximo de todos
 const SCAN_EVERY = 1.5;            // s: busca luces nuevas
 
